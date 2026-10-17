@@ -1,5 +1,5 @@
 {
-  "version": "3.0.53",
+  "version": "3.0.54",
   "released": "2026-10-17",
-  "notes": "Sconti per categoria lavori extra, imponibile IVA e SAL ricalcolati"
+  "notes": "Conteggio approvazioni manuali, indicatore firma da verificare, preparazione riconciliazione documenti"
 }
