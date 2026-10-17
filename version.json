@@ -1,5 +1,5 @@
 {
-  "version": "3.0.66",
+  "version": "3.0.67",
   "released": "2026-10-18",
-  "notes": "Storico backup separato con dati e allegati, copie datate e versionate, copia giornaliera all'apertura, verifica integrità e conteggi, anteprima ripristino, copia prima di aggiornamenti e ripristini. Disattivati azzeramento demo e vecchia importazione sovrascrivente. Conservati i moduli della 3.0.65."
+  "notes": "Articoli e magazzino con movimenti tracciati; importazione singola/massiva XML, CSV, Excel, PDF, scansioni, cartelle e ZIP; anteprima e categorie; aggiornamento anagrafiche senza sovrascrivere conflitti; collegamenti cliente/sede/impianto/apparecchiatura/intervento/cantiere; controllo duplicati e DDT-fattura; originali e nuovi archivi inclusi nei backup. Motori PDF/OCR/Excel/ZIP caricati su richiesta con connessione."
 }
