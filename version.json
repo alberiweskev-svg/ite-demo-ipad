@@ -1,5 +1,5 @@
 {
-  "version": "3.0.62",
+  "version": "3.0.63",
   "released": "2026-10-18",
-  "notes": "Apertura scheda cantiere principale, capitoli a scomparsa e lavori extra per categoria accessibili"
+  "notes": "Correzione errore JavaScript che nascondeva nuova scheda cantiere e categorie lavori extra"
 }
