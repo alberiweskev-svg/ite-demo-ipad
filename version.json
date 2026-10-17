@@ -1,5 +1,5 @@
 {
-  "version": "3.0.52",
+  "version": "3.0.53",
   "released": "2026-10-17",
-  "notes": "Scelta approvazione lavori extra tramite pulsanti diretti, senza menu iPad"
+  "notes": "Sconti per categoria lavori extra, imponibile IVA e SAL ricalcolati"
 }
