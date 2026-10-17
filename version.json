@@ -1,5 +1,5 @@
 {
-  "version": "3.0.64",
+  "version": "3.0.60",
   "released": "2026-10-18",
-  "notes": "Storico backup interni con data, versione, ripristino selezionabile; salvataggio automatico giornaliero e prima dell'aggiornamento"
+  "notes": "Ripristino esatto del codice originale della versione 3.0.60; nessuna modifica ai dati locali"
 }
