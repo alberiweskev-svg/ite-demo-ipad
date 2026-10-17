@@ -1,5 +1,5 @@
 {
-  "version": "3.0.49",
+  "version": "3.0.50",
   "released": "2026-10-17",
-  "notes": "Fix salvataggio ed editor lavori extra: blocco refresh durante modifica, conferma del salvataggio"
+  "notes": "Correzione salvataggio extra con righe vuote, segnalazione voce da correggere"
 }
