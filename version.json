@@ -1,5 +1,5 @@
 {
-  "version": "3.0.61",
+  "version": "3.0.62",
   "released": "2026-10-18",
-  "notes": "Aggiorna adesso ricarica pagina direttamente, backup manuale separato"
+  "notes": "Apertura scheda cantiere principale, capitoli a scomparsa e lavori extra per categoria accessibili"
 }
