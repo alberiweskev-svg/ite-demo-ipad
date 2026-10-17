@@ -1,5 +1,5 @@
 {
-  "version": "3.0.65",
+  "version": "3.0.66",
   "released": "2026-10-18",
-  "notes": "Correzione puntuale dell'errore di sintassi nel documento extra che bloccava il modulo Cantieri. Ripristina visualizzazione preventivi e lavori extra. Struttura archivi invariata."
+  "notes": "Storico backup separato con dati e allegati, copie datate e versionate, copia giornaliera all'apertura, verifica integrità e conteggi, anteprima ripristino, copia prima di aggiornamenti e ripristini. Disattivati azzeramento demo e vecchia importazione sovrascrivente. Conservati i moduli della 3.0.65."
 }
