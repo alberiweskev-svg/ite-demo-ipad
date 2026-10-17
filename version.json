@@ -1,5 +1,5 @@
 {
-  "version": "3.0.50",
+  "version": "3.0.51",
   "released": "2026-10-17",
-  "notes": "Correzione salvataggio extra con righe vuote, segnalazione voce da correggere"
+  "notes": "Selezione guidata degli stati lavori extra senza digitazione manuale"
 }
