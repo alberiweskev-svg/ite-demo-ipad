@@ -63,3 +63,15 @@ Collaudare import singolo/massivo misto, reimportazione, scansioni, conflitti an
 3. Importazione singola/massiva e riconoscimento, iniziando dai formati/campioni verificati.
 4. Smistamento, aggiornamenti anagrafici, collegamenti economici/documentali e controlli.
 5. Collaudo completo prima della pubblicazione, senza rimuovere le funzioni precedenti.
+
+
+## Stato attuazione — versione 3.0.67
+Pubblicata e verificata online il 18 ottobre 2026.
+- Aggiunti Articoli e magazzino e Importazione documenti, mantenendo le sezioni precedenti.
+- Importazione singola/massiva: XML FatturaPA, CSV/TSV, Excel/ODS, PDF, immagini con OCR, cartelle e ZIP. Motori PDF/OCR/Excel/ZIP caricati su richiesta dalla rete; elaborazione documenti sul dispositivo.
+- Anteprima, categorie, originali conservati una volta e collegamenti multipli; creazione/completamento anagrafiche e conservazione dei campi discordanti.
+- Riconoscimento direzione XML tramite P.IVA/CF I.T.E. configurati; estrazione generica PDF/OCR da verificare. Dati tecnici Di.Co. estratti per i campi riconoscibili; nessuna nuova dichiarazione ufficiale generata automaticamente.
+- Articoli e movimenti separati, carichi da documenti soltanto dopo conferma, controlli su DDT/fattura, rettifiche tracciate.
+- Archivi nuovi inclusi nel backup completo, nello storico e nel ripristino; protezione importazioni interrotte e confronto di revisione.
+- Test superati: XML acquisto/TD04, CSV anagrafiche e conflitti, duplicati file e identità documentale, Excel reale, PDF reale, ZIP misto, Di.Co. testuale, collegamenti cantieri, doppio carico DDT/fattura, errore quota con rollback, backup/ripristino nuovi archivi. Verificata apertura delle due schermate sul sito pubblicato.
+Limiti dichiarati nell'interfaccia: massimo 500 file, 20 MB per file, 100 MB per lotto; PDF fino a 100 pagine. Dati mancanti o incerti richiedono verifica; importazione fattura non equivale a incasso/pagamento. La rigenerazione completa nel modulo Di.Co., i campioni documentali personalizzati e l'automatismo per impaginazioni non ancora verificate restano da collaudare/estendere separatamente.
