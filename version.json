@@ -1,5 +1,5 @@
 {
-  "version": "3.0.57",
+  "version": "3.0.58",
   "released": "2026-10-17",
-  "notes": "Stampa documenti extra per categorie con pagina finale contrattuale; suggerimento categoria e scelta manuale"
+  "notes": "Stampa A4 categorie con colori propri, intestazione ITE e Patto contrattuale finale verde"
 }
