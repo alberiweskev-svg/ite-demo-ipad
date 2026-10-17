@@ -1,5 +1,5 @@
 {
-  "version": "3.0.54",
+  "version": "3.0.55",
   "released": "2026-10-17",
-  "notes": "Conteggio approvazioni manuali, indicatore firma da verificare, preparazione riconciliazione documenti"
+  "notes": "Registro singoli movimenti economici del cantiere con saldi storici preservati"
 }
