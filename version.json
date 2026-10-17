@@ -1,5 +1,5 @@
 {
-  "version": "3.0.43",
+  "version": "3.0.44",
   "released": "2026-10-17",
-  "notes": "Controllo aggiornamenti all'apertura e al ritorno nell'app"
+  "notes": "Controllo dati e richiesta backup completo prima di aggiornare"
 }
