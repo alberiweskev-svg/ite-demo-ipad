@@ -1,5 +1,5 @@
 {
-  "version": "3.0.48",
+  "version": "3.0.49",
   "released": "2026-10-17",
-  "notes": "Lavori extra: categorie a schede, dettagli espandibili e totali netti IVA sconto"
+  "notes": "Fix salvataggio ed editor lavori extra: blocco refresh durante modifica, conferma del salvataggio"
 }
