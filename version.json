@@ -1,5 +1,5 @@
 {
-  "version": "3.0.56",
+  "version": "3.0.57",
   "released": "2026-10-17",
-  "notes": "Documento unico di tutti gli extra del cantiere, approvazione totale/parziale per voce con conteggio distinto"
+  "notes": "Stampa documenti extra per categorie con pagina finale contrattuale; suggerimento categoria e scelta manuale"
 }
