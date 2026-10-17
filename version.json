@@ -1,5 +1,5 @@
 {
-  "version": "3.0.60",
-  "released": "2026-10-17",
-  "notes": "Cantieri a capitoli espandibili; lavori extra organizzati in categorie con aggiunta contestuale"
+  "version": "3.0.61",
+  "released": "2026-10-18",
+  "notes": "Aggiorna adesso ricarica pagina direttamente, backup manuale separato"
 }
