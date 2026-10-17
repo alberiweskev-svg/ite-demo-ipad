@@ -1,5 +1,5 @@
 {
-  "version": "3.0.63",
+  "version": "3.0.60",
   "released": "2026-10-18",
-  "notes": "Correzione errore JavaScript che nascondeva nuova scheda cantiere e categorie lavori extra"
+  "notes": "Ripristino della versione 3.0.60 su richiesta, senza modificare dati locali"
 }
