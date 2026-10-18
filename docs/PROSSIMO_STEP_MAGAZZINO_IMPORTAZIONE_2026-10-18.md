@@ -83,3 +83,12 @@ Correzione aggiuntiva verificata sul VIMAR ARKE FRUTTI.xlsx originale: intestazi
 Anteprima Articoli dedicata, paginata, con marca/categoria, prezzi prima/dopo, stato delle righe e abbinamento manuale delle colonne quando necessario; rimossi dal flusso listino i campi da fattura e la richiesta di cliente/cantiere. Categoria predefinita confermabile come nella versione Windows. Distinti costo acquisto e prezzo vendita/listino; quantità del listino non caricano giacenze.
 Confronto automatico con il codice Windows originale: 54 casi prezzo e 7 casi di classificazione coerenti. Collaudati file reale, codici con suffissi/zeri, 645 articoli dopo conferma categoria ELETTRICO, reimportazione senza duplicati, aggiornamento per marca+codice, descrizioni preservate, carichi assenti, outlier 10x e duplicati discordanti bloccati, backup completo. Ripassati test fatture/CSV/PDF/Excel/ZIP/Di.Co., cantieri, extra, rollback e ripristino.
 La base operativa richiesta è la 3.0.65, conservata insieme alle funzioni di protezione e archivio già introdotte; numerazione progressiva 3.0.68 per evitare downgrade o sovrascrittura di versioni.
+
+
+## Step 3.0.69 — organizzazione aziendale e apprendimento confermato
+
+Trasferimento incrementale richiesto dal Gestionale Windows 2.7.5: dieci percorsi con guide, archivi logici processo/categoria/anno/soggetto/cantiere e sottocartella aggiuntiva; schede tecniche dedicate per dichiarazioni, gas e sicurezza; riconoscimento dal contenuto; memoria locale delle sole classificazioni confermate, fingerprint equivalente al Windows, suggerimenti da applicare esplicitamente e opzioni listino separate dalla variazione prezzi. Tutto incluso nel backup e ripristino. Profilo I.T.E. disponibile dalla fonte Windows con completamento dei soli campi vuoti; logo originale utilizzato in intestazione e icona.
+
+Piano completo, limiti e prossimi moduli: [PIANO_PORTING_WINDOWS_2.7.5.md](PIANO_PORTING_WINDOWS_2.7.5.md). Inventario di 142 file applicativi e modelli con SHA256: [WINDOWS_2.7.5_INVENTARIO.json](WINDOWS_2.7.5_INVENTARIO.json).
+
+Collaudi: regressioni cantieri/preventivi/extra, backup/rollback, import XML/Excel/PDF/ZIP, Vimar reale645 articoli, 54 confronti prezzi/7 classificazioni con Windows; 11 fingerprint confrontati con la funzione originale; nuovi percorsi, cartelle, schede tecniche, apprendimento confermato e revocabile, profilo conservativo, vecchi archivi e backup regole. Generazione nuove Di.Co./Gas/POS/DVR e sincronizzazione automatica PC/iPad non sono ancora attive; l’app lo indica nei processi pertinenti.
