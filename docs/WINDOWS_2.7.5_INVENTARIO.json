@@ -1,0 +1,1618 @@
+{
+  "sourcePackage": "ITE_2.7.5_AGGIORNAMENTO_DAL_GESTIONALE.zip",
+  "packageSha256": "7ac9e2e8747f73320d3db94cb373c693511ac4288ba3a58a9ac2df199a21af05",
+  "verifiedVersion": {
+    "version": "2.7.5",
+    "release": "RICONOSCIMENTO_PROFORME_PR"
+  },
+  "legacyUnifiedLabel": "I.T.E. 2.7.0 UNIFICATO — DICO 4.3.5 · GAS 0.15 · POS 2.6.4 · DISEGNO TECNICO CAD 5.5",
+  "purpose": "Inventario e impronte dei sorgenti/modelli applicativi estratti; dipendenze di terzi escluse. Il pacchetto originale è conservato tra i file forniti. Stato del porting distinto dalla presenza nel pacchetto: vedere PIANO_PORTING_WINDOWS_2.7.5.md.",
+  "files": [
+    {
+      "path": "CHANGELOG_ITE_2.7.0_UNIFICATO.md",
+      "bytes": 1447,
+      "sha256": "88407807af832133b4efa772a96699275d1920eb41514ffa0958c5e7a894c023"
+    },
+    {
+      "path": "CHECKUP_STEP_1_16_2.6.5.md",
+      "bytes": 992,
+      "sha256": "a6d846b14f47fbfc86fc66f92cce2ea9afb7ef0f9a366d56f1b404cc8c26efeb"
+    },
+    {
+      "path": "COLLAUDO_E_LIMITI_0.18.md",
+      "bytes": 9062,
+      "sha256": "4344c6aca1af3b75de3973e0cf63b31b78dae5f28bcb8b027d70cbf384c1cff6"
+    },
+    {
+      "path": "COLLAUDO_IA_0.19.md",
+      "bytes": 3334,
+      "sha256": "b90972547bde6c0dd541eb1e4aa556962bff51b090c69e14e5cd79a63d6c6492"
+    },
+    {
+      "path": "COLLAUDO_ITE_2.7.0.txt",
+      "bytes": 1090,
+      "sha256": "290e6ff8244b82fd16a93abaab1c068f28526206c89766fa1bdd8a1aeb6f3bbd"
+    },
+    {
+      "path": "COLLAUDO_ITE_2.7.1.txt",
+      "bytes": 4478,
+      "sha256": "a259ce624313f2dbd5304f6ae05081f617da6756b70b1733d33fb07a4098a86c"
+    },
+    {
+      "path": "CORREZIONE_RESOCONTO_0.18.1.txt",
+      "bytes": 2506,
+      "sha256": "5018a91a9ff702936e9104bf17a4fcc02c09523c92b18b3d0fb2fff857bb73e3"
+    },
+    {
+      "path": "ISTRUZIONI_AGGIORNAMENTO_2.7.5.txt",
+      "bytes": 484,
+      "sha256": "947cd9db488b1b2535875757ff67fb1b3fbf495b7b0de87ff2ca7acec41ebf7f"
+    },
+    {
+      "path": "ISTRUZIONI_ITE_2.7.1.md",
+      "bytes": 9284,
+      "sha256": "811e0987342bc6c0e87b164f2054c664198603a7c061fe1deb48ef2de9a9da00"
+    },
+    {
+      "path": "LEGGIMI_AVVIO_E_AGGIORNAMENTO.txt",
+      "bytes": 1028,
+      "sha256": "1f54f46e9be4a30bfcf82979f162835e05e2cd47fee3c680edb7b35fb56a4721"
+    },
+    {
+      "path": "LEGGIMI_DICO_4.3.5.txt",
+      "bytes": 2039,
+      "sha256": "ffcbebb9b6388d3e5eb44b915d771e77704049d984b075ff77aebf385ab3e987"
+    },
+    {
+      "path": "LEGGIMI_FATTURE.txt",
+      "bytes": 3617,
+      "sha256": "bfa5411730e8a3c033a391d6e55486cebbb7ae967fbb3b6829c4e611f06a2ee6"
+    },
+    {
+      "path": "LEGGIMI_FOTO_FIRME.txt",
+      "bytes": 4317,
+      "sha256": "1f3901d1f1b8b756c9ffc1db0a5697936f37dab3e36a9084b3c924cd731c46ec"
+    },
+    {
+      "path": "LEGGIMI_ITE_2.6.5.txt",
+      "bytes": 800,
+      "sha256": "2b5bcd59caf293b4fd90228e02578295d83be2e3df91a7880b6d0fb86da72bc4"
+    },
+    {
+      "path": "LEGGIMI_ITE_2.7.0.txt",
+      "bytes": 400,
+      "sha256": "bada8f540169ee8dbb50ff36867faedc36929cdb908eacbc0e3b06d098351f9e"
+    },
+    {
+      "path": "LEGGIMI_MIGLIORAMENTI.txt",
+      "bytes": 2959,
+      "sha256": "35739f00d2a7ec471849e2a2881022be233b2b9d48b5ecb9e6614042df7ac2eb"
+    },
+    {
+      "path": "LEGGIMI_NUMERAZIONE.txt",
+      "bytes": 2925,
+      "sha256": "5b3501a06d75744d5e96eb6937acc7eb9157d72603e9079cba22889a33d71435"
+    },
+    {
+      "path": "LEGGIMI_PERSONALE_CALENDARIO.txt",
+      "bytes": 4688,
+      "sha256": "95ff848eb23ae17d42ea026da4d2333d1b7bf33dcd8f93fbebefb15d3335516e"
+    },
+    {
+      "path": "LEGGIMI_SEDI_APPARECCHIATURE.txt",
+      "bytes": 5914,
+      "sha256": "c56972c857e5c1e1b60b2a415493cd0d2c970f144a714ab3576f7d32b1de4427"
+    },
+    {
+      "path": "LEGGIMI_STAMPA.txt",
+      "bytes": 2776,
+      "sha256": "91618e199e88910c8e4a9c425d2dedab2e9db52c16ea0b27f37d5820484f38fd"
+    },
+    {
+      "path": "MANIFEST_0.19.0.json",
+      "bytes": 33614,
+      "sha256": "671d7685e8ab9be9d524fc0a1ec633d4b3cf6b3e4129f5cfe99ee66ea32d752a"
+    },
+    {
+      "path": "MODELLO_IMPORT_ARTICOLI_271.csv",
+      "bytes": 183,
+      "sha256": "ecc6ad10eef345f3be3c4c7b0b7a1343c0beeba87a3f100db957d672c8b767ef"
+    },
+    {
+      "path": "MODELLO_IMPORT_CLIENTI_FORNITORI.csv",
+      "bytes": 200,
+      "sha256": "c8dd4e70b87d91bae33840cb88457f9495fa9956afa1f02bf4ef2f56d1ea4333"
+    },
+    {
+      "path": "MODIFICHE_ITE_2.0.txt",
+      "bytes": 4650,
+      "sha256": "e8f40bd3ceb690a30cd708c0d8153e0208372834831fa116eb87950544a2f6aa"
+    },
+    {
+      "path": "MODULI_ORIGINALI_ULTIMI/ALLEGATI_GAS_MODULO_0.15_ULTIMO.zip",
+      "bytes": 203663,
+      "sha256": "87f44f325deab5e5962fbb8ece32cc702536402e61bab65869d1ed048219d7b9"
+    },
+    {
+      "path": "MODULI_ORIGINALI_ULTIMI/DICO_DIRI_ASC_v4.3.5_ULTIMO.zip",
+      "bytes": 121668,
+      "sha256": "01817c36a80e8b44f89500887a6fe0e8c62d7d59e6f4b36e05b62fd719d9d529"
+    },
+    {
+      "path": "MODULI_ORIGINALI_ULTIMI/DISEGNO_TECNICO_ITE_CAD_5_5_ULTIMO.zip",
+      "bytes": 766053,
+      "sha256": "3a92ed22cccf1c1fc38fae7870ea37113a7bcfc4b3c7b9b17ebfbeb66d204f77"
+    },
+    {
+      "path": "MODULI_ORIGINALI_ULTIMI/POS_ITE_2.6.4_ULTIMO.zip",
+      "bytes": 67538,
+      "sha256": "3b0d52492652368d74e9ce7ee198d917a3d0a9b591cfff3d2998dcea2698443c"
+    },
+    {
+      "path": "NOTE_ITE_0.17_PROVA.txt",
+      "bytes": 2439,
+      "sha256": "4969574c991210f36444783d83b9a4a4fb511f7957da1089ec8461c79fe1abbf"
+    },
+    {
+      "path": "NOVITA_PAGAMENTI_0.18.2.txt",
+      "bytes": 2400,
+      "sha256": "dbf15452e19a7ee82836fb603d515de58c6f2471b604ef6753f321901cb28770"
+    },
+    {
+      "path": "PIANO_SVILUPPO_ITE_2.5.md",
+      "bytes": 2583,
+      "sha256": "1dcdce39c812e676e8c26c0394e718349806de6994d6eed1d75a0bbbc4282b34"
+    },
+    {
+      "path": "PUNTO_3_CONFRONTO_ITE_2.4_VS_APPROVATE.md",
+      "bytes": 18021,
+      "sha256": "0351d032402cb49a1dffb802ce2aed7f46be62312857dab79a78b8896209353f"
+    },
+    {
+      "path": "README.txt",
+      "bytes": 4651,
+      "sha256": "d212358a619112c3b194f2072916381d219f9d74431fded3171154f3496b30aa"
+    },
+    {
+      "path": "README_STORICO_0.18.2.txt",
+      "bytes": 3252,
+      "sha256": "2d1d6b3727708a56b52083cc2a3988c0c8a7bd452390f75d57ed42cbf6c061ee"
+    },
+    {
+      "path": "REGOLE_SVILUPPO_ITE.md",
+      "bytes": 4127,
+      "sha256": "6e9a50b5edb13d8dff511005a89cc2696b15aa184c0b0bc132d023ca0c5e6c2a"
+    },
+    {
+      "path": "SPECIFICHE_APPROVATE_ITE.md",
+      "bytes": 10033,
+      "sha256": "16bc05dc3a4f74748b02592bac179026a6014a689d6f18bc61edcbf6576de4a2"
+    },
+    {
+      "path": "STATO_SPECIFICHE_ITE_2.5H.md",
+      "bytes": 1885,
+      "sha256": "f38f56a52c72a39363066ddaba19cfce5a58c8776d0a96a6e06ab737c0bf1891"
+    },
+    {
+      "path": "VERSIONE.txt",
+      "bytes": 7,
+      "sha256": "cdbd5ab468f2ea64143e0b44022f9987be872b31b2e5d3ba587f6081531a88c0"
+    },
+    {
+      "path": "VERSIONE_UNIFICATA.txt",
+      "bytes": 90,
+      "sha256": "3b34b37581dba52d471dc20172bd614c0f2dc9098a5013a4e8b4620db6069431"
+    },
+    {
+      "path": "address21.py",
+      "bytes": 9101,
+      "sha256": "0bd09a43a479b85a58f2e2d5e176cd68af969aaca0d1dccd9e000b88368da53f",
+      "definitions": [
+        "norm",
+        "lookup",
+        "walk",
+        "Suggestions",
+        "bind_group",
+        "install"
+      ]
+    },
+    {
+      "path": "aggiorna_da_gestionale.py",
+      "bytes": 5959,
+      "sha256": "a29aa5305daf103d1fc3aee24dd3dc086628925bfaf512742c3faff89f796d7c",
+      "definitions": [
+        "inspect_package",
+        "_version_tuple",
+        "install",
+        "main"
+      ]
+    },
+    {
+      "path": "aggiorna_in_posto.py",
+      "bytes": 5549,
+      "sha256": "5f100baeac8dddf1bdcdd382afbc1b26051fc1aa83aeb0e52326289d821b131e",
+      "definitions": [
+        "_relative_files",
+        "_online_backup",
+        "apply_update",
+        "main"
+      ]
+    },
+    {
+      "path": "aggiornamento271_manifest.json",
+      "bytes": 29422,
+      "sha256": "f544bc389376d07400d263f464c2edc8e831e7844adecb84ecc96fcae73c3b3f"
+    },
+    {
+      "path": "ai19.py",
+      "bytes": 31431,
+      "sha256": "65ec1ba1f31e29071f06ca52ea76eed758cbca73f375a208e888d85f666bf83d",
+      "definitions": [
+        "stamp",
+        "dumps",
+        "initialize",
+        "require_admin",
+        "event",
+        "setting",
+        "configure",
+        "Reader",
+        "period_summary",
+        "tools_schema",
+        "NoRedirect",
+        "api_request",
+        "ask",
+        "save_draft",
+        "apply_note",
+        "capture_context",
+        "Assistant",
+        "install"
+      ]
+    },
+    {
+      "path": "archive25f.py",
+      "bytes": 15889,
+      "sha256": "86f9ce066d8a7edcb4cd1e8ce11f64a5c377b6f876771de30ac68378ac673a04",
+      "definitions": [
+        "now",
+        "safe",
+        "digest",
+        "migrate",
+        "_subject_uid",
+        "store_file",
+        "add_version",
+        "links_for_subject",
+        "ArchiveTab",
+        "install"
+      ]
+    },
+    {
+      "path": "assets/ite_symbol_watermark.png",
+      "bytes": 39594,
+      "sha256": "b9a2c3bba0bc75a3a30205281746546febe54beb5c09d429246cc32d266d4961"
+    },
+    {
+      "path": "assets/ite_watermark_a4.pdf",
+      "bytes": 92807,
+      "sha256": "96fb184a48241348382f854bff31984461664060034a2bb398771a684557a779"
+    },
+    {
+      "path": "assets/logo_ite.png",
+      "bytes": 39594,
+      "sha256": "db0acc8853b3e693ded5199701326f2573226293fb082cfc7778a259eb59bfc5"
+    },
+    {
+      "path": "backup_ite.py",
+      "bytes": 294,
+      "sha256": "83ab1b4920668143f024e1fa98aed14268b3de7997c3ceaa8946dc0a6f9c9596",
+      "definitions": []
+    },
+    {
+      "path": "calendar25h.py",
+      "bytes": 8222,
+      "sha256": "c85713bc230184e1c8c26c346538206b6a33a472206833959205b0b11ddbd0e6",
+      "definitions": [
+        "_month_bounds",
+        "rows_for_staff",
+        "export_xlsx",
+        "export_pdf",
+        "MonthlyHoursDialog",
+        "install"
+      ]
+    },
+    {
+      "path": "catalog271.py",
+      "bytes": 28705,
+      "sha256": "1a6364339a90476f85fe606346fbd0738b75aa18854c554a339cecb64fff318a",
+      "definitions": [
+        "now",
+        "text",
+        "norm",
+        "key",
+        "dump",
+        "Connection",
+        "connect",
+        "backup",
+        "migrate",
+        "header_map",
+        "detect_header",
+        "read_tables",
+        "price",
+        "classify",
+        "product_index",
+        "prepare",
+        "internal_code",
+        "sync_catalog",
+        "apply",
+        "resolve_product",
+        "stock",
+        "save_estimate",
+        "consume_estimate",
+        "install"
+      ]
+    },
+    {
+      "path": "catalog271_ui.py",
+      "bytes": 19305,
+      "sha256": "8227ff52198cafac71995d0adf21aa7cfc23ea6d01a7fe903d2bde2d735106ce",
+      "definitions": [
+        "grid",
+        "show_table",
+        "ImportDialog",
+        "safe_csv",
+        "CatalogPage",
+        "install"
+      ]
+    },
+    {
+      "path": "costs25d.py",
+      "bytes": 36059,
+      "sha256": "f3b2f37bb071e4779eb315d07f639c364befe4ed69bb0613abf7ac801aed8d7b",
+      "definitions": [
+        "_now",
+        "_txt",
+        "_num",
+        "_cols",
+        "_addcol",
+        "ensure_schema",
+        "pricing_setting",
+        "current_stock",
+        "product_price_proposal",
+        "low_stock_rows",
+        "consumption_stats",
+        "update_product_economics",
+        "provisional_rows",
+        "complete_provisional",
+        "historical_pricing",
+        "EnhancedPricingSettingsDialog",
+        "ProductEconomicsDialog",
+        "ProductRulesDialog",
+        "ProvisionalMovementsDialog",
+        "HistoricalPricingDialog",
+        "EnhancedMaterialDialog",
+        "_enhance_summary",
+        "install"
+      ]
+    },
+    {
+      "path": "designers23.py",
+      "bytes": 4368,
+      "sha256": "6f2daef8c96c53539343d38d995509a56f09934fe696ae9a4804bdc83bb77be4",
+      "definitions": [
+        "install"
+      ]
+    },
+    {
+      "path": "dico258.py",
+      "bytes": 6163,
+      "sha256": "d8aa5611a435dff89236633cfb296fcd847e10c28fd35984ab82873e9c1b08ee",
+      "definitions": [
+        "_norm",
+        "_m",
+        "_date",
+        "_pdf_text",
+        "parse_old_dico",
+        "install"
+      ]
+    },
+    {
+      "path": "dico259.py",
+      "bytes": 17619,
+      "sha256": "314f383235adc33809dafc99802457946db0c68ec43660f2aafa8d715ea13186",
+      "definitions": [
+        "_norm",
+        "_flat",
+        "_clean_name",
+        "_find",
+        "_ymd",
+        "_reader",
+        "_pdf",
+        "_page_block",
+        "_date_number",
+        "_client_and_site",
+        "_scope",
+        "_norms",
+        "_materials_from_text",
+        "_attachments",
+        "parse_old_dico",
+        "parse_material_relation",
+        "install"
+      ]
+    },
+    {
+      "path": "documents23.py",
+      "bytes": 11092,
+      "sha256": "b52727ed940f7cc47e6eab6b2be6c7d49e5326ed44355800816b70366446b739",
+      "definitions": [
+        "local_request",
+        "browser_path",
+        "render_pdf",
+        "assemble",
+        "message",
+        "save_draft",
+        "install"
+      ]
+    },
+    {
+      "path": "drawings260.py",
+      "bytes": 13886,
+      "sha256": "3adefaf3b3a307e7558d690a47bff0b778bb5f2488e13102318c0e3226afab72",
+      "definitions": [
+        "_safe_id",
+        "_table_cols",
+        "_install_schema",
+        "_practice",
+        "_context",
+        "_load_drawing",
+        "_merge_materials_into_practice",
+        "_save_drawing",
+        "_catalog",
+        "_save_background",
+        "install"
+      ]
+    },
+    {
+      "path": "equipment21.py",
+      "bytes": 16450,
+      "sha256": "53ab3e7a00d3317ffe94720ca0cacd069f7193b15a88f83aef25bca3a8169413",
+      "definitions": [
+        "norm",
+        "decimal",
+        "same_site",
+        "now",
+        "audit",
+        "save_site",
+        "migrate",
+        "save_equipment",
+        "register_practice",
+        "install"
+      ]
+    },
+    {
+      "path": "equipment24_schema.json",
+      "bytes": 9432,
+      "sha256": "7d8ed0117c5925c38ba4d5eee7759eef29b6115fd3478376944a7a42b6513047"
+    },
+    {
+      "path": "fiscal25e.py",
+      "bytes": 30495,
+      "sha256": "d192865879e7b99f24b20dcb71371b3c0c5fea4d84549847660ff94cfd3d7ea7",
+      "definitions": [
+        "_now",
+        "_txt",
+        "_num",
+        "_cols",
+        "_addcol",
+        "ensure_schema",
+        "invoice_doc_type",
+        "default_role",
+        "active_link",
+        "invoice_allocation_summary",
+        "add_or_update_link",
+        "remove_link",
+        "intervention_fiscal_rows",
+        "_effective_amount",
+        "intervention_billing_summary",
+        "refresh_intervention_billing_status",
+        "candidates_for_intervention",
+        "candidates_for_invoice",
+        "LinkEditDialog",
+        "InterventionFiscalDialog",
+        "PickerInvoiceDialog",
+        "InvoiceInterventionsDialog",
+        "PickerInterventionDialog",
+        "_enhance_intervention_summary",
+        "fiscal_cross_checks",
+        "install"
+      ]
+    },
+    {
+      "path": "gasux21.py",
+      "bytes": 7822,
+      "sha256": "a210a154774dbaf4d94ffe56b6f42ad739cf05aba985c46a10d3555aa5582d67",
+      "definitions": [
+        "issue_keys",
+        "variables",
+        "widgets",
+        "refresh",
+        "schedule",
+        "bind",
+        "navigate",
+        "install"
+      ]
+    },
+    {
+      "path": "gestionale_ite.py",
+      "bytes": 523702,
+      "sha256": "5dbd19c5755617ea5e3dffbf6f2acf6d621abc566864dcc944851d5fab25828d",
+      "definitions": [
+        "_search_norm",
+        "smart_search_score",
+        "_province_sigla",
+        "province_choices",
+        "_region_from_province",
+        "split_packed_address",
+        "_http_json",
+        "_parse_nominatim_rows",
+        "search_italian_municipalities",
+        "search_address_online",
+        "now",
+        "pwd_hash",
+        "db",
+        "init_db",
+        "ensure_schema_v06",
+        "rowdict",
+        "log_audit",
+        "normalize_date",
+        "display_date",
+        "normalize_month",
+        "display_month",
+        "normalize_time",
+        "calc_hours",
+        "month_closed",
+        "ensure_schema_v07",
+        "ensure_schema_v09",
+        "ensure_schema_v10",
+        "ensure_schema_ite01",
+        "ensure_schema_ite02",
+        "ensure_schema_ite03",
+        "ensure_schema_ite05",
+        "ensure_schema_ite014",
+        "ensure_schema_ite015",
+        "safe_anagraphic_cleanup",
+        "anagraphic_quality_issues",
+        "duplicate_client_groups",
+        "merge_all_duplicate_clients",
+        "merge_duplicate_clients",
+        "_load_dico_settings_from_file",
+        "_dico_full_work_address",
+        "_next_worksite_code_conn",
+        "_match_client_for_dico",
+        "_match_worksite_for_dico",
+        "_create_client_from_dico",
+        "_create_worksite_from_dico",
+        "_upsert_dico_practice",
+        "migrate_dico_archive_to_db",
+        "sync_dico_archive_json",
+        "_bridge_clients",
+        "_bridge_worksites",
+        "dico_bridge_bootstrap",
+        "dico_bridge_save",
+        "delete_dico_practice",
+        "save_dico_attachment",
+        "DicoBridgeHandler",
+        "DicoBridgeServer",
+        "_canon_subject",
+        "normalize_tax_identifier",
+        "tax_identifier_kind",
+        "_letters_only",
+        "_cf_code_surname",
+        "_cf_code_name",
+        "infer_person_name_parts",
+        "build_subject_display_name",
+        "infer_subject_type",
+        "ensure_subject_uid",
+        "resolve_subject_id",
+        "next_archive_ref",
+        "find_dico_practices_for_subject",
+        "sync_dico_drafts_from_client",
+        "sync_dico_drafts_from_worksite",
+        "_gas_local_snapshot_from_client",
+        "sync_gas_drafts_from_client",
+        "sync_gas_drafts_from_worksite",
+        "reconcile_gas_links",
+        "synchronize_shared_drafts",
+        "launch_gas_module",
+        "system_self_test",
+        "central_cross_checks",
+        "sync_subject_references",
+        "duplicate_subject_check",
+        "migrate_legacy_dates_and_hours",
+        "known_city_suggestions",
+        "next_worksite_code",
+        "file_sha256",
+        "copy_attachment",
+        "italian_number",
+        "parse_money",
+        "format_amount",
+        "parse_qty",
+        "xml_number",
+        "_supplier_memory_key",
+        "is_trusted_material_supplier",
+        "lookup_line_classification",
+        "remember_line_classification",
+        "classify_expense_text",
+        "analyze_line_item",
+        "summarize_document_category",
+        "rebuild_document_stock",
+        "reanalyze_historical_data",
+        "stock_qty_effect",
+        "material_cost_effect",
+        "normalize_header",
+        "recalc_invoice_status",
+        "recalc_all_invoice_statuses",
+        "clean_text",
+        "localname",
+        "find_first_text",
+        "find_all_text",
+        "party_name",
+        "party_cf_piva",
+        "extract_xml_invoice",
+        "_rc4_compat",
+        "extract_pdf_text",
+        "first_match",
+        "detect_known_counterparty",
+        "match_worksite",
+        "extract_document_number",
+        "extract_labeled_amount",
+        "_extract_party_from_pdf",
+        "_pdf_direction",
+        "_parse_pdf_line_items",
+        "extract_pdf_invoice",
+        "_amount_near_labels",
+        "extract_payroll_data",
+        "open_attachment",
+        "_clean_text",
+        "_archive_key",
+        "_compose_archive_address",
+        "validate_dico_diri_archive",
+        "install_dico_diri_archive",
+        "load_dico_diri_clients",
+        "search_dico_diri_clients",
+        "DicoDiriClientPicker",
+        "RecordDialog",
+        "normalize_packed_addresses_in_db",
+        "bind_continuous_search",
+        "CrudPage",
+        "SubjectProfileWindow",
+        "DocumentImportPage",
+        "DicoDiriPage",
+        "GasPracticesPage",
+        "ControlCenterPage",
+        "_best_row_match",
+        "_parse_spoken_date",
+        "answer_manager_question",
+        "normalize_spoken_numbers",
+        "parse_voice_report",
+        "apply_voice_report",
+        "ClientAddressesDialog",
+        "show_ite_help",
+        "ITEAssistantDialog",
+        "VoiceDailyReportDialog",
+        "HomePage",
+        "DashboardPage",
+        "ReportsPage",
+        "TrashPage",
+        "AuditPage",
+        "MonthsPage",
+        "create_backup_zip",
+        "_safe_extract_backup",
+        "_restore_tree_overlay",
+        "LineReviewDialog",
+        "detect_duplicate_ddt_materials",
+        "plan_bulk_material_allocation",
+        "MaterialAllocationDialog",
+        "InventoryPhysicalDialog",
+        "WorksiteClosureDialog",
+        "WarehousePage",
+        "BackupUpdatesPage",
+        "SettingsUsersPage",
+        "GestionaleApp"
+      ]
+    },
+    {
+      "path": "import_progress262.py",
+      "bytes": 21547,
+      "sha256": "72afcdb9ac5d9ef1c2f4dc8095b6abbec303604d0b809c9c36ffbef64c8a5144",
+      "definitions": [
+        "_safe_qput",
+        "_scan_folder",
+        "_expand_sources",
+        "_process_one",
+        "_worker",
+        "install"
+      ]
+    },
+    {
+      "path": "installa_aggiornamento271.py",
+      "bytes": 3455,
+      "sha256": "7779ab85c3d807e27c6a789e8bc58caa3b5fd438b85c179d110a631e19cf32a5",
+      "definitions": [
+        "install"
+      ]
+    },
+    {
+      "path": "interventions25c.py",
+      "bytes": 73739,
+      "sha256": "1ccc68bf666fd27a18b2e3650b3649de184e177ad150f028489352f2012cdb58",
+      "definitions": [
+        "_now",
+        "_uid",
+        "_txt",
+        "_num",
+        "_cols",
+        "_addcol",
+        "ensure_schema",
+        "pricing_setting",
+        "classify_description",
+        "standard_key",
+        "next_code",
+        "subject_name",
+        "unit_label",
+        "client_rows",
+        "all_subject_rows",
+        "units_for_subject",
+        "legacy_address_for",
+        "equipment_for_unit",
+        "plants_for_unit",
+        "current_stock",
+        "compute_totals",
+        "save_snapshot",
+        "_equipment_kind_for_object",
+        "InterventionEditor",
+        "SimpleActivityDialog",
+        "LaborDialog",
+        "MaterialDialog",
+        "EquipmentReplacementDialog",
+        "PricingSettingsDialog",
+        "InterventionsPage",
+        "_build_page_class",
+        "_open_intervention_from_unit",
+        "install"
+      ]
+    },
+    {
+      "path": "invoice21.py",
+      "bytes": 17473,
+      "sha256": "0415a463f5a4d6099c06651598f275f8e66043dbaede27d5fbd8c54ba225cd61",
+      "definitions": [
+        "start_import",
+        "build_import_panels",
+        "mode",
+        "compact",
+        "identity",
+        "is_own",
+        "xml_party_ids",
+        "xml_roles",
+        "proforma_number",
+        "official_number",
+        "document_type",
+        "pdf_blocks",
+        "known_party",
+        "pdf_party",
+        "classify_pdf",
+        "finalize_data",
+        "install",
+        "reclassify_dialog"
+      ]
+    },
+    {
+      "path": "ite18.py",
+      "bytes": 48796,
+      "sha256": "9dd4be2247aadd11b8e5f701054d0c22f5586f67082bbf3ed8e8e8bcd5c1bc0c",
+      "definitions": [
+        "migrate",
+        "backup_snapshot",
+        "positive",
+        "positive_quantity",
+        "settle",
+        "remember",
+        "catalog",
+        "save_catalog",
+        "consume",
+        "unlink_material",
+        "correction_candidates",
+        "apply_person_corrections",
+        "register_ddt",
+        "document_site",
+        "invoice_ddt_check",
+        "payment_dialog",
+        "people_dialog",
+        "gas_material_dialog",
+        "global_search",
+        "drilldown",
+        "install"
+      ]
+    },
+    {
+      "path": "ite20.py",
+      "bytes": 52276,
+      "sha256": "bbc27b69135c251eb028a567fbc9eb8f914c13d2bb989ec51da697cb3095ea6f",
+      "definitions": [
+        "_has_col",
+        "migrate",
+        "_supplier_key",
+        "_code",
+        "alias_lookup",
+        "remember_product_alias",
+        "learn_document",
+        "document_layout_key",
+        "learn_document_layout",
+        "apply_learned_document_rules",
+        "_worksite_alias_key",
+        "remember_worksite_alias",
+        "apply_worksite_aliases",
+        "catalog20",
+        "save_catalog20",
+        "_extract_visura_dates",
+        "_detail_window",
+        "subject_economic_detail",
+        "Tooltip20",
+        "reclassify_document_dialog",
+        "_subject_cards_build",
+        "_subject_refresh",
+        "ensure_client_default_worksite",
+        "ensure_all_client_worksites",
+        "worksite_state",
+        "vehicle_drilldown",
+        "integration_info",
+        "_settings_init",
+        "_dashboard_cards",
+        "install"
+      ]
+    },
+    {
+      "path": "ite2510.py",
+      "bytes": 15998,
+      "sha256": "3efc06c1442e0eee22be26c386db7e7b9d21a1cbbbf09e3353b10b42098176e0",
+      "definitions": [
+        "_text",
+        "_fill_blank_client",
+        "_fill_blank_worksite",
+        "install"
+      ]
+    },
+    {
+      "path": "ite2511.py",
+      "bytes": 8311,
+      "sha256": "459c9db1f7b54e971df1dd0bb2f5e7934f88c0e0f560c6996050bfeeb9b23d19",
+      "definitions": [
+        "install"
+      ]
+    },
+    {
+      "path": "ite2512.py",
+      "bytes": 1518,
+      "sha256": "92ba927fc2f4f81b2312b9220df66f0085b8d1592d321545ebc578d3d7c75832",
+      "definitions": [
+        "install"
+      ]
+    },
+    {
+      "path": "ite2513.py",
+      "bytes": 13460,
+      "sha256": "a7fc5596d43064e078b0ed52df6f6c98090bc5367e134eebb66407fb2ac6cb65",
+      "definitions": [
+        "_compact",
+        "_norm",
+        "_own_ids",
+        "_is_own",
+        "_head",
+        "smart_document_type",
+        "_role_spans",
+        "_direction_from_layout",
+        "_tax_ids",
+        "_first_company_line",
+        "_party_from_roles",
+        "_number_by_type",
+        "_manual_hint_to_pair",
+        "install"
+      ]
+    },
+    {
+      "path": "ite2515.py",
+      "bytes": 6840,
+      "sha256": "bee727bc8e29f04f269db56ccea4cd05dde9aa4f3b6653640495f58d9a892a83",
+      "definitions": [
+        "_closed_months_for_rows",
+        "_reopen_months",
+        "install"
+      ]
+    },
+    {
+      "path": "ite2516.py",
+      "bytes": 9353,
+      "sha256": "f33ae126f0d8ebe647bc89856d6415d4252fa678c4fa5564acb2bd93e38c61ae",
+      "definitions": [
+        "_payment_role",
+        "_canon_state",
+        "_dialog_config",
+        "_refresh_roles",
+        "install"
+      ]
+    },
+    {
+      "path": "ite2517.py",
+      "bytes": 7340,
+      "sha256": "ab94b27ba9cb541088bfe61597217a19b68bba9cdf596919894673f123e332dd",
+      "definitions": [
+        "_base_dir",
+        "_log_path",
+        "_write_error",
+        "install"
+      ]
+    },
+    {
+      "path": "ite2519.py",
+      "bytes": 5363,
+      "sha256": "00ca82aa453ebe8e522d5a17904c0d8684d491b5dd54bea9e39d708f5fe0e414",
+      "definitions": [
+        "_app_from_parent",
+        "_write_schema_version",
+        "install"
+      ]
+    },
+    {
+      "path": "materialfiles21.py",
+      "bytes": 8926,
+      "sha256": "83c392b77b009f1244458ca99bc75dde4901bb9546c0a9d086c4d517fdfe5203",
+      "definitions": [
+        "norm",
+        "xml",
+        "archive",
+        "tabular",
+        "rows_to_items",
+        "parse_file",
+        "install"
+      ]
+    },
+    {
+      "path": "moduli/ITE_DICO_DIRI_Assistant_integrato.html",
+      "bytes": 448933,
+      "sha256": "22d2948bc51935294d9fb712b2a9a92bb2ec6e1f792d23c6094fff62540255d8"
+    },
+    {
+      "path": "moduli/ITE_DISEGNO_TECNICO_2.6.2.html",
+      "bytes": 51076,
+      "sha256": "51e559bff213a0c94cd5994551af20034f1fb732fce5d0d84c95a4e12c868fb2"
+    },
+    {
+      "path": "moduli/apertura_gas/MODELLO_IMPORT_CLIENTI_COMPLETO.csv",
+      "bytes": 211,
+      "sha256": "42aa33b3b461e6ea27c092da85ef302209d8878b524bd253a5471a2b16870063"
+    },
+    {
+      "path": "moduli/apertura_gas/NORMATIVA_PUBBLICA/INDICE_NORME.html",
+      "bytes": 6039,
+      "sha256": "04f40a27ce6141fa6ca839b6577825d3c31c4b1e9facda8f01230a6088aad37a"
+    },
+    {
+      "path": "moduli/apertura_gas/apertura_gas.py",
+      "bytes": 169224,
+      "sha256": "fb96f608fd2cd8cf7d480898181607ec568405bb694995805791847fbad6323d",
+      "definitions": [
+        "apply_ite_watermark",
+        "shared_db",
+        "_shared_now",
+        "_looks_like_business_name",
+        "_split_shared_person_name",
+        "_shared_full_name",
+        "_shared_client_to_local",
+        "_sync_dico_from_shared_client",
+        "_sync_dico_from_shared_worksite",
+        "_sync_other_gas_from_shared_client",
+        "_sync_other_gas_from_shared_worksite",
+        "_update_shared_client_from_gas",
+        "_update_shared_address_from_gas",
+        "_update_shared_worksite_from_gas",
+        "_resolve_shared_worksite",
+        "_client_search_score",
+        "App",
+        "pdf_hex",
+        "fit_size",
+        "add_text_op",
+        "add_x_op",
+        "add_strike_op",
+        "ensure_font",
+        "append_stream"
+      ]
+    },
+    {
+      "path": "moduli/apertura_gas/modelli/A12.pdf",
+      "bytes": 6029,
+      "sha256": "3d271dc56c0e2396228c7fb7ee449e023c5934a9bd416428a24f1f9b5e933a13"
+    },
+    {
+      "path": "moduli/apertura_gas/modelli/B12.pdf",
+      "bytes": 5032,
+      "sha256": "537dbf85a350aa8df43837033662946fb69371db8828fa68220c73ec9f1242a0"
+    },
+    {
+      "path": "moduli/apertura_gas/modelli/H40.pdf",
+      "bytes": 3315,
+      "sha256": "a0192580e7475eda5cb630616c4b9353ea152a8049c2f8932acd8bdaa53c1cc9"
+    },
+    {
+      "path": "moduli/apertura_gas/modelli/I40.pdf",
+      "bytes": 6175,
+      "sha256": "328a69d91d580233d718ac07393635327e52e36034bfcb2292a9f34870bf2ffe"
+    },
+    {
+      "path": "moduli/designer23.js",
+      "bytes": 5529,
+      "sha256": "1ac8ebaf3632996a8de5a22ff36491fe4ecda487db046cc10923f510a172eb92"
+    },
+    {
+      "path": "moduli/disegno_easy51/ITE_DISEGNI_TECNICI_AUTONOMO_TEST.html",
+      "bytes": 80010,
+      "sha256": "8107c7f827f564bfb85d3bd522937614e4ca5423f1fa7762eefd3ef99a24a7b0"
+    },
+    {
+      "path": "moduli/disegno_easy51/ITE_DISEGNI_TECNICI_INTEGRATO.html",
+      "bytes": 82208,
+      "sha256": "4260b3c14e682a91568e18635dfc7334cea2aee69908f4f372c9c0a59c9896cf"
+    },
+    {
+      "path": "moduli/disegno_easy51/LEGENDA_SIMBOLI_ELETTRICI.pdf",
+      "bytes": 116417,
+      "sha256": "03b6e93bf3738d7fd2aac4a08f2c2944f09b0f672071d0c7eeaea5fac0706704"
+    },
+    {
+      "path": "moduli/disegno_easy51/cad-model.js",
+      "bytes": 4958,
+      "sha256": "7915e2fd019a391a83cb96bec291254ec0a1b443325ac3f7fc326ecde96aa23a"
+    },
+    {
+      "path": "moduli/disegno_easy51/cad-ui.js",
+      "bytes": 20758,
+      "sha256": "3ef28170ed4bd3133ac7738a0c1d44f9f32693f1248f1c8adbb193c3f96143a3"
+    },
+    {
+      "path": "moduli/disegno_easy51/easy-draw-electrical.js",
+      "bytes": 222674,
+      "sha256": "d75a83da55d0aa3d7c0a46f5e4d145cfebe95001e05c4d454303305936902c4a"
+    },
+    {
+      "path": "moduli/disegno_easy51/ite-technical.js",
+      "bytes": 11113,
+      "sha256": "fe3ddfad958e164cf35a854ecef5ecd782b39b8ef54b9b20260bd049bd04cc83"
+    },
+    {
+      "path": "moduli/disegno_easy51/ite-ui.js",
+      "bytes": 25951,
+      "sha256": "ce7bd7ae93d9e222ad87faf1ce501f620b5d2a14d8756e75208da4d58d7162b4"
+    },
+    {
+      "path": "moduli/documents23.js",
+      "bytes": 9234,
+      "sha256": "369f52828d2d144e0dc8757f3e5e08e92dc0d9e4ec049b6837baf44949e83b1a"
+    },
+    {
+      "path": "moduli/drawings260.js",
+      "bytes": 2540,
+      "sha256": "b48f5ef24aa1d36cc1d539e432172a0fbee6fc64264bd3e7a6a9038276a2aa0d"
+    },
+    {
+      "path": "moduli/equipment21.js",
+      "bytes": 8628,
+      "sha256": "794e0c2e56b6b05f5c0bbb4960879b22178786bfa578bbcb978d87e53187872c"
+    },
+    {
+      "path": "moduli/experience21.js",
+      "bytes": 3584,
+      "sha256": "2ee41fbdc2b29a36a73f2f24e14aaf603b2765b4592ea9cf9599d1e73bd17902"
+    },
+    {
+      "path": "moduli/ite18.js",
+      "bytes": 29293,
+      "sha256": "75e9c7543902616d5bad7150ffc95e4b40e7d0325bef6f93e12cb2f466d8dacc"
+    },
+    {
+      "path": "moduli/ite20.js",
+      "bytes": 17377,
+      "sha256": "5e2becacaab167c2928b6a7b1e3ef5748efadc951635e75182b02e2ffb3c670d"
+    },
+    {
+      "path": "moduli/naming21.js",
+      "bytes": 4902,
+      "sha256": "71f5e0f3977287f53779cab20d8c71654b1c1d61173a87c871bfeb74e3e063db"
+    },
+    {
+      "path": "moduli/pdfjs/wasm/openjpeg_nowasm_fallback.js",
+      "bytes": 451777,
+      "sha256": "07c3c3361827308741bc31c561b59e705ebb4d1e8efb84e4d24884e230dbb894"
+    },
+    {
+      "path": "moduli/photo21.js",
+      "bytes": 13861,
+      "sha256": "1f83436f8e7d24d857845b66d7d6df9689f3010ebb3c79e97ce13ac9cd2b5c8c"
+    },
+    {
+      "path": "moduli/plants24.js",
+      "bytes": 30134,
+      "sha256": "adccd5aca2fd948a4dd5a20288d1df227911df43891e583b83c32e3c54a6525e"
+    },
+    {
+      "path": "moduli/pos/app_originale_v0.2.0.py",
+      "bytes": 23888,
+      "sha256": "af9f4a3647ff6a4fb15f3914ae6fb31397cc569934c9d9a6c74a83de3e7e7c34",
+      "definitions": [
+        "db",
+        "ensure_column",
+        "init_db",
+        "now",
+        "json_body",
+        "send_json",
+        "rowdict",
+        "slug_code",
+        "next_pos_number",
+        "safe_filename",
+        "save_uploaded_file",
+        "extract_pdf_text",
+        "extract_psc_fields",
+        "Handler"
+      ]
+    },
+    {
+      "path": "moduli/pos/static/app.js",
+      "bytes": 53098,
+      "sha256": "0d040ce9692e326171bdf32e6e837e79e8e17d44cc1bd0aba586b38b9b07af40"
+    },
+    {
+      "path": "moduli/pos/static/index.html",
+      "bytes": 3160,
+      "sha256": "e31e55e9065b2ae4623898006461ad2f4338117908bb50d72c3157000add2b94"
+    },
+    {
+      "path": "moduli/pos/static/style.css",
+      "bytes": 6537,
+      "sha256": "6e858e70227e60df651904e585e12c71330adde1afc0467823ff26521bbe74af"
+    },
+    {
+      "path": "moduli/print21.js",
+      "bytes": 77386,
+      "sha256": "71003ea6b72b37ef85c4bad71cf6e988b5a1083e19eec0d2b05aa885596570ca"
+    },
+    {
+      "path": "moduli/reuse22.js",
+      "bytes": 3912,
+      "sha256": "6ff00eb0713c35ade0cceada9991e3a984b67645f4c0c58261c85157c9695dc1"
+    },
+    {
+      "path": "moduli/signature21.js",
+      "bytes": 10615,
+      "sha256": "10c719739ab283abb4d6f1cc94046e2b224c3cec0dbecffb07cb737fc2f7a5cd"
+    },
+    {
+      "path": "moduli/thermal21.js",
+      "bytes": 13869,
+      "sha256": "30f412bb08c7a2b67431673b60d9a95d0364a26f9d916a5cb22fa071d26c4dbe"
+    },
+    {
+      "path": "naming21.py",
+      "bytes": 6693,
+      "sha256": "c0a485e62bf2f7f3ef6d54d552021938f0cf8d0a0d4b9cf2bc53bddcf80e1cb9",
+      "definitions": [
+        "series",
+        "year",
+        "sequence",
+        "safe_name",
+        "basename",
+        "attachment_name",
+        "assign",
+        "install"
+      ]
+    },
+    {
+      "path": "payment20.py",
+      "bytes": 4221,
+      "sha256": "caf5b41f3fda16b512b65cce622be6e1996f7bc84ed2386b41707b2b8a62a8c7",
+      "definitions": [
+        "ask",
+        "install"
+      ]
+    },
+    {
+      "path": "photo21.py",
+      "bytes": 7002,
+      "sha256": "8d74f115144b0c0ec4401eb2ed7312b0e8dfb5c794c950bf0187a43ed5f6fab5",
+      "definitions": [
+        "recognize",
+        "install"
+      ]
+    },
+    {
+      "path": "plants24.py",
+      "bytes": 17961,
+      "sha256": "4fddea1981753ad985fa70a9b819368ffef3a19ce96b489d09d56336322b8945",
+      "definitions": [
+        "store_model",
+        "register",
+        "search",
+        "install",
+        "install_native"
+      ]
+    },
+    {
+      "path": "province21.json",
+      "bytes": 1851,
+      "sha256": "6aab56d5b498f059ef1ee53bd608e24105c4f006f14b73e324cd206c7d9254dc"
+    },
+    {
+      "path": "release25h.py",
+      "bytes": 1420,
+      "sha256": "33fc9d2090e1058ab72b699fe9882863ca6444da577227fe440e544edd22ad09",
+      "definitions": [
+        "install"
+      ]
+    },
+    {
+      "path": "reusegas22.py",
+      "bytes": 5195,
+      "sha256": "8f8f6a083bcf7cd1854acfd6c3d056f7252a5363be383a6559ac5094c59c4521",
+      "definitions": [
+        "apply_template",
+        "install"
+      ]
+    },
+    {
+      "path": "ripristina_catalogo271.py",
+      "bytes": 3047,
+      "sha256": "f5bbb7e0f4ce745ab53ff3b5d7f62689d413933934b07a1d9a818878e909ccb6",
+      "definitions": [
+        "restore"
+      ]
+    },
+    {
+      "path": "security2518.py",
+      "bytes": 40613,
+      "sha256": "4846c01ed6a45c4f744316a592f3c67e12fd14999ffbcb62060951b0d9b08438",
+      "definitions": [
+        "_now",
+        "_addcol",
+        "hash_password",
+        "verify_password",
+        "password_policy",
+        "ensure_security_schema",
+        "_setting",
+        "_set_setting",
+        "security_event",
+        "_login_state",
+        "_reset_failures",
+        "_register_failure",
+        "_remaining_lock",
+        "_bootstrap_required",
+        "_role_for_app",
+        "is_admin",
+        "_set_current_user",
+        "secure_log_audit",
+        "_bitlocker_status_text",
+        "_open_windows_encryption_settings",
+        "_clear_root",
+        "bootstrap_screen",
+        "secure_login_screen",
+        "_forced_password_change",
+        "secure_change_password",
+        "_activity",
+        "_check_idle",
+        "lock_session",
+        "_allowed",
+        "SecuritySettingsPage",
+        "_build_security_settings",
+        "SecurityAuditPage",
+        "_build_audit",
+        "install"
+      ]
+    },
+    {
+      "path": "signaturegas21.py",
+      "bytes": 7556,
+      "sha256": "d1f0c6b9d26efe2dac61f739b6eb37f106e451e3a15093eebc0e2edad942a25b",
+      "definitions": [
+        "data",
+        "binding",
+        "check",
+        "has_signature",
+        "save",
+        "remove",
+        "draw",
+        "stamp",
+        "apply_pdf",
+        "install"
+      ]
+    },
+    {
+      "path": "staffcalendar21.py",
+      "bytes": 30340,
+      "sha256": "850148ef891e527701e9c6638d853a81b08cabe5980d0b549ef2d8ac0cc7d15a",
+      "definitions": [
+        "migrate",
+        "staff_error",
+        "interval",
+        "overlaps",
+        "conflicts",
+        "events",
+        "hours",
+        "current_status",
+        "summary",
+        "ics_escape",
+        "ics_export",
+        "CalendarPage",
+        "show_report",
+        "install"
+      ]
+    },
+    {
+      "path": "structure25.py",
+      "bytes": 20343,
+      "sha256": "299c0aacf134ed679f744f98e40fe1af91cc02c2d82debc27e4fad529d6940e2",
+      "definitions": [
+        "_cols",
+        "_table",
+        "_addcol",
+        "_norm",
+        "_uid",
+        "_now",
+        "ensure_schema",
+        "_subject_from_row",
+        "_property_key",
+        "_unit_key",
+        "_migrate_address",
+        "migrate",
+        "change_occupant",
+        "create_intervention",
+        "migration_summary",
+        "install"
+      ]
+    },
+    {
+      "path": "structure25b.py",
+      "bytes": 42477,
+      "sha256": "ac659f3e14aa59953da395e669dba1a3a5f29543d0e05dfd69fe06141f1f311f",
+      "definitions": [
+        "_now",
+        "_norm",
+        "_property_key",
+        "_unit_key",
+        "_fmt_date",
+        "_client_ids_for_subject",
+        "_sync_legacy_addresses_for_unit",
+        "_ensure_legacy_address_for_subject",
+        "_subject_name",
+        "_subject_roles",
+        "ensure_schema",
+        "_subject_uid",
+        "_profile_units",
+        "_active_relation_summary",
+        "_property_address",
+        "_unit_label",
+        "SubjectPickerDialog",
+        "PropertyUnitDialog",
+        "RelationClassifyDialog",
+        "ChangeOccupantDialog",
+        "_build_immobili_tab",
+        "_selected",
+        "_current_subject_relation",
+        "_refresh_immobili",
+        "_refresh_unit_detail",
+        "_new_property_unit",
+        "_new_unit_in_property",
+        "_edit_selected_unit",
+        "_classify_current_subject",
+        "_change_occupant",
+        "install"
+      ]
+    },
+    {
+      "path": "technical253.py",
+      "bytes": 34110,
+      "sha256": "19585018f5f9d74d1f7f065880b2b0c5983ddd4a42533d8ed837b130bd05b115",
+      "definitions": [
+        "_now",
+        "_clean",
+        "_compact",
+        "_num",
+        "_iso_date",
+        "_extract_pdf_text",
+        "detect_source",
+        "_extract_cf_after",
+        "parse_criter",
+        "parse_fgas",
+        "parse_document",
+        "_client_match",
+        "_same_site_row",
+        "analyze_against_db",
+        "_insert_or_update_client",
+        "_ensure_site",
+        "_ensure_equipment",
+        "_save_reports",
+        "archive_import",
+        "apply_import",
+        "_summary",
+        "open_import_review",
+        "install"
+      ]
+    },
+    {
+      "path": "technical254.py",
+      "bytes": 15681,
+      "sha256": "bffa566625c98b8d6e239ac2f37fbc52c02c507c7f7799017323eeb09b14216c",
+      "definitions": [
+        "_now",
+        "_clean",
+        "_num",
+        "_checked",
+        "parse_criter254",
+        "_summary254",
+        "ensure_schema254",
+        "_save_system254",
+        "install"
+      ]
+    },
+    {
+      "path": "technical255.py",
+      "bytes": 17161,
+      "sha256": "73d48c9966d89998dcf236073faa3fce18e5afffebb5a88bc234542907c0f178",
+      "definitions": [
+        "_now",
+        "_sha",
+        "existing_import",
+        "_doc_label",
+        "classify_document",
+        "scan_folder",
+        "_counts",
+        "open_bulk_import",
+        "install"
+      ]
+    },
+    {
+      "path": "technical256.py",
+      "bytes": 18746,
+      "sha256": "6e748999f25843ca94a9caf3e77846923135e9ec59a5e306aa66c2041de633fb",
+      "definitions": [
+        "_now",
+        "_clean",
+        "_canon",
+        "_person_keys",
+        "_best_row",
+        "client_match256",
+        "_section_44",
+        "_bounded_field",
+        "_num",
+        "_iso_date",
+        "_climate_kind",
+        "parse_criter256",
+        "_merge_exact_cf_after_apply",
+        "_repair_imported_criter_climate",
+        "_fit_window",
+        "open_import_review256",
+        "install"
+      ]
+    },
+    {
+      "path": "technical257.py",
+      "bytes": 19363,
+      "sha256": "191681b2020003199915f61ec6363fa41287a24cbf70d8f1d4a3fc95c664f680",
+      "definitions": [
+        "_now",
+        "_clean",
+        "_num",
+        "_iso",
+        "_is_rct",
+        "parse_rct",
+        "_ensure_report_columns",
+        "_update_report_columns",
+        "apply_partial_import",
+        "install"
+      ]
+    },
+    {
+      "path": "technical25g.py",
+      "bytes": 16051,
+      "sha256": "593fbf0235da91fc5bbde35f87246b26b610696481a84018ef24fa542938462b",
+      "definitions": [
+        "now",
+        "migrate",
+        "fgas_tco2",
+        "equipment_alerts",
+        "save_static_normalization",
+        "import_technical_document",
+        "ComplianceTab",
+        "install"
+      ]
+    },
+    {
+      "path": "test_ite2519.py",
+      "bytes": 1891,
+      "sha256": "1c7c587bc511d5ee10e8adf5f2952e79e293b260dc7a6586c99f344fcb9796b3",
+      "definitions": [
+        "DummyApp",
+        "DummyParent",
+        "run"
+      ]
+    },
+    {
+      "path": "test_ite2520_drawings.py",
+      "bytes": 2435,
+      "sha256": "e958a24fe145763c767afcf05ff3fce0d8f2c1a7d718a4c1c5d935b5b996f574",
+      "definitions": [
+        "run"
+      ]
+    },
+    {
+      "path": "test_ite2521_drawings.py",
+      "bytes": 2435,
+      "sha256": "4140cbda35752fa0acaab9e564974b1ad95bc1aff817d9583e8d89de4e1cda7b",
+      "definitions": [
+        "run"
+      ]
+    },
+    {
+      "path": "test_ite2521_editor.py",
+      "bytes": 675,
+      "sha256": "249d71b19cde44f4bbad9bceb3d98050e2d07c3c920e77b6d0cfac4f98bc9c51",
+      "definitions": []
+    },
+    {
+      "path": "test_release25h.py",
+      "bytes": 3647,
+      "sha256": "d9e45783cb437c135ff355c7cb59f2f303e808b05b21fa6ec5da9c73a877f686",
+      "definitions": [
+        "run"
+      ]
+    },
+    {
+      "path": "test_technical256.py",
+      "bytes": 3651,
+      "sha256": "33f2ccf5f41226ce9492d996c99a90043a80ede4d90997ce2d7b6a67e6147b04",
+      "definitions": []
+    },
+    {
+      "path": "unified_modules.py",
+      "bytes": 42348,
+      "sha256": "5d83df4676df26f1ee2c75347bdf30d3e815127d4321bfe19c5957cd749d419a",
+      "definitions": [
+        "now",
+        "_row",
+        "ensure_unified_schema",
+        "_split_name",
+        "_next_pos_number",
+        "_send_json",
+        "_json_body",
+        "_save_data_file",
+        "_extract_pdf",
+        "_extract_psc",
+        "PosHandler",
+        "_Server",
+        "DrawHandler",
+        "_patch_draw_html",
+        "_open_local_app_window",
+        "_open_pos",
+        "_open_draw",
+        "install"
+      ]
+    },
+    {
+      "path": "versione_ite.json",
+      "bytes": 67,
+      "sha256": "34385ae95ebd48e30e30dc71cdddb9e4ccbdb31264db0b7fa5960add39697da9"
+    },
+    {
+      "path": "voice19.py",
+      "bytes": 7752,
+      "sha256": "088888ba83898d1d2e507572dcf94eb62be6a00f229cce68807603cbe7395327",
+      "definitions": [
+        "parse"
+      ]
+    }
+  ]
+}
