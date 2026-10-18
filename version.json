@@ -1,5 +1,5 @@
 {
-  "version": "3.0.67",
+  "version": "3.0.68",
   "released": "2026-10-18",
-  "notes": "Articoli e magazzino con movimenti tracciati; importazione singola/massiva XML, CSV, Excel, PDF, scansioni, cartelle e ZIP; anteprima e categorie; aggiornamento anagrafiche senza sovrascrivere conflitti; collegamenti cliente/sede/impianto/apparecchiatura/intervento/cantiere; controllo duplicati e DDT-fattura; originali e nuovi archivi inclusi nei backup. Motori PDF/OCR/Excel/ZIP caricati su richiesta con connessione."
+  "notes": "Adattata la logica del catalogo Windows 2.7.5: intestazioni, formati prezzo IT/EN, marca e categoria, acquisto/vendita, identità marca+codice, duplicati e variazioni anomale. Lettura sicura dei codici Excel espressi come stringhe costanti, zeri iniziali e suffissi. Anteprima articoli paginata con quantità senza carico automatico. File VIMAR ARKE FRUTTI.xlsx collaudato: 645 articoli. Base operativa e archivi precedenti conservati."
 }
