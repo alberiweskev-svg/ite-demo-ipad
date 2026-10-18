@@ -1,5 +1,5 @@
 {
-  "version": "3.0.70",
+  "version": "3.0.71",
   "released": "2026-10-18",
-  "notes": "Pulsanti Indietro e Avanti all’inizio e in fondo a ogni pagina. Navigazione nella cronologia delle pagine visitate, comandi disattivati ai limiti e conferma per moduli non salvati. Dati e funzioni precedenti conservati."
+  "notes": "Strumenti rinominato Impostazioni, con icona ingranaggio, e spostato come ultimo gruppo del menu. Collegamenti e funzioni conservati."
 }
