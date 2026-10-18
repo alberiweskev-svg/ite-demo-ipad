@@ -1,5 +1,5 @@
 {
-  "version": "3.0.68",
+  "version": "3.0.69",
   "released": "2026-10-18",
-  "notes": "Adattata la logica del catalogo Windows 2.7.5: intestazioni, formati prezzo IT/EN, marca e categoria, acquisto/vendita, identità marca+codice, duplicati e variazioni anomale. Lettura sicura dei codici Excel espressi come stringhe costanti, zeri iniziali e suffissi. Anteprima articoli paginata con quantità senza carico automatico. File VIMAR ARKE FRUTTI.xlsx collaudato: 645 articoli. Base operativa e archivi precedenti conservati."
+  "notes": "Primo step del porting Windows 2.7.5: dieci processi separati con guide, archivio a sottocartelle e cartella aggiuntiva, schede dedicate Di.Co./Di.Ri., gas e POS/PSC/DVR, riconoscimento dal contenuto, apprendimento locale solo confermato con suggerimenti espliciti e opzioni listino senza memorizzare prezzi. Profilo e logo I.T.E. originali recuperati; campi esistenti conservati. Piano completo e inventario di 142 file sorgente/modelli salvati. Conservati dati, allegati, cantieri, preventivi, extra e backup. Generazione delle nuove pratiche tecniche e sincronizzazione automatica Windows/iPad previste negli step successivi."
 }
