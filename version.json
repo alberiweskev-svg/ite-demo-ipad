@@ -1,5 +1,5 @@
 {
-  "version": "3.0.69",
+  "version": "3.0.70",
   "released": "2026-10-18",
-  "notes": "Primo step del porting Windows 2.7.5: dieci processi separati con guide, archivio a sottocartelle e cartella aggiuntiva, schede dedicate Di.Co./Di.Ri., gas e POS/PSC/DVR, riconoscimento dal contenuto, apprendimento locale solo confermato con suggerimenti espliciti e opzioni listino senza memorizzare prezzi. Profilo e logo I.T.E. originali recuperati; campi esistenti conservati. Piano completo e inventario di 142 file sorgente/modelli salvati. Conservati dati, allegati, cantieri, preventivi, extra e backup. Generazione delle nuove pratiche tecniche e sincronizzazione automatica Windows/iPad previste negli step successivi."
+  "notes": "Pulsanti Indietro e Avanti all’inizio e in fondo a ogni pagina. Navigazione nella cronologia delle pagine visitate, comandi disattivati ai limiti e conferma per moduli non salvati. Dati e funzioni precedenti conservati."
 }
