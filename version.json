@@ -1,5 +1,5 @@
 {
-  "version": "3.0.71",
+  "version": "3.0.72",
   "released": "2026-10-18",
-  "notes": "Strumenti rinominato Impostazioni, con icona ingranaggio, e spostato come ultimo gruppo del menu. Collegamenti e funzioni conservati."
+  "notes": "Pagamenti SAL con fasi e percentuali modificabili, controllo 100% e quote al centesimo. Riconoscimento fatture/proforme PR/DDT allineato a Windows; dettagli fiscali e rate XML, prezzi netti da sconti espliciti, importazione ruoli anagrafici multipli. Archivi e backup conservati."
 }
