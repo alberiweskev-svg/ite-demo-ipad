@@ -1,0 +1,153 @@
+[
+  {
+    "path": "vendor/tesseract.min.js",
+    "url": "https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js",
+    "sha256": "10fff78484067759c43028a02a72d76d0b90eb17302bb23b58a9ec5410bc928b"
+  },
+  {
+    "path": "vendor/ocr-worker.min.js",
+    "url": "https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/worker.min.js",
+    "sha256": "38645599043239c0eb6db08a6504a92dcdc292200535f3e9339cd77c4443b842"
+  },
+  {
+    "path": "vendor/LICENSE-tesseract.md",
+    "url": "https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/LICENSE.md",
+    "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+  },
+  {
+    "path": "vendor/tesseract-core-lstm.wasm.js",
+    "url": "https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0/tesseract-core-lstm.wasm.js",
+    "sha256": "775a35df6f2ae100e02609443e6bd5cafcd07983dd6175454ca4a432a7730687"
+  },
+  {
+    "path": "vendor/tesseract-core-lstm.wasm",
+    "url": "https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0/tesseract-core-lstm.wasm",
+    "sha256": "220e2e87551edccb85519796a170469f8ab2a8055216789e3b8b1ada18b7bc2b"
+  },
+  {
+    "path": "vendor/LICENSE-ocr-core",
+    "url": "https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0/LICENSE",
+    "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08"
+  },
+  {
+    "path": "vendor/tessdata/ita.traineddata.gz",
+    "url": "https://cdn.jsdelivr.net/npm/@tesseract.js-data/ita@1.0.0/4.0.0_best_int/ita.traineddata.gz",
+    "sha256": "f702fcfad297ce028ede3626d1467b67939f23ff23595f9badd54681cf25a4d3"
+  },
+  {
+    "path": "vendor/pdf.mjs",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs",
+    "sha256": "a209a2124baa35cbb9015b809926f1bcec9dd1c247296290e205dd9d76cb9128"
+  },
+  {
+    "path": "vendor/pdf.worker.mjs",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs",
+    "sha256": "7c237f83fa56bce645d8af51d183c9c56ba7b2d2928ff42754dc7020bea36323"
+  },
+  {
+    "path": "vendor/LICENSE-pdfjs",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/LICENSE",
+    "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+  },
+  {
+    "path": "vendor/pdf-fonts/FoxitSerif.pfb",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/FoxitSerif.pfb",
+    "sha256": "4f57d2b9d884af8f907bf22df6019b52d86cbf6214fdbd02b1ae05472a543f35"
+  },
+  {
+    "path": "vendor/pdf-fonts/LiberationSans-BoldItalic.ttf",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/LiberationSans-BoldItalic.ttf",
+    "sha256": "a224075ac17495ad0a3af3bc0a419ac0704a8b3fd1095456201fb9b095fc281d"
+  },
+  {
+    "path": "vendor/pdf-fonts/FoxitSymbol.pfb",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/FoxitSymbol.pfb",
+    "sha256": "47967d055530e7357088a08403115425643ec2cdfd6201ba8af0fbd7116c1539"
+  },
+  {
+    "path": "vendor/pdf-fonts/LICENSE_LIBERATION",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/LICENSE_LIBERATION",
+    "sha256": "93fed46019c38bbe566b479d22148e2e8a1e85ada614accb0211c37b2c61c19b"
+  },
+  {
+    "path": "vendor/pdf-fonts/LiberationSans-Bold.ttf",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/LiberationSans-Bold.ttf",
+    "sha256": "361c61b82d575c5c35fd9157fda8b0194bcfcd0d88ea8521a4fb5dd53d33dddc"
+  },
+  {
+    "path": "vendor/pdf-fonts/FoxitSerifItalic.pfb",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/FoxitSerifItalic.pfb",
+    "sha256": "610ae0687198045c4db5d1a6650fd5e92536631706382eb8b72e38df578d0ae9"
+  },
+  {
+    "path": "vendor/pdf-fonts/FoxitFixed.pfb",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/FoxitFixed.pfb",
+    "sha256": "b6c8fe53f134b8b6d4578cd2d544df4cee9624c4efa8d51a560fb40ea296101b"
+  },
+  {
+    "path": "vendor/pdf-fonts/FoxitDingbats.pfb",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/FoxitDingbats.pfb",
+    "sha256": "845c752392b6c914fb989c75a08b7792b88f542d2499042ef2889f8c814a16ed"
+  },
+  {
+    "path": "vendor/pdf-fonts/FoxitFixedBoldItalic.pfb",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/FoxitFixedBoldItalic.pfb",
+    "sha256": "8a000945843bd31add06aee63bf9fd41b7578b4f3242a4b7cd46349ad9d24d4d"
+  },
+  {
+    "path": "vendor/pdf-fonts/LICENSE_FOXIT",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/LICENSE_FOXIT",
+    "sha256": "b578cdd2345840ada550bd12519533812320d5f1d21cf4c1c7e1b1b0a31c98b7"
+  },
+  {
+    "path": "vendor/pdf-fonts/FoxitFixedBold.pfb",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/FoxitFixedBold.pfb",
+    "sha256": "f1b7159702973f54fc86254ea38bcf3712b2a736eb3a0995751e9f4bb45ad603"
+  },
+  {
+    "path": "vendor/pdf-fonts/LiberationSans-Regular.ttf",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/LiberationSans-Regular.ttf",
+    "sha256": "f8ace1f892b2bd9dc1792ba7f097fa7588f84fed48321480e04de5390828221f"
+  },
+  {
+    "path": "vendor/pdf-fonts/FoxitSerifBoldItalic.pfb",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/FoxitSerifBoldItalic.pfb",
+    "sha256": "a406cac82583bf98175cb62c87ed5e95c45fbb34eece63a10b0a13e793cb2e10"
+  },
+  {
+    "path": "vendor/pdf-fonts/FoxitFixedItalic.pfb",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/FoxitFixedItalic.pfb",
+    "sha256": "5007faf8320fa1fcc08b8894b356ad976f60b992ba29ee5272578bbdebaf3876"
+  },
+  {
+    "path": "vendor/pdf-fonts/LiberationSans-Italic.ttf",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/LiberationSans-Italic.ttf",
+    "sha256": "832b4406dbef23628800d3aaad21048534ac84d7e3ad955be83b8172ed8ef512"
+  },
+  {
+    "path": "vendor/pdf-fonts/FoxitSerifBold.pfb",
+    "url": "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/standard_fonts/FoxitSerifBold.pfb",
+    "sha256": "0bdf4b04e964139818d51eda03d566ba999fc3ba2421b1c6c51f9dc969022e80"
+  },
+  {
+    "path": "vendor/jszip.min.js",
+    "url": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
+    "sha256": "acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e"
+  },
+  {
+    "path": "vendor/LICENSE-jszip.md",
+    "url": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/LICENSE.markdown",
+    "sha256": "566c953c6090b1218ca6217dd7359d45dde46581968586dc607d59a78af6a9c4"
+  },
+  {
+    "path": "vendor/LICENSE-noble",
+    "url": "https://cdn.jsdelivr.net/npm/@noble/ciphers@1.3.0/LICENSE",
+    "sha256": "f36671a5487c9c5050efacb58011c37c24c55a889803cb036cf9d9a6347c1e2d"
+  },
+  {
+    "path": "vendor/xlsx.full.min.js",
+    "url": "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js",
+    "sha256": "cc015130aa8521e7f088f88898eba949ccdcbfb38df0bd129b44b7273c3a6f41",
+    "mirror": "https://cdn.jsdelivr.net/npm/@e965/xlsx@0.20.3/dist/xlsx.full.min.js"
+  }
+]
