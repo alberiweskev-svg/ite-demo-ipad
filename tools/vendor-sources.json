@@ -149,5 +149,11 @@
     "url": "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js",
     "sha256": "cc015130aa8521e7f088f88898eba949ccdcbfb38df0bd129b44b7273c3a6f41",
     "mirror": "https://cdn.jsdelivr.net/npm/@e965/xlsx@0.20.3/dist/xlsx.full.min.js"
+  },
+  {
+    "path": "vendor/LICENSE-sheetjs",
+    "url": "https://cdn.sheetjs.com/xlsx-0.20.3/package/LICENSE",
+    "mirror": "https://cdn.jsdelivr.net/npm/@e965/xlsx@0.20.3/LICENSE",
+    "sha256": "4d2a38ac35cda06a555c84074a819d413339cd3691b822cae50f8f322fe01f64"
   }
 ]

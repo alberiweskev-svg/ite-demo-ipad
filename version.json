@@ -1,5 +1,5 @@
 {
-  "version": "3.0.72",
-  "released": "2026-10-18",
-  "notes": "Pagamenti SAL con fasi e percentuali modificabili, controllo 100% e quote al centesimo. Riconoscimento fatture/proforme PR/DDT allineato a Windows; dettagli fiscali e rate XML, prezzi netti da sconti espliciti, importazione ruoli anagrafici multipli. Archivi e backup conservati."
+  "version": "3.0.73",
+  "released": "2026-10-22",
+  "notes": "Archivio e backup cifrati con password locale; PDF, Excel, OCR e ZIP inclusi nel programma, connessioni esterne limitate e controllo integrità degli script. Migrazione conservativa dei dati precedenti. Clienti, sedi, impianti, apparecchiature, cantiere e documenti TEST con risultati attesi per prove incrociate."
 }

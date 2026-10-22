@@ -65,3 +65,8 @@ Base funzionale 3.0.70; conservata la modifica del menu 3.0.71. Nessuna modifica
 Collaudo riproducibile: `tests/sal-imports.cjs`, Playwright/Chromium. Casi sintetici: salvataggio SAL, somma errata, annullamento, nuova approvazione, fatture/proforme/crediti/DDT, direzioni, due rate XML, ritenuta/bollo, sconti concatenati, reimportazione senza duplicati, ruoli multipli, permanenza dopo ricarica e round-trip del contenuto commerce nel backup completo. Nessun dato reale del dispositivo è usato nei test.
 
 Questo rilascio completa il blocco SAL e amplia il blocco importazioni; non dichiara terminata la parità di tutti i parser Windows. Restano da portare/validare alias articolo-fornitore, ulteriori layout PDF e relativi documenti reali, apprendimento delle associazioni di colonne e anagrafiche Windows fuori dalle tabelle condivise. I moduli Di.Co./gas/POS e la sincronizzazione restano negli step dedicati già elencati.
+
+
+## Aggiornamento 3.0.73 — protezione dei dati e archivio TEST
+
+Aggiunte cifratura locale di archivio e backup con sblocco tramite password, migrazione conservativa degli archivi precedenti, dipendenze PDF/Excel/OCR/ZIP incluse nel programma, restrizioni di rete e integrità degli script. Inserimento aggiuntivo di otto anagrafiche TEST collegate a immobili, impianti, apparecchiature e cantiere, con nove documenti fittizi e risultati attesi. Procedura e limiti in [SICUREZZA_3.0.73.md](SICUREZZA_3.0.73.md). La protezione non modifica la sequenza dei moduli Windows ancora da portare.
