@@ -34,3 +34,5 @@ assert n==1
 index.write_text(h)
 assert 'Da classificare' in app.read_text()
 print('4.0.0 step 1: archive flattened, syntax and SRI validated')
+
+# Build trigger: 4.0 layout and flat document archive integration.
