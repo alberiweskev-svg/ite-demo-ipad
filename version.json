@@ -1,5 +1,5 @@
 {
-  "version": "3.0.73",
-  "released": "2026-10-22",
-  "notes": "Archivio e backup cifrati con password locale; PDF, Excel, OCR e ZIP inclusi nel programma, connessioni esterne limitate e controllo integrità degli script. Migrazione conservativa dei dati precedenti. Clienti, sedi, impianti, apparecchiature, cantiere e documenti TEST con risultati attesi per prove incrociate."
+  "version": "3.0.74",
+  "released": "2026-10-23",
+  "notes": "Importazione guidata dei documenti tecnici: collega o crea cliente, immobile, impianto e apparecchiatura con verifica dei duplicati, registrazione atomica e salvataggio dell'originale. Archivio locale cifrato e backup pre-importazione conservati. Per gli altri documenti resta il flusso precedente."
 }
