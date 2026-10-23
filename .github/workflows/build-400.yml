@@ -1,0 +1,36 @@
+name: Validate and build ITE 4.0
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'dev/apply_400_step1.py'
+      - 'dev/test_400_worksite.cjs'
+      - 'app.js'
+      - 'index.html'
+      - 'vault.js'
+      - '.github/workflows/build-400.yml'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript and rebuild integrity
+        run: python3 dev/apply_400_step1.py
+      - name: Worksite regression tests
+        run: node dev/test_400_worksite.cjs
+      - name: Commit generated assets
+        run: |
+          git config user.name "ite-400-builder"
+          git config user.email "ite-400-builder@users.noreply.github.com"
+          git add app.js vault.js index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "build: refresh 4.0.0 integrity after source changes [skip ci]"
+            git push
+          fi
