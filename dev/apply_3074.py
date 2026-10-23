@@ -58,6 +58,7 @@ subprocess.run(["node", "--check", str(vault)], check=True)
 h = index.read_text()
 h = h.replace("Gestionale I.T.E. 3.0.73 — Demo iPad", "Gestionale I.T.E. 3.0.74 — Demo iPad")
 h = h.replace("./vault.js?v=3.0.73", "./vault.js?v=3.0.74")
+h = h.replace("GESTIONALE 3.0.73", "GESTIONALE 3.0.74").replace("Gestionale 3.0.73", "Gestionale 3.0.74")
 h, n = re.subn(r'(<script src="./vault.js\?v=3.0.74" integrity=")sha384-[^"]+(")', lambda m: m.group(1)+sri(vault)+m.group(2), h, count=1)
 assert n == 1
 index.write_text(h)
