@@ -14,9 +14,10 @@ function extract(name){
  throw Error('Unterminated function: '+name);
 }
 const db={interventi:[],clienti:[]};
-const ctx={ITE:{snapshot:()=>db},same:(a,b)=>String(a)===String(b),Date,Number,JSON,String,Array};
+const state={documents:[],movements:[],articles:[]};
+const ctx={ITE:{snapshot:()=>db},state,same:(a,b)=>String(a)===String(b),cash:n=>'€ '+Number(n).toFixed(2),Date,Number,JSON,String,Array};
 vm.createContext(ctx);
-vm.runInContext(extract('workHoursDataForSite')+';'+extract('laborCostForSite'),ctx);
+vm.runInContext(extract('workHoursDataForSite')+';'+extract('laborCostForSite')+';'+extract('economicSummaryForSite'),ctx);
 const job=(id,props)=>({id,cantiere_id:'C1',...props});
 db.clienti=[{id:'A',internal_hourly_cost:'25.50'}];
 db.interventi=[job(1,{work_logs:JSON.stringify([{operator_id:'A',duration_minutes:120}])})];
@@ -33,4 +34,14 @@ c=ctx.laborCostForSite('C1');assert.equal(c.unpriced,1);assert.equal(c.estimated
 db.interventi=[job(6,{work_logs:JSON.stringify([{operator_id:'A',duration_minutes:60}])})];
 db.clienti=[{id:'A',internal_hourly_cost:'1001'}];
 c=ctx.laborCostForSite('C1');assert.equal(c.unpriced,1);assert.equal(c.estimated,0);
-console.log('OK: 6 regression scenarios for worksite labor');
+state.documents=[{siteId:'C1',type:'Fattura vendita',net:''}];
+let html=ctx.economicSummaryForSite('C1');
+assert.match(html,/1 documenti senza importo verificabile/);
+assert.match(html,/Da quantificare/);
+state.documents=[{siteId:'C1',type:'Fattura vendita',net:1000},{siteId:'C1',type:'Nota credito vendita',net:200}];
+html=ctx.economicSummaryForSite('C1');
+assert.match(html,/€ 800\.00/);
+state.documents=[{siteId:'C1',type:'Fattura acquisto',net:null,total:null}];
+html=ctx.economicSummaryForSite('C1');
+assert.match(html,/1 documenti senza importo verificabile/);
+console.log('OK: 9 regression scenarios for worksite hours, labor and fiscal totals');
