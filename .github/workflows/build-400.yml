@@ -1,9 +1,12 @@
-name: Build ITE 4.0 step 1
+name: Validate and build ITE 4.0
 on:
   push:
     branches: [sviluppo-4.0.0-base]
     paths:
       - 'dev/apply_400_step1.py'
+      - 'app.js'
+      - 'index.html'
+      - 'vault.js'
       - '.github/workflows/build-400.yml'
 permissions:
   contents: write
@@ -17,7 +20,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply UI simplification and verify integrity
+      - name: Validate JavaScript and rebuild integrity
         run: python3 dev/apply_400_step1.py
       - name: Commit generated assets
         run: |
@@ -25,6 +28,6 @@ jobs:
           git config user.email "ite-400-builder@users.noreply.github.com"
           git add app.js vault.js index.html
           if ! git diff --cached --quiet; then
-            git commit -m "build: 4.0.0 first archive simplification [skip ci]"
+            git commit -m "build: refresh 4.0.0 integrity after source changes [skip ci]"
             git push
           fi
