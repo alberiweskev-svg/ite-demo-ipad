@@ -1,0 +1,48 @@
+/* I.T.E. 3.0.74 — importazione tecnica guidata */
+function iteGuide(d,core){
+ const g=d.guide||{},c=core.clienti.find(x=>same(x.id,d.clientId)),p=core.immobili.find(x=>same(x.id,d.propertyId)),i=core.impianti.find(x=>same(x.id,d.plantId)),t=d.technical||{};
+ const sel=(key,label,rows)=>'<label>'+label+'<select data-q="'+key+'">'+opt(rows,d[key],x=>x.name||[x.brand,x.model,x.serial].filter(Boolean).join(' '))+'</select></label>';
+ const inp=(key,label,hint='')=>'<label>'+label+'<input data-guide="'+key+'" value="'+esc(g[key]||'')+'" placeholder="'+esc(hint)+'"></label>';
+ return '<fieldset class="form-wide"><legend>3.0.74 · Collegamento anagrafiche</legend><label><input type="checkbox" class="commerce-check" data-guide="enabled" '+(g.enabled?'checked':'')+'> Crea o collega cliente, immobile, impianto e apparecchiatura</label><p class="hint">Scegli le schede esistenti oppure compila quelle mancanti. Verifica i suggerimenti prima di registrare.</p><div class="grid">'+
+ sel('clientId','1. Cliente esistente',core.clienti.filter(x=>ITEContacts.roles(x).includes('Cliente')))+(!d.clientId?inp('clientName','Nuovo cliente',d.party?.name||'Nome e cognome')+inp('clientTax','Codice fiscale')+inp('clientVat','P.IVA'):'')+
+ sel('propertyId','2. Immobile esistente',core.immobili.filter(x=>c&&same(x.client_id,c.id)))+(!d.propertyId?inp('propertyName','Nuovo immobile',t.installationAddress||'Via e numero')+inp('propertyCity','Comune'):'')+
+ sel('plantId','3. Impianto esistente',core.impianti.filter(x=>p&&same(x.immobile_id,p.id)))+(!d.plantId?inp('plantName','Nuovo impianto','Es. Riscaldamento'):'')+
+ sel('deviceId','4. Apparecchiatura esistente',core.apparecchiature.filter(x=>i&&same(x.impianto_id,i.id)))+(!d.deviceId?'<label>Categoria<select data-guide="deviceCategory">'+['Caldaia','Condizionatore','Pompa di calore','Ibrido','Fotovoltaico'].map(v=>'<option '+((g.deviceCategory||'Caldaia')===v?'selected':'')+'>'+v+'</option>').join('')+'</select></label>'+inp('deviceBrand','Marca',t.brand||'')+inp('deviceModel','Modello',t.model||'')+inp('deviceSerial','Matricola',t.serial||''):'')+
+ '</div><p class="hint">Conferma unica: Cliente → Immobile → Impianto → Apparecchiatura → Documento. Nessun elemento viene creato se mancano i dati necessari.</p></fieldset>';
+}
+function iteRegisterGuide(d,core,next){
+ const g=d.guide||{};if(!g.enabled)return;
+ const required=(key,label)=>{const v=String(g[key]||'').trim();if(!v)throw Error(d.sourceName+': manca '+label);return v};
+ let c=core.clienti.find(x=>same(x.id,d.clientId));
+ if(d.clientId&&!c)throw Error('Cliente selezionato inesistente');
+ if(!c){const proposed={name:required('clientName','cliente'),tax_code:g.clientTax||'',vat:g.clientVat||''},match=entityMatch(proposed,core);
+  if(match.conflict)throw Error(match.conflict);
+  if(match.row){c=match.row;if(!ITEContacts.roles(c).includes('Cliente'))throw Error('Nominativo già presente con altro ruolo: verifica la scheda')}
+  else{c={id:Math.max(0,...core.clienti.map(x=>x.id))+1,...proposed,kind:'Cliente',roles:['Cliente']};core.clienti.push(c);audit(next,'CREA_CLIENTE_IMPORTAZIONE',{id:c.id})}}
+ d.clientId=String(c.id);
+ let p=core.immobili.find(x=>same(x.id,d.propertyId));
+ if(d.propertyId&&!p)throw Error('Immobile selezionato inesistente');
+ if(p&&!same(p.client_id,c.id))throw Error('Immobile non appartenente al cliente');
+ if(!p){const name=required('propertyName','immobile'),found=core.immobili.filter(x=>same(x.client_id,c.id)&&norm(x.name)===norm(name));
+  if(found.length>1)throw Error('Immobili duplicati: verifica');p=found[0];
+  if(!p){p={id:Math.max(0,...core.immobili.map(x=>x.id))+1,client_id:String(c.id),name,city:g.propertyCity||''};core.immobili.push(p);audit(next,'CREA_IMMOBILE_IMPORTAZIONE',{id:p.id})}}
+ d.propertyId=String(p.id);
+ let i=core.impianti.find(x=>same(x.id,d.plantId));
+ if(d.plantId&&!i)throw Error('Impianto selezionato inesistente');
+ if(i&&!same(i.immobile_id,p.id))throw Error('Impianto non appartenente all’immobile');
+ if(!i){const name=required('plantName','impianto'),found=core.impianti.filter(x=>same(x.immobile_id,p.id)&&norm(x.name)===norm(name));
+  if(found.length>1)throw Error('Impianti duplicati: verifica');i=found[0];
+  if(!i){i={id:Math.max(0,...core.impianti.map(x=>x.id))+1,immobile_id:String(p.id),name,kind:'Altro'};core.impianti.push(i);audit(next,'CREA_IMPIANTO_IMPORTAZIONE',{id:i.id})}}
+ d.plantId=String(i.id);
+ let a=core.apparecchiature.find(x=>same(x.id,d.deviceId));
+ if(d.deviceId&&!a)throw Error('Apparecchiatura selezionata inesistente');
+ if(a&&!same(a.impianto_id,i.id))throw Error('Apparecchiatura non appartenente all’impianto');
+ if(!a){const brand=required('deviceBrand','marca apparecchiatura'),model=String(g.deviceModel||'').trim(),serial=String(g.deviceSerial||'').trim();
+  if(!model&&!serial)throw Error('Indica modello o matricola');
+  const found=core.apparecchiature.filter(x=>serial?norm(x.serial)===norm(serial):same(x.impianto_id,i.id)&&norm(x.brand)===norm(brand)&&norm(x.model)===norm(model));
+  if(found.length>1)throw Error('Apparecchiature duplicate: verifica');a=found[0];
+  if(a&&!same(a.impianto_id,i.id))throw Error('Matricola già presente su altro impianto: seleziona la scheda corretta');
+  if(!a){a={id:Math.max(0,...core.apparecchiature.map(x=>x.id))+1,impianto_id:String(i.id),category:g.deviceCategory||'Caldaia',brand,model,serial};core.apparecchiature.push(a);audit(next,'CREA_APPARECCHIATURA_IMPORTAZIONE',{id:a.id})}}
+ d.deviceId=String(a.id);d.subjectId=d.clientId;
+ audit(next,'COLLEGA_DOCUMENTO_IMPORTATO',{documentId:d.id,clientId:d.clientId,propertyId:d.propertyId,plantId:d.plantId,deviceId:d.deviceId});
+}

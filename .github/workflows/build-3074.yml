@@ -1,0 +1,31 @@
+name: Build ITE 3.0.74 guided import
+on:
+  push:
+    branches: [sviluppo-3.0.74-importazione-guidata]
+    paths:
+      - 'dev/apply_3074.py'
+      - 'dev/ite-import-guided.js.txt'
+      - '.github/workflows/build-3074.yml'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply patch and verify syntax / integrity
+        run: python3 dev/apply_3074.py
+      - name: Commit updated application to development branch
+        run: |
+          git config user.name "ite-3074-builder"
+          git config user.email "ite-3074-builder@users.noreply.github.com"
+          git add app.js vault.js index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "build: 3.0.74 guided import and integrity [skip ci]"
+            git push
+          fi
