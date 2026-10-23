@@ -31,6 +31,8 @@ h,n=re.subn(r'(<script src="./vault.js\?v=4.0.0" integrity=")sha384-[^"]+(")',la
 assert n==1
 index.write_text(h)
 assert 'Da classificare' in app.read_text()
-print('4.0.0 step 1: archive flattened, syntax and SRI validated')
+for required in ('function economicSummaryForSite(siteId)', 'function workHoursDataForSite(siteId)', 'function laborCostForSite(siteId)', 'internal_hourly_cost', 'function movementSummaryForSite(siteId)', 'function renderLinked()'):
+    assert required in app.read_text(), 'Missing required module: '+required
+print('4.0.0: syntax, core modules and SRI validated')
 
 # Build trigger: 4.0 layout and flat document archive integration.
