@@ -10,11 +10,9 @@ def replace_once(s,old,new):
 s=app.read_text()
 old='''function archiveFolders(rows,depth=0){if(!rows.length)return '<p class="hint">Nessun documento in questa categoria.</p>';if(depth>=7)return docList(rows);const groups=new Map();for(const d of rows){const path=folderLevels(d),name=path[depth];if(!name){const k='Documenti';if(!groups.has(k))groups.set(k,[]);groups.get(k).push(d)}else{if(!groups.has(name))groups.set(name,[]);groups.get(k).push(d)}}'''
 # replace by boundaries to avoid accidental modifications
-start=s.index('function archiveFolders(rows,depth=0){')
-end=s.index('function automaticHints(d){',start)
-new="""function archiveFolders(rows,depth=0){if(!rows.length)return '<p class="hint">Nessun documento in questa categoria.</p>';const groups=new Map();for(const d of rows){const name=d.type==='Articoli'?'Listini e articoli':(d.type==='Da verificare'?'Da classificare':d.type);if(!groups.has(name))groups.set(name,[]);groups.get(name).push(d)}return [...groups].sort(([a],[b])=>a.localeCompare(b,'it')).map(([name,items])=>'<details class="import-folder-level" open><summary>'+esc(name)+' <small>('+items.length+')</small></summary>'+docList(items)+'</details>').join('');}
-"""
-s=s[:start]+new+s[end:]
+# The archive is already flattened in the branch; preserve later UI changes.
+assert "function archiveFolders(rows,depth=0)" in s
+assert "Da classificare" in s
 s=replace_once(s,"version:'3.0.74'","version:'4.0.0'")
 app.write_text(s)
 subprocess.run(['node','--check',str(app)],check=True)
