@@ -4,6 +4,7 @@ on:
     branches: [sviluppo-4.0.0-base]
     paths:
       - 'dev/apply_400_step1.py'
+      - 'dev/test_400_worksite.cjs'
       - 'app.js'
       - 'index.html'
       - 'vault.js'
@@ -22,6 +23,8 @@ jobs:
           node-version: '22'
       - name: Validate JavaScript and rebuild integrity
         run: python3 dev/apply_400_step1.py
+      - name: Worksite regression tests
+        run: node dev/test_400_worksite.cjs
       - name: Commit generated assets
         run: |
           git config user.name "ite-400-builder"
