@@ -21,18 +21,21 @@ function iteRegisterGuide(d,core,next){
   else{c={id:Math.max(0,...core.clienti.map(x=>x.id))+1,...proposed,kind:'Cliente',roles:['Cliente']};core.clienti.push(c);audit(next,'CREA_CLIENTE_IMPORTAZIONE',{id:c.id})}}
  d.clientId=String(c.id);
  let p=core.immobili.find(x=>same(x.id,d.propertyId));
+ if(d.propertyId&&!p)throw Error('Immobile selezionato inesistente');
  if(p&&!same(p.client_id,c.id))throw Error('Immobile non appartenente al cliente');
  if(!p){const name=required('propertyName','immobile'),found=core.immobili.filter(x=>same(x.client_id,c.id)&&norm(x.name)===norm(name));
   if(found.length>1)throw Error('Immobili duplicati: verifica');p=found[0];
   if(!p){p={id:Math.max(0,...core.immobili.map(x=>x.id))+1,client_id:String(c.id),name,city:g.propertyCity||''};core.immobili.push(p);audit(next,'CREA_IMMOBILE_IMPORTAZIONE',{id:p.id})}}
  d.propertyId=String(p.id);
  let i=core.impianti.find(x=>same(x.id,d.plantId));
+ if(d.plantId&&!i)throw Error('Impianto selezionato inesistente');
  if(i&&!same(i.immobile_id,p.id))throw Error('Impianto non appartenente all’immobile');
  if(!i){const name=required('plantName','impianto'),found=core.impianti.filter(x=>same(x.immobile_id,p.id)&&norm(x.name)===norm(name));
   if(found.length>1)throw Error('Impianti duplicati: verifica');i=found[0];
   if(!i){i={id:Math.max(0,...core.impianti.map(x=>x.id))+1,immobile_id:String(p.id),name,kind:'Altro'};core.impianti.push(i);audit(next,'CREA_IMPIANTO_IMPORTAZIONE',{id:i.id})}}
  d.plantId=String(i.id);
  let a=core.apparecchiature.find(x=>same(x.id,d.deviceId));
+ if(d.deviceId&&!a)throw Error('Apparecchiatura selezionata inesistente');
  if(a&&!same(a.impianto_id,i.id))throw Error('Apparecchiatura non appartenente all’impianto');
  if(!a){const brand=required('deviceBrand','marca apparecchiatura'),model=String(g.deviceModel||'').trim(),serial=String(g.deviceSerial||'').trim();
   if(!model&&!serial)throw Error('Indica modello o matricola');
