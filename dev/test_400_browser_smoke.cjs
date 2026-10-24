@@ -51,7 +51,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#app-shell').isVisible(),false,'App visible after vault lock');
   await page.locator('#vault-password').fill('WRONG-SYNTHETIC-PASSWORD');
   await page.locator('#vault-submit').click();
-  await page.locator('#vault-message').getByText(/Password errata o archivio danneggiato|Password non valida/).waitFor({state:'visible',timeout:30000});
+  await page.waitForFunction(()=>/Password errata o archivio danneggiato|Password non valida/.test(document.getElementById('vault-message').textContent),{timeout:30000});
   assert.equal(await page.locator('#app-shell').isVisible(),false,'Wrong password unlocked archive');
   await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
   await page.locator('#vault-submit').click();
