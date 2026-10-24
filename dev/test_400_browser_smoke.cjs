@@ -232,6 +232,21 @@ const server=http.createServer((req,res)=>{
   assert.equal(String(photoBefore.parentId),String(equipmentJob.id));
   assert.deepEqual(Buffer.from(photoBefore.bytes),sampleBytes);
   console.log('OK: Synthetic photo saved through upload form with verified bytes');
+  // Simulate the dedicated iPad camera input using synthetic image bytes (no real camera access).
+  await page.locator('#documenti button[onclick="ITEDocs.showForm()"]').click();
+  await page.locator('#docs-parent-type').selectOption('interventi');
+  await page.locator('#docs-parent-id').selectOption(String(equipmentJob.id));
+  const cameraBytes=Buffer.from([255,216,255,217]);
+  await page.locator('#docs-camera').setInputFiles({name:'camera-test.jpg',mimeType:'image/jpeg',buffer:cameraBytes});
+  assert.equal(await page.locator('#docs-file').evaluate(el=>el.required),false,'Camera selection should allow form submission without picker file');
+  await page.locator('#docs-form button[type="submit"]').click();
+  await page.locator('#docs-form').waitFor({state:'hidden',timeout:30000});
+  assert.equal(await page.locator('#docs-file').evaluate(el=>el.required),true,'Picker required state must reset after saving');
+  const cameraBefore=await page.evaluate(async()=>{const doc=(await window.ITEDocs.listDocs()).find(d=>d.fileName==='camera-test.jpg');return doc?{id:doc.id,parentId:doc.parentId,bytes:Array.from(new Uint8Array(doc.fileBytes))}:null});
+  assert.ok(cameraBefore,'Synthetic camera photo was not saved');
+  assert.equal(String(cameraBefore.parentId),String(equipmentJob.id));
+  assert.deepEqual(Buffer.from(cameraBefore.bytes),cameraBytes);
+  console.log('OK: Dedicated camera input stores synthetic photo and restores form validation');
   const docsBefore=await page.evaluate(()=>window.ITEDocs.listDocs());
   assert.ok(docsBefore.some(d=>d.id===docId&&d.parentType==='interventi'&&d.parentId===String(equipmentJob.id)),'Synthetic document not linked to intervention');
   await page.reload({waitUntil:'networkidle'});
@@ -244,6 +259,11 @@ const server=http.createServer((req,res)=>{
   assert.ok(photoAfter,'Uploaded photo missing after vault reload');
   assert.deepEqual(Buffer.from(photoAfter.bytes),sampleBytes);
   assert.equal(String(photoAfter.parentId),String(equipmentJob.id));
+  const cameraAfter=await page.evaluate(async id=>{const doc=(await window.ITEDocs.listDocs()).find(d=>d.id===id);return doc?{parentId:doc.parentId,bytes:Array.from(new Uint8Array(doc.fileBytes))}:null},cameraBefore.id);
+  assert.ok(cameraAfter,'Camera photo missing after encrypted vault reload');
+  assert.equal(String(cameraAfter.parentId),String(equipmentJob.id));
+  assert.deepEqual(Buffer.from(cameraAfter.bytes),cameraBytes);
+  console.log('OK: Dedicated camera photo survives encrypted vault reload with correct intervention link');
   console.log('OK: Uploaded photo bytes and intervention link survive vault reload');
   assert.deepEqual(errors,[],'Browser errors during revision workflow: '+errors.join(' | '));
   console.log('OK: Revision retains first closure, adds second session and audits final closure');
