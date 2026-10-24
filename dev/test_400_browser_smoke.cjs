@@ -30,5 +30,13 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#app-shell').isVisible(),false,'Application shell must remain locked');
   assert.deepEqual(errors,[],'Browser runtime errors: '+errors.join(' | '));
   console.log('OK: Chromium loads encrypted entry screen and keeps app locked');
+  // Use only synthetic credentials and a fresh, isolated browser profile.
+  await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
+  await page.locator('#vault-confirm').fill('ITE-4-Test-Only-2026!');
+  await page.locator('#vault-submit').click();
+  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  assert.equal(await page.locator('#vault-gate').isVisible(),false,'Vault gate remains visible after unlock');
+  assert.deepEqual(errors,[],'Runtime errors after unlock: '+errors.join(' | '));
+  console.log('OK: Chromium creates a test vault and opens the application shell');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
