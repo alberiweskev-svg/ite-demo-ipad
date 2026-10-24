@@ -106,6 +106,13 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#appointment-site option').count(),1,'Orphan sites offered before client selection');
   assert.equal(await page.locator('#appointment-category option').count(),1,'Equipment categories offered before site selection');
   assert.equal(await page.locator('#appointment-subject-hint').textContent(),'Seleziona prima il cliente.');
+  assert.equal(await page.locator('#appointment-policy').isVisible(),false,'Policy must stay hidden until the subject is selected');
+  // Use only the synthetic demonstration client and site shipped in a fresh archive.
+  await page.locator('#appointment-client').selectOption('1');
+  await page.locator('#appointment-site').selectOption('1');
+  await page.locator('#appointment-category').selectOption('other');
+  assert.equal(await page.locator('#appointment-policy').isVisible(),true,'Policy must become visible after client/site/subject selection');
+  assert.equal(await page.locator('#appointment-notes').getAttribute('required'),'','Other work requires a description');
   await page.locator('#appointment-policy').selectOption('extraordinary');
   assert.equal(await page.locator('#appointment-fee').isEnabled(),true,'Extraordinary work must enable callout fee');
   assert.equal(await page.locator('#appointment-fee').inputValue(),'50.00','Extraordinary callout fee default changed');
