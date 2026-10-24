@@ -24,6 +24,8 @@ jobs:
         run: node dev/test_400_archive_recovery.cjs
       - name: Test appointment validation
         run: node dev/test_400_appointments.cjs
+      - name: Test employee calendar colors
+        run: node dev/test_400_staff_colors.cjs
       - name: Test operator contact references
         run: node dev/test_400_operator_links.cjs
       - name: Test operator hours
