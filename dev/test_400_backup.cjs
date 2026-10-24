@@ -28,6 +28,7 @@ async function check(failAt){
   pack:async()=>previous,downloadObject:()=>calls.push('download'),confirm:()=>true,location:{reload:()=>calls.push('reload')},
   Uint8Array,atob:()=>'',JSON,Set,Array,Object,Number,String,Error
  };
+ if(failAt==='moduleMissing')context.window.ITECommerce=undefined;
  context.ITECommerce=context.window.ITECommerce;context.ITEHistory=context.window.ITEHistory;
  vm.createContext(context);
  vm.runInContext(restoreCode+';this.runRestore=restore',context);
@@ -51,5 +52,17 @@ async function check(failAt){
  assert.equal(r.coreCount,2);
  assert.equal(r.currentCore.clienti[0].id,2,'Incomplete rollback must not be reported as success');
  assert(r.calls.some(x=>x.includes('recupero incompleto')&&x.includes('anagrafica')), 'Explicit warning for incomplete core rollback');
- console.log('OK: 5 backup restore and rollback scenarios');
+ r=await check('moduleMissing');
+ assert.equal(r.docsCount,0,'Missing commerce must not replace attachments');
+ assert.equal(r.coreCount,0,'Missing commerce must not replace core data');
+ assert.equal(r.commerceCount,0,'Missing commerce must not replace warehouse');
+ assert(!r.calls.includes('download')&&!r.calls.includes('reload'));
+ assert(r.calls.some(x=>x.includes('Modulo magazzino non disponibile')));
+ const packStart=source.indexOf('async function pack(){'),packEnd=source.indexOf('\\nfunction downloadObject(',packStart);
+ assert(packStart>=0&&packEnd>packStart,'Complete backup function not found');
+ const packContext={window:{},Error};
+ vm.createContext(packContext);
+ vm.runInContext(source.slice(packStart,packEnd)+';this.runPack=pack',packContext);
+ await assert.rejects(()=>packContext.runPack(),/Modulo magazzino non disponibile/);
+ console.log('OK: 7 backup restore, rollback and missing-module scenarios');
 })().catch(e=>{console.error(e);process.exitCode=1});
