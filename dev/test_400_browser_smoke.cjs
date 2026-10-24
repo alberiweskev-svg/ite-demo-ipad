@@ -148,6 +148,24 @@ const server=http.createServer((req,res)=>{
   assert.equal(persisted.job.technician_id,operatorId);
   assert.equal(persisted.job.callout_fee,'50.00');
   assert.ok(persisted.raw&&!persisted.raw.includes('Verifica appuntamento sintetico'),'Appointment stored in cleartext');
+  // Exercise the full client -> site -> equipment path with the same synthetic operator.
+  await page.locator('#agenda-new').click();
+  await page.locator('#appointment-client').selectOption('1');
+  await page.locator('#appointment-site').selectOption('1');
+  await page.locator('#appointment-category').selectOption('category:Caldaia');
+  await page.locator('#appointment-device').selectOption('1');
+  await page.locator('#appointment-notes').fill('[TEST] Manutenzione caldaia sintetica');
+  await page.locator('#appointment-start').fill('2026-11-16T12:00');
+  await page.locator('#appointment-primary').selectOption(operatorId);
+  await page.locator('#appointment-form button[type="submit"]').click();
+  const equipmentJob=await page.evaluate(()=>window.ITE.snapshot().interventi.find(j=>j.description==='[TEST] Manutenzione caldaia sintetica'));
+  assert.ok(equipmentJob,'Equipment appointment was not saved');
+  assert.equal(equipmentJob.target_type,'apparecchiature');
+  assert.equal(equipmentJob.target_id,'1');
+  assert.equal(equipmentJob.apparecchiatura_id,'1');
+  assert.equal(equipmentJob.client_id,'1');
+  assert.equal(equipmentJob.immobile_id,'1');
+  assert.equal(equipmentJob.callout_fee,'0.00','Ordinary equipment appointment unexpectedly charged callout');
   await page.reload({waitUntil:'networkidle'});
   await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
   await page.locator('#vault-submit').click();
@@ -155,6 +173,9 @@ const server=http.createServer((req,res)=>{
   const restored=await page.evaluate(()=>window.ITE.snapshot().interventi.find(j=>j.description==='[TEST] Verifica appuntamento sintetico'));
   assert.ok(restored,'Synthetic appointment disappeared after encrypted archive reload');
   assert.equal(restored.id,persisted.job.id,'Appointment ID changed after reload');
+  const equipmentRestored=await page.evaluate(()=>window.ITE.snapshot().interventi.find(j=>j.description==='[TEST] Manutenzione caldaia sintetica'));
+  assert.ok(equipmentRestored,'Equipment appointment disappeared after encrypted archive reload');
+  assert.equal(equipmentRestored.id,equipmentJob.id,'Equipment appointment ID changed after reload');
   assert.deepEqual(errors,[],'Browser errors during synthetic appointment persistence: '+errors.join(' | '));
   console.log('OK: Synthetic appointment saves with correct links, remains encrypted, and survives reload');
  }finally{await browser.close()}
