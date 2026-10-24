@@ -1,0 +1,20 @@
+'use strict';
+// Ore per tecnico: nessuna duplicazione e totale coerente.
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const source=fs.readFileSync('app.js','utf8');
+const start=source.indexOf('function read(job){',source.indexOf('function eligible(person)'));
+const end=source.indexOf('function references(job,id)',start);
+assert(start>=0&&end>start,'Lettura ore operatori non trovata');
+const context={JSON,Array,Set,Number,Error};
+vm.createContext(context);vm.runInContext(source.slice(start,end)+';this.readLogs=read',context);
+const job=logs=>({technician_id:'1',work_logs:JSON.stringify(logs),labor_minutes:String(logs.reduce((n,x)=>n+x.duration_minutes,0))});
+const primary={operator_id:'1',duration_minutes:90,role:'Principale'};
+const support={operator_id:'2',duration_minutes:75,role:'Supporto'};
+const result=context.readLogs(job([primary,support]));
+assert.equal(result.length,2);
+assert.equal(result.reduce((n,x)=>n+x.duration_minutes,0),165);
+assert.equal(result[0].operator_id,'1');assert.equal(result[1].operator_id,'2');
+assert.throws(()=>context.readLogs(job([primary,primary])),/Registrazioni operatori non valide/);
+assert.throws(()=>context.readLogs(job([primary,{...support,duration_minutes:-1}])),/Registrazioni operatori non valide/);
+assert.throws(()=>context.readLogs(job([{...primary,role:'Supporto'},support])),/Ruoli degli operatori non validi/);
+console.log('OK: 4 scenari ore per tecnico, duplicati e ruoli');
