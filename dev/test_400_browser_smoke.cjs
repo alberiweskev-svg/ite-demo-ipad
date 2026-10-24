@@ -64,7 +64,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#execution-status').isVisible(),false,'Application script did not initialize');
   const routes=['#clienti-cliente','#calendario','#cantieri','#magazzino','#importazioni'];
   for(const route of routes){
-    await page.locator('.ite-top-actions a[href="'+route+'"]').click();
+    await page.locator('#app-nav a[href="'+route+'"]').first().evaluate(element=>element.click());
     await page.waitForTimeout(200);
     assert.equal(new URL(page.url()).hash,route,'Navigation did not reach '+route);
     assert.equal(await page.locator('#app-shell').isVisible(),true,'App disappeared on '+route);
