@@ -48,12 +48,47 @@ async function scenario(file,opts={}){
  assert.equal(r.calls.persist,0);assert.equal(r.db.clienti[0].id,1);
  r=await scenario({fail:true});
  assert.equal(r.calls.persist,0);assert.match(r.calls.alerts[0],/Impossibile leggere/);
+
+ const guardStart=source.indexOf('function hasLinkedData(backup)');
+ const guardEnd=source.indexOf('\nITE.reset=async()=>',guardStart);
+ assert(guardStart>=0&&guardEnd>guardStart,'Missing core-only import safety guard');
+ const helpers=vm.runInNewContext(source.slice(guardStart,guardEnd)+';({hasLinkedData,assertCoreOnlySafe})');
+ const clean={docs:[],commerce:{articles:[{id:'A'}],documents:[],movements:[]}};
+ assert.equal(helpers.hasLinkedData(clean),false);
+ assert.equal(helpers.hasLinkedData({docs:[{id:'D'}],commerce:{documents:[],movements:[]}}),true);
+ assert.equal(helpers.hasLinkedData({docs:[],commerce:{documents:[{id:'I'}],movements:[]}}),true);
+ assert.equal(helpers.hasLinkedData({docs:[],commerce:{documents:[],movements:[{siteId:'S1'}]}}),true);
+ assert.equal(helpers.hasLinkedData({docs:[],commerce:{documents:[],movements:[{siteId:''}]}}),false);
+ assert.equal(helpers.hasLinkedData({docs:[]}),false);
+ assert.throws(()=>helpers.assertCoreOnlySafe({docs:[{id:'D'}]}),/Ripristina backup completo/);
  for(const name of ['ITE.reset=async()=>','ITE.importData=async event=>']){
   const begin=source.indexOf(name),finish=source.indexOf(';\n',begin);
   assert(begin>=0&&finish>begin,'Missing '+name);
   const block=source.slice(begin,finish);
-  assert(block.indexOf('downloadObject(await pack())')>=0,'Backup missing '+name);
-  assert(block.indexOf('downloadObject(await pack())')<block.indexOf("if(!confirm('Verifica nei Download"),'Confirmation must follow backup '+name);
+  assert(block.includes('const previous=await pack();assertCoreOnlySafe(previous);downloadObject(previous)'), 'Safety check must precede backup download '+name);
+  assert(block.indexOf('downloadObject(previous)')<block.indexOf("if(!confirm('Verifica nei Download"),'Confirmation must follow backup '+name);
  }
- console.log('OK: 7 demo import scenarios and 2 destructive-action guards');
+ const wrapperStart=source.indexOf('const reset=ITE.reset,importData=ITE.importData;');
+ const wrapperEnd=source.indexOf('if(navigator.storage?.persist)',wrapperStart);
+ assert(wrapperStart>=0&&wrapperEnd>wrapperStart,'Missing guarded action wrappers');
+ async function guardedAction(snapshot,kind){
+  const events=[],context={
+   ITE:{reset:()=>events.push('reset'),importData:()=>events.push('import')},
+   pack:async()=>snapshot,downloadObject:()=>events.push('download'),
+   confirm:()=>{events.push('confirm');return true},message:value=>events.push(value)
+  };
+  vm.createContext(context);vm.runInContext(source.slice(wrapperStart,wrapperEnd),context);
+  if(kind==='reset')await context.ITE.reset();
+  else {const input={files:[{name:'demo.json'}],value:'selected'};await context.ITE.importData({target:input});assert.equal(input.value,'');}
+  return events;
+ }
+ let events=await guardedAction({docs:[{id:'D'}],commerce:{documents:[],movements:[]}},'reset');
+ assert(!events.includes('reset')&&!events.includes('download')&&!events.includes('confirm'));
+ events=await guardedAction({docs:[],commerce:{documents:[{id:'I'}],movements:[]}},'import');
+ assert(!events.includes('import')&&!events.includes('download')&&!events.includes('confirm'));
+ events=await guardedAction(clean,'reset');
+ assert.deepEqual(events,['download','confirm','reset']);
+ events=await guardedAction(clean,'import');
+ assert.deepEqual(events,['download','confirm','import']);
+ console.log('OK: 7 demo imports, 7 link-safety checks, 2 guard-order checks and 4 guarded actions');
 })().catch(e=>{console.error(e);process.exitCode=1});
