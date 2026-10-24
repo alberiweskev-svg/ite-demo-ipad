@@ -7,6 +7,7 @@ on:
       - 'dev/test_400_worksite.cjs'
       - 'dev/test_400_appointments.cjs'
       - 'dev/test_400_interventions.cjs'
+      - 'dev/test_400_backup.cjs'
       - 'app.js'
       - 'index.html'
       - 'vault.js'
@@ -31,6 +32,8 @@ jobs:
         run: node dev/test_400_appointments.cjs
       - name: Intervention audit regression tests
         run: node dev/test_400_interventions.cjs
+      - name: Backup restore regression tests
+        run: node dev/test_400_backup.cjs
       - name: Commit generated assets
         run: |
           git config user.name "ite-400-builder"
