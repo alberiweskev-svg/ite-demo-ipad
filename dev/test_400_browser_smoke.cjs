@@ -185,6 +185,7 @@ const server=http.createServer((req,res)=>{
   await page.locator('#agenda-actor').selectOption(operatorId);
   await page.locator('#agenda-date').fill('2026-11-16');
   await page.locator('#agenda-date').dispatchEvent('change');
+  await page.locator('[data-agenda-open="'+equipmentJob.id+'"]').first().click();
   const startButton=page.locator('[data-agenda-start="'+equipmentJob.id+'"]').first();
   await startButton.waitFor({state:'visible',timeout:10000});
   await startButton.click();
