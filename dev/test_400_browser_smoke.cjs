@@ -217,6 +217,21 @@ const server=http.createServer((req,res)=>{
     docs.push({id,type:'Fotografia tecnica',parentType:'interventi',parentId:String(jobId),subjectId:'1',siteId:'',date:'2026-11-16',expires:'',number:'',note:'[TEST] Allegato revisione',fileName:'test-revisione.png',size:4,mime:'image/png',created:Date.now(),fileBytes:new Uint8Array([137,80,78,71]).buffer});
     await window.ITEDocs.replaceDocs(docs);
   },{id:docId,jobId:equipmentJob.id});
+  // Simulate a photo selected through the real file input (synthetic bytes only).
+  await page.locator('#app-nav a[href="#documenti"]').first().evaluate(element=>element.click());
+  await page.locator('#documenti button[onclick="ITEDocs.showForm()"]').click();
+  await page.locator('#docs-parent-type').selectOption('interventi');
+  await page.locator('#docs-parent-id').selectOption(String(equipmentJob.id));
+  await page.locator('#docs-note').fill('[TEST] Foto selettore');
+  const sampleBytes=Buffer.from([137,80,78,71,13,10,26,10]);
+  await page.locator('#docs-file').setInputFiles({name:'test-upload.png',mimeType:'image/png',buffer:sampleBytes});
+  await page.locator('#docs-form button[type="submit"]').click();
+  await page.waitForFunction(()=>document.getElementById('docs-feedback').textContent.includes('salvati e verificati'),{timeout:30000});
+  const photoBefore=(await page.evaluate(()=>window.ITEDocs.listDocs())).find(d=>d.fileName==='test-upload.png');
+  assert.ok(photoBefore,'Uploaded synthetic photo missing');
+  assert.equal(String(photoBefore.parentId),String(equipmentJob.id));
+  assert.deepEqual(Buffer.from(new Uint8Array(photoBefore.fileBytes)),sampleBytes);
+  console.log('OK: Synthetic photo saved through upload form with verified bytes');
   const docsBefore=await page.evaluate(()=>window.ITEDocs.listDocs());
   assert.ok(docsBefore.some(d=>d.id===docId&&d.parentType==='interventi'&&d.parentId===String(equipmentJob.id)),'Synthetic document not linked to intervention');
   await page.reload({waitUntil:'networkidle'});
@@ -225,6 +240,11 @@ const server=http.createServer((req,res)=>{
   await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
   const docsAfter=await page.evaluate(()=>window.ITEDocs.listDocs());
   assert.ok(docsAfter.some(d=>d.id===docId&&d.parentId===String(equipmentJob.id)&&d.note==='[TEST] Allegato revisione'),'Document disappeared or lost intervention link after encrypted reload');
+  const photoAfter=docsAfter.find(d=>d.id===photoBefore.id);
+  assert.ok(photoAfter,'Uploaded photo missing after vault reload');
+  assert.deepEqual(Buffer.from(new Uint8Array(photoAfter.fileBytes)),sampleBytes);
+  assert.equal(String(photoAfter.parentId),String(equipmentJob.id));
+  console.log('OK: Uploaded photo bytes and intervention link survive vault reload');
   assert.deepEqual(errors,[],'Browser errors during revision workflow: '+errors.join(' | '));
   console.log('OK: Revision retains first closure, adds second session and audits final closure');
  }finally{await browser.close()}
