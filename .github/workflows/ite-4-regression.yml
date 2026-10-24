@@ -52,6 +52,12 @@ jobs:
             echo "Missing vault loader in preview" >&2
             exit 1
           fi
+      - name: Install Chromium browser smoke-test tools
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Browser smoke test of encrypted entry screen
+        run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Upload tested development preview
         uses: actions/upload-artifact@v4
         with:
