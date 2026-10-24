@@ -17,6 +17,6 @@ assert.equal(result[0].operator_id,'1');assert.equal(result[1].operator_id,'2');
 assert.throws(()=>context.readLogs(job([primary,primary])),/Registrazioni operatori non valide/);
 assert.throws(()=>context.readLogs(job([primary,{...support,duration_minutes:-1}])),/Registrazioni operatori non valide/);
 assert.throws(()=>context.readLogs(job([{...primary,role:'Supporto'},support])),/Ruoli degli operatori non validi/);
-assert.throws(()=>context.readLogs({...job([primary]),work_logs:'{invalid json'}),SyntaxError);
+assert.throws(()=>context.readLogs({...job([primary]),work_logs:'{invalid json'}),/JSON|Unexpected|property name|position/i);
 assert.throws(()=>context.readLogs(job([primary,{...support,duration_minutes:0}])),/Registrazioni operatori non valide/);
 console.log('OK: 6 scenari ore per tecnico, duplicati e ruoli');
