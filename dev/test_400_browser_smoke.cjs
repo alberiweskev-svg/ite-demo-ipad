@@ -210,6 +210,21 @@ const server=http.createServer((req,res)=>{
   assert.equal(afterSecondClosure.workflow_status,'Chiuso','Revision did not close');
   assert.ok(JSON.parse(afterSecondClosure.revision_audit).some(e=>e.action==='CHIUSURA_DOPO_REVISIONE'),'Second closure not audited');
   assert.equal(JSON.parse(afterSecondClosure.work_sessions).length,2,'Historical session lost after revision');
+  // Attach a synthetic document to the intervention and ensure revisions never sever its link.
+  const docId='test-revision-attachment';
+  await page.evaluate(async ({id,jobId})=>{
+    const docs=await window.ITEDocs.listDocs();
+    docs.push({id,type:'Fotografia tecnica',parentType:'interventi',parentId:String(jobId),subjectId:'1',siteId:'',date:'2026-11-16',expires:'',number:'',note:'[TEST] Allegato revisione',fileName:'test-revisione.png',size:4,mime:'image/png',created:Date.now(),fileBytes:new Uint8Array([137,80,78,71]).buffer});
+    await window.ITEDocs.replaceDocs(docs);
+  },{id:docId,jobId:equipmentJob.id});
+  const docsBefore=await page.evaluate(()=>window.ITEDocs.listDocs());
+  assert.ok(docsBefore.some(d=>d.id===docId&&d.parentType==='interventi'&&d.parentId===String(equipmentJob.id)),'Synthetic document not linked to intervention');
+  await page.reload({waitUntil:'networkidle'});
+  await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
+  await page.locator('#vault-submit').click();
+  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  const docsAfter=await page.evaluate(()=>window.ITEDocs.listDocs());
+  assert.ok(docsAfter.some(d=>d.id===docId&&d.parentId===String(equipmentJob.id)&&d.note==='[TEST] Allegato revisione'),'Document disappeared or lost intervention link after encrypted reload');
   assert.deepEqual(errors,[],'Browser errors during revision workflow: '+errors.join(' | '));
   console.log('OK: Revision retains first closure, adds second session and audits final closure');
  }finally{await browser.close()}
