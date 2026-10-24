@@ -25,7 +25,7 @@ async function check(failAt){
   ITEDocs:{validDate:()=>true,replaceDocs:async()=>{
    docsCount++;if(failAt==='docs'&&docsCount===1)throw Error('Docs error')
   }},
-  pack:async()=>previous,downloadObject:()=>calls.push('download'),confirm:()=>true,location:{reload:()=>calls.push('reload')},
+  pack:async()=>previous,downloadObject:()=>calls.push('download'),confirm:prompt=>failAt==='declineBackupConfirmation'?!prompt.includes('Verifica nell’app File / Download'):true,location:{reload:()=>calls.push('reload')},
   Uint8Array,atob:()=>'',JSON,Set,Array,Object,Number,String,Error
  };
  if(failAt==='moduleMissing')context.window.ITECommerce=undefined;
@@ -38,6 +38,10 @@ async function check(failAt){
 (async()=>{
  let r=await check();
  assert(r.calls.includes('reload'));assert(r.calls.includes('download'),'Backup preventivo obbligatorio prima del ripristino');assert(r.calls.indexOf('download')<r.calls.indexOf('reload'),'Backup prima del ricaricamento');assert.equal(r.currentCore.clienti[0].id,2);assert.equal(r.coreCount,1);
+ r=await check('declineBackupConfirmation');
+ assert(r.calls.includes('download'),'Backup prepared before final confirmation');
+ assert(!r.calls.includes('reload'),'Declined confirmation must not reload');
+ assert.equal(r.docsCount,0);assert.equal(r.commerceCount,0);assert.equal(r.coreCount,0);
  for(const failure of ['docs','commerce','data']){
   r=await check(failure);
   assert(!r.calls.includes('reload'),failure);
@@ -64,5 +68,5 @@ async function check(failAt){
  vm.createContext(packContext);
  vm.runInContext(source.slice(packStart,packEnd)+';this.runPack=pack',packContext);
  await assert.rejects(()=>packContext.runPack(),/Modulo magazzino non disponibile/);
- console.log('OK: 7 backup restore, rollback and missing-module scenarios');
+ console.log('OK: 8 backup restore, rollback and missing-module scenarios');
 })().catch(e=>{console.error(e);process.exitCode=1});
