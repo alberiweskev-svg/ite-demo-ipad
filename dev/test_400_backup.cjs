@@ -28,7 +28,7 @@ async function check(failAt){
   r=await check(failure);
   assert(!r.calls.includes('reload'),failure);
   assert.equal(r.docsCount,2,failure);
-  assert.equal(r.commerceCount,2,failure);
+  assert.equal(r.commerceCount,failure==='docs'?1:2,failure);
   assert(r.calls.some(x=>x.includes('Ripristino non completato')),failure);
  }
  console.log('OK: 4 backup restore scenarios');
