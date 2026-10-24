@@ -18,7 +18,7 @@ async function scenario(file,opts={}){
    return value.payload;
   }},
   valid:value=>!!value&&Array.isArray(value.clienti),
-  window:{ITEContacts:{validateLinks:()=>{}}},
+  window:{ITEContacts:{validateLinks:()=>{}}},ITEContacts:{validateLinks:()=>{}},
   persist:()=>{calls.persist++},render:()=>{calls.render++},
   feedback:value=>calls.feedback.push(value),
   alert:value=>calls.alerts.push(value),
