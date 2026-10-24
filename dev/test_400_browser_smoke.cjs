@@ -121,5 +121,41 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#appointment-fee').inputValue(),'0.00','Quoted work must clear callout fee');
   await page.locator('#appointment-cancel').click();
   console.log('OK: Empty-archive client-first wizard and ordinary/extraordinary/quoted fee policies');
+  // End-to-end synthetic appointment: save, verify encryption, reload and recover.
+  const operatorId=await page.evaluate(()=>{
+    const id=Math.max(0,...window.ITE.snapshot().clienti.map(p=>p.id))+1;
+    window.ITE.commit(next=>next.clienti.push({id,kind:'Dipendente',roles:['Dipendente'],name:'[TEST] Tecnico Chromium'}));
+    return String(id);
+  });
+  await page.locator('#agenda-new').click();
+  await page.locator('#appointment-client').selectOption('1');
+  await page.locator('#appointment-site').selectOption('1');
+  await page.locator('#appointment-category').selectOption('other');
+  await page.locator('#appointment-notes').fill('[TEST] Verifica appuntamento sintetico');
+  await page.locator('#appointment-start').fill('2026-11-16T10:00');
+  await page.locator('#appointment-duration').fill('60');
+  await page.locator('#appointment-primary').selectOption(operatorId);
+  await page.locator('#appointment-policy').selectOption('extraordinary');
+  await page.locator('#appointment-form button[type="submit"]').click();
+  const persisted=await page.evaluate(()=>{
+    const jobs=window.ITE.snapshot().interventi;
+    const job=jobs.find(j=>j.description==='[TEST] Verifica appuntamento sintetico');
+    return {job,raw:localStorage.getItem('ite_307_demo_ipad_v1')};
+  });
+  assert.ok(persisted.job,'Synthetic appointment was not saved');
+  assert.equal(persisted.job.client_id,'1');
+  assert.equal(persisted.job.immobile_id,'1');
+  assert.equal(persisted.job.technician_id,operatorId);
+  assert.equal(persisted.job.callout_fee,'50.00');
+  assert.ok(persisted.raw&&!persisted.raw.includes('Verifica appuntamento sintetico'),'Appointment stored in cleartext');
+  await page.reload({waitUntil:'networkidle'});
+  await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
+  await page.locator('#vault-submit').click();
+  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  const restored=await page.evaluate(()=>window.ITE.snapshot().interventi.find(j=>j.description==='[TEST] Verifica appuntamento sintetico'));
+  assert.ok(restored,'Synthetic appointment disappeared after encrypted archive reload');
+  assert.equal(restored.id,persisted.job.id,'Appointment ID changed after reload');
+  assert.deepEqual(errors,[],'Browser errors during synthetic appointment persistence: '+errors.join(' | '));
+  console.log('OK: Synthetic appointment saves with correct links, remains encrypted, and survives reload');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
