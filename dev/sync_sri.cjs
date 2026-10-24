@@ -1,0 +1,18 @@
+'use strict';
+const fs=require('node:fs'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const digest=file=>'sha384-'+crypto.createHash('sha384').update(fs.readFileSync(file)).digest('base64');
+const appHash=digest('app.js');
+let vault=fs.readFileSync('vault.js','utf8');
+const appPattern=/(script\.src='\.\/app\.js\?v=4\.0\.0';script\.integrity=')[^']+(')/;
+assert(appPattern.test(vault),'Cannot find app.js SRI reference');
+vault=vault.replace(appPattern,(_,a,b)=>a+appHash+b);
+if(process.argv.includes('--write'))fs.writeFileSync('vault.js',vault);
+else assert.equal(fs.readFileSync('vault.js','utf8'),vault,'app.js SRI is outdated; run node dev/sync_sri.cjs --write');
+const vaultHash='sha384-'+crypto.createHash('sha384').update(Buffer.from(vault)).digest('base64');
+let html=fs.readFileSync('index.html','utf8');
+const vaultPattern=/(src="\.\/vault\.js\?v=4\.0\.0" integrity=")[^"]+(")/;
+assert(vaultPattern.test(html),'Cannot find vault.js SRI reference');
+html=html.replace(vaultPattern,(_,a,b)=>a+vaultHash+b);
+if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
+else assert.equal(fs.readFileSync('index.html','utf8'),html,'vault.js SRI is outdated; run node dev/sync_sri.cjs --write');
+console.log('OK: app.js and vault.js SRI hashes match their current contents');
