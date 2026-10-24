@@ -37,14 +37,15 @@ assert.equal(cancelledCommits,0);
 assert.equal(JSON.stringify(job),originalJob);
 assert.equal(JSON.stringify(docs),originalDocs);
 // Un operatore non assegnato non può riaprire né alterare lo storico.
-const unauthorizedJob=JSON.stringify(job);
+const closedJob={...job,workflow_status:'Chiuso',finished_at:'2026-10-24T09:30:00Z'};
+const unauthorizedJob=JSON.stringify(closedJob);
 let unauthorizedError='',unauthorizedOpened=0;
-const unauthorized={...context,actor:()=> '999',ITE:{commit:fn=>fn({interventi:[job]})},
+const unauthorized={...context,actor:()=> '999',ITE:{commit:fn=>fn({interventi:[closedJob]})},
  open:()=>unauthorizedOpened++,alert:x=>{unauthorizedError=x;}};
 vm.createContext(unauthorized);vm.runInContext(source.slice(start,end)+';this.revise=revision',unauthorized);
 unauthorized.revise(7);
 assert.match(unauthorizedError,/Non sei assegnato/);
 assert.equal(unauthorizedOpened,0);
-assert.equal(JSON.stringify(job),unauthorizedJob);
+assert.equal(JSON.stringify(closedJob),unauthorizedJob);
 assert.equal(JSON.stringify(docs),originalDocs);
 console.log('OK: revisione dinamica conserva intervento, chiusura precedente e riferimenti allegati');
