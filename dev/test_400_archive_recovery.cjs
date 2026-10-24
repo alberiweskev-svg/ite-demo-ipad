@@ -74,4 +74,10 @@ assert.throws(()=>context.readSites(storage.getItem('ite_test'),JSON.stringify({
 assert.throws(()=>context.readSites(storage.getItem('ite_test'),JSON.stringify({
  schema:1,cantieri:[{id:8}],pending:{previousMain:null,nextMain:storage.getItem('ite_test')}
 })),/Registro recupero cantieri non valido/);
+// Un marcatore pending presente ma nullo/falso non equivale a un archivio finalizzato.
+for(const malformed of [null,false,0,'']){
+ assert.throws(()=>context.readSites(storage.getItem('ite_test'),JSON.stringify({
+  schema:1,cantieri:[{id:8}],pending:malformed
+ })),/Registro recupero cantieri non valido/);
+}
 console.log('OK: archivio interventi persistente, cantieri recuperabili e rollback su scrittura interrotta');
