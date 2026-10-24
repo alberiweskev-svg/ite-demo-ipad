@@ -139,11 +139,10 @@ if(!Array.isArray(b.data.cantieri))b.data.cantieri=[];if(window.ITEContacts)ITEC
 if(!b.commerce&&window.ITECommerce){const current=await ITECommerce.exportState();if((current.documents.length||current.articles.length||current.movements.length)&&!confirm('Questa copia precedente non contiene il magazzino e le importazioni. Il ripristino li svuoterà dopo avere salvato un backup completo dello stato attuale. Continuare?'))return;}
 if(!confirm('Sostituire dati e allegati? Prima verrà scaricato un backup completo dello stato attuale.'))return;
 if(window.ITEHistory)await ITEHistory.create('Prima ripristino');
-const previous=await pack(),old=ITEVault.storage.getItem(KEY);downloadObject(previous);
+const previous=await pack();downloadObject(previous);
 if(!confirm('Verifica nell’app File / Download che il backup dello stato attuale sia stato salvato. Confermi di avere il file al sicuro?'))return;
 // Il ripristino opera nello stesso browser; non importa altri dati del sito.
-await ITEDocs.replaceDocs(docs);
-try{if(window.ITECommerce)await ITECommerce.replaceState(b.commerce||null,b.data);ITE.replaceData(b.data)}catch(e){if(window.ITECommerce)await ITECommerce.replaceState(previous.commerce||null,previous.data);const rollback=previous.docs.map(({base64,...d})=>({...d,fileBytes:Uint8Array.from(atob(base64),c=>c.charCodeAt(0)).buffer}));await ITEDocs.replaceDocs(rollback);throw e}
+try{await ITEDocs.replaceDocs(docs);if(window.ITECommerce)await ITECommerce.replaceState(b.commerce||null,b.data);ITE.replaceData(b.data)}catch(e){const rollbackErrors=[];try{if(window.ITECommerce)await ITECommerce.replaceState(previous.commerce||null,previous.data)}catch(restoreError){rollbackErrors.push('magazzino: '+restoreError.message)}try{const rollback=previous.docs.map(({base64,...d})=>({...d,fileBytes:Uint8Array.from(atob(base64),c=>c.charCodeAt(0)).buffer}));await ITEDocs.replaceDocs(rollback)}catch(restoreError){rollbackErrors.push('allegati: '+restoreError.message)}if(rollbackErrors.length)throw Error('Ripristino fallito e recupero incompleto ('+rollbackErrors.join('; ')+'). Conserva il backup scaricato. Errore iniziale: '+e.message);throw e}
 message('Ripristino completato. Ricaricamento…');location.reload();
 }catch(e){message('Ripristino non completato: '+e.message)}finally{busy=false}}
 window.ITEBackup={download,restore,pack};
