@@ -9,6 +9,7 @@ on:
       - 'dev/test_400_interventions.cjs'
       - 'dev/test_400_backup.cjs'
       - 'dev/test_400_warehouse.cjs'
+      - 'dev/test_400_posted_documents.cjs'
       - 'dev/test_400_linked_views.cjs'
       - 'app.js'
       - 'index.html'
@@ -38,6 +39,8 @@ jobs:
         run: node dev/test_400_backup.cjs
       - name: Warehouse stock regression tests
         run: node dev/test_400_warehouse.cjs
+      - name: Posted stock document immutability tests
+        run: node dev/test_400_posted_documents.cjs
       - name: Linked site and customer views tests
         run: node dev/test_400_linked_views.cjs
       - name: Commit generated assets
