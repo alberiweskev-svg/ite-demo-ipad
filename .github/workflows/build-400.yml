@@ -9,6 +9,7 @@ on:
       - 'dev/test_400_interventions.cjs'
       - 'dev/test_400_backup.cjs'
       - 'dev/test_400_warehouse.cjs'
+      - 'dev/test_400_linked_views.cjs'
       - 'app.js'
       - 'index.html'
       - 'vault.js'
@@ -37,6 +38,8 @@ jobs:
         run: node dev/test_400_backup.cjs
       - name: Warehouse stock regression tests
         run: node dev/test_400_warehouse.cjs
+      - name: Linked site and customer views tests
+        run: node dev/test_400_linked_views.cjs
       - name: Commit generated assets
         run: |
           git config user.name "ite-400-builder"
