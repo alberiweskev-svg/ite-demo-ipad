@@ -15,7 +15,7 @@ function extract(name){
 }
 const db={interventi:[],clienti:[]};
 const state={documents:[],movements:[],articles:[]};
-const ctx={ITE:{snapshot:()=>db},state,same:(a,b)=>String(a)===String(b),cash:n=>'€ '+Number(n).toFixed(2),docList:()=>'',Date,Number,JSON,String,Array};
+const ctx={ITE:{snapshot:()=>db},state,same:(a,b)=>String(a)===String(b),cash:n=>'€ '+Number(n).toFixed(2),docList:()=>'',esc:v=>String(v??''),Date,Number,JSON,String,Array};
 vm.createContext(ctx);
 vm.runInContext(extract('workHoursDataForSite')+';'+extract('laborCostForSite')+';'+extract('economicSummaryForSite')+';'+extract('summaryForSite')+';'+extract('movementSummaryForSite'),ctx);
 const job=(id,props)=>({id,cantiere_id:'C1',...props});
