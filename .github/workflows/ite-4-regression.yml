@@ -47,7 +47,8 @@ jobs:
           test -s "$RUNNER_TEMP/ite-4-preview/vault.js"
           test -s "$RUNNER_TEMP/ite-4-preview/version.json"
           test -s "$RUNNER_TEMP/ite-4-preview/AVVIA_ANTEPRIMA_WINDOWS.bat"
-          grep -q -- '--bind 127.0.0.1' "$RUNNER_TEMP/ite-4-preview/AVVIA_ANTEPRIMA_WINDOWS.bat"
+          test -s "$RUNNER_TEMP/ite-4-preview/AVVIA_ANTEPRIMA_WINDOWS.ps1"
+          grep -q '127.0.0.1:8765' "$RUNNER_TEMP/ite-4-preview/AVVIA_ANTEPRIMA_WINDOWS.ps1"
           node --check "$RUNNER_TEMP/ite-4-preview/app.js"
           node --check "$RUNNER_TEMP/ite-4-preview/vault.js"
           if grep -q '<script src="./vault.js?v=4.0.0"' "$RUNNER_TEMP/ite-4-preview/index.html"; then
