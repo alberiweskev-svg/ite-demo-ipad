@@ -1,0 +1,30 @@
+name: ITE 4.0 regression tests
+on:
+  push:
+    branches:
+      - sviluppo-4.0.0-base
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify JavaScript syntax
+        run: node --check app.js
+      - name: Test backup
+        run: node dev/test_400_backup.cjs
+      - name: Test persistence
+        run: node dev/test_400_persist.cjs
+      - name: Test operator hours
+        run: node dev/test_400_operator_hours.cjs
+      - name: Test revision hours
+        run: node dev/test_400_revision_hours.cjs
+      - name: Test revision audit
+        run: node dev/test_400_revision_audit.cjs
+      - name: Test revision attachments
+        run: node dev/test_400_revision_attachments.cjs
