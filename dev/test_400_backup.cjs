@@ -25,7 +25,7 @@ async function check(failAt){
   ITEDocs:{validDate:()=>true,replaceDocs:async()=>{
    docsCount++;if(failAt==='docs'&&docsCount===1)throw Error('Docs error')
   }},
-  pack:async()=>previous,downloadObject:()=>calls.push('download'),confirm:prompt=>failAt==='declineBackupConfirmation'?!prompt.includes('Verifica nell’app File / Download'):true,location:{reload:()=>calls.push('reload')},
+  pack:async()=>{if(failAt==='packFailure')throw Error('Backup preventivo non disponibile');return previous},downloadObject:()=>calls.push('download'),confirm:prompt=>failAt==='declineBackupConfirmation'?!prompt.includes('Verifica nell’app File / Download'):true,location:{reload:()=>calls.push('reload')},
   Uint8Array,atob:()=>'',JSON,Set,Array,Object,Number,String,Error
  };
  if(failAt==='moduleMissing')context.window.ITECommerce=undefined;
@@ -42,6 +42,10 @@ async function check(failAt){
  assert(r.calls.includes('download'),'Backup prepared before final confirmation');
  assert(!r.calls.includes('reload'),'Declined confirmation must not reload');
  assert.equal(r.docsCount,0);assert.equal(r.commerceCount,0);assert.equal(r.coreCount,0);
+ r=await check('packFailure');
+ assert(!r.calls.includes('download')&&!r.calls.includes('reload'),'Failed preventive backup must block restore');
+ assert.equal(r.docsCount,0);assert.equal(r.commerceCount,0);assert.equal(r.coreCount,0);
+ assert(r.calls.some(x=>x.includes('Backup preventivo non disponibile')));
  for(const failure of ['docs','commerce','data']){
   r=await check(failure);
   assert(!r.calls.includes('reload'),failure);
@@ -68,5 +72,5 @@ async function check(failAt){
  vm.createContext(packContext);
  vm.runInContext(source.slice(packStart,packEnd)+';this.runPack=pack',packContext);
  await assert.rejects(()=>packContext.runPack(),/Modulo magazzino non disponibile/);
- console.log('OK: 8 backup restore, rollback and missing-module scenarios');
+ console.log('OK: 9 backup restore, rollback and missing-module scenarios');
 })().catch(e=>{console.error(e);process.exitCode=1});
