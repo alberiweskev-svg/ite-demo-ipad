@@ -30,6 +30,7 @@ async function check(failAt){
  };
  if(failAt==='moduleMissing')context.window.ITECommerce=undefined;
  if(failAt==='agendaMissing')context.window.ITEAgenda=undefined;
+ if(failAt==='operatorsMissing')context.window.ITEOperators=undefined;
  context.ITECommerce=context.window.ITECommerce;context.ITEHistory=context.window.ITEHistory;
  context.ITEAgenda=context.window.ITEAgenda;context.ITEOperators=context.window.ITEOperators;
  vm.createContext(context);
@@ -62,7 +63,7 @@ async function check(failAt){
  assert.equal(r.coreCount,2);
  assert.equal(r.currentCore.clienti[0].id,2,'Incomplete rollback must not be reported as success');
  assert(r.calls.some(x=>x.includes('recupero incompleto')&&x.includes('anagrafica')), 'Explicit warning for incomplete core rollback');
- for(const [failure,warning] of [['agendaMissing','Modulo appuntamenti o operatori non disponibile'],['agendaInvalid','Appuntamento incoerente'],['operatorInvalid','Tempi operatore incoerenti']]){
+ for(const [failure,warning] of [['agendaMissing','Modulo appuntamenti o operatori non disponibile'],['operatorsMissing','Modulo appuntamenti o operatori non disponibile'],['agendaInvalid','Appuntamento incoerente'],['operatorInvalid','Tempi operatore incoerenti']]){
   r=await check(failure);
   assert.equal(r.docsCount,0,failure);assert.equal(r.commerceCount,0,failure);assert.equal(r.coreCount,0,failure);
   assert(!r.calls.includes('download')&&!r.calls.includes('reload'),failure);
@@ -80,5 +81,5 @@ async function check(failAt){
  vm.createContext(packContext);
  vm.runInContext(source.slice(packStart,packEnd)+';this.runPack=pack',packContext);
  await assert.rejects(()=>packContext.runPack(),/Modulo magazzino non disponibile/);
- console.log('OK: 12 backup restore, rollback and missing-module scenarios');
+ console.log('OK: 13 backup restore, rollback and missing-module scenarios');
 })().catch(e=>{console.error(e);process.exitCode=1});
