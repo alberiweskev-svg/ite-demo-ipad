@@ -20,6 +20,8 @@ jobs:
         run: node dev/test_400_backup.cjs
       - name: Test persistence
         run: node dev/test_400_persist.cjs
+      - name: Test archive recovery
+        run: node dev/test_400_archive_recovery.cjs
       - name: Test operator hours
         run: node dev/test_400_operator_hours.cjs
       - name: Test revision hours
