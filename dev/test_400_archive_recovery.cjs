@@ -55,4 +55,12 @@ const journal=JSON.parse(storage.getItem('ite_test_aziendale_v1'));
 assert(journal.pending,'Il giornale deve restare disponibile se fallisce la finalizzazione');
 assert.equal(context.readSites(storage.getItem('ite_test'),storage.getItem('ite_test_aziendale_v1'))[0].id,8);
 assert.notEqual(storage.getItem('ite_test'),lastMain,'La scrittura principale è completata');
+// Simulazione ricaricamento pagina: una nuova istanza legge la coppia persistita.
+const reopenedMain=JSON.parse(storage.getItem('ite_test'));
+const reopenedContext={...context,db:reopenedMain};
+vm.createContext(reopenedContext);
+vm.runInContext(source.slice(start,end)+';this.readSites=readSites;',reopenedContext);
+reopenedMain.cantieri=reopenedContext.readSites(storage.getItem('ite_test'),storage.getItem('ite_test_aziendale_v1'));
+assert.equal(reopenedMain.interventi[0].workflow_status,'Chiuso');
+assert.equal(reopenedMain.cantieri[0].id,8);
 console.log('OK: archivio interventi persistente, cantieri recuperabili e rollback su scrittura interrotta');
