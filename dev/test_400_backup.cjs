@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync('app.js','utf8');
-const start=source.indexOf('function restore(input){'),end=source.indexOf('\nwindow.ITEBackup=',start);
+const start=source.indexOf('async function restore(input){'),end=source.indexOf('\nwindow.ITEBackup=',start);
 assert(start>=0&&end>start,'restore function not found');
 const restoreCode=source.slice(start,end);
 async function check(failAt){
