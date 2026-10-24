@@ -63,4 +63,11 @@ vm.runInContext(source.slice(start,end)+';this.readSites=readSites;',reopenedCon
 reopenedMain.cantieri=reopenedContext.readSites(storage.getItem('ite_test'),storage.getItem('ite_test_aziendale_v1'));
 assert.equal(reopenedMain.interventi[0].workflow_status,'Chiuso');
 assert.equal(reopenedMain.cantieri[0].id,8);
+// Il registro deve rifiutare una versione di archivio sconosciuta.
+const storedAux=storage.getItem('ite_test_aziendale_v1');
+storage.setItem('ite_test_aziendale_v1',JSON.stringify({schema:999,cantieri:[]}));
+assert.throws(()=>context.readSites(storage.getItem('ite_test'),storage.getItem('ite_test_aziendale_v1')),/Archivio cantieri non valido/);
+storage.setItem('ite_test_aziendale_v1',storedAux);
+// Il registro deve rifiutare cantieri non rappresentati da un array.
+assert.throws(()=>context.readSites(storage.getItem('ite_test'),JSON.stringify({schema:1,cantieri:{}})),/Archivio cantieri non valido/);
 console.log('OK: archivio interventi persistente, cantieri recuperabili e rollback su scrittura interrotta');
