@@ -198,5 +198,18 @@ const server=http.createServer((req,res)=>{
   assert.ok(JSON.parse(afterDeparture.work_sessions)[0].departed_at,'Departure timestamp missing');
   assert.deepEqual(errors,[],'Browser errors during intervention workflow: '+errors.join(' | '));
   console.log('OK: Assigned technician records arrival, session and departure on equipment appointment');
+  // A revision must retain the first closure and create a distinct work session.
+  await page.locator('[data-agenda-revise="'+equipmentJob.id+'"]').first().click();
+  const afterRevision=await page.evaluate(id=>window.ITE.snapshot().interventi.find(j=>j.id===id),equipmentJob.id);
+  assert.equal(afterRevision.workflow_status,'In corso','Revision did not reopen intervention');
+  assert.equal(JSON.parse(afterRevision.work_sessions).length,2,'Revision did not create a second session');
+  assert.ok(JSON.parse(afterRevision.revision_audit).some(e=>e.action==='RIAPERTURA_REVISIONE'&&e.previous_closed_at===afterDeparture.finished_at),'First closure missing from revision audit');
+  await page.locator('[data-agenda-finish="'+equipmentJob.id+'"]').first().click();
+  const afterSecondClosure=await page.evaluate(id=>window.ITE.snapshot().interventi.find(j=>j.id===id),equipmentJob.id);
+  assert.equal(afterSecondClosure.workflow_status,'Chiuso','Revision did not close');
+  assert.ok(JSON.parse(afterSecondClosure.revision_audit).some(e=>e.action==='CHIUSURA_DOPO_REVISIONE'),'Second closure not audited');
+  assert.equal(JSON.parse(afterSecondClosure.work_sessions).length,2,'Historical session lost after revision');
+  assert.deepEqual(errors,[],'Browser errors during revision workflow: '+errors.join(' | '));
+  console.log('OK: Revision retains first closure, adds second session and audits final closure');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
