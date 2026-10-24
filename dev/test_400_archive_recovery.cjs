@@ -70,4 +70,8 @@ assert.throws(()=>context.readSites(storage.getItem('ite_test'),storage.getItem(
 storage.setItem('ite_test_aziendale_v1',storedAux);
 // Il registro deve rifiutare cantieri non rappresentati da un array.
 assert.throws(()=>context.readSites(storage.getItem('ite_test'),JSON.stringify({schema:1,cantieri:{}})),/Archivio cantieri non valido/);
+// Registro di recupero danneggiato: non ripristinare cantieri incompleti.
+assert.throws(()=>context.readSites(storage.getItem('ite_test'),JSON.stringify({
+ schema:1,cantieri:[{id:8}],pending:{previousMain:null,nextMain:storage.getItem('ite_test')}
+})),/Registro recupero cantieri non valido/);
 console.log('OK: archivio interventi persistente, cantieri recuperabili e rollback su scrittura interrotta');
