@@ -38,7 +38,7 @@ const ctx={
  document:{getElementById:()=>({})},
  window:{},alert:msg=>alerts.push(msg),confirm:()=>{confirms++;return true},
  persist:()=>saves++,render:()=>{},cancel:()=>{},feedback:()=>{},
- JSON,String,Set,Number,Math,FormData
+ JSON,String,Set,Number,Math
 };
 vm.createContext(ctx);
 vm.runInContext(['eligible','read','references','save','remove'].map(extract).join(';')+
