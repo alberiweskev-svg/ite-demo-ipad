@@ -71,5 +71,18 @@ const server=http.createServer((req,res)=>{
     assert.deepEqual(errors,[],'Browser errors on '+route+': '+errors.join(' | '));
   }
   console.log('OK: Chromium navigates clients, calendar, worksites, warehouse, and imports');
+  // Tablet/mobile navigation must open and close using the visible menu controls.
+  await page.setViewportSize({width:768,height:1024});
+  await page.locator('#menu-toggle').click();
+  await page.waitForFunction(()=>document.body.classList.contains('menu-open'));
+  assert.equal(await page.locator('#app-nav').isVisible(),true,'Tablet menu did not open');
+  await page.locator('#menu-close').click();
+  await page.waitForFunction(()=>!document.body.classList.contains('menu-open'));
+  await page.locator('#menu-toggle').click();
+  await page.locator('#app-nav a[href="#home"]').first().click();
+  await page.waitForFunction(()=>location.hash==='#home');
+  assert.equal(await page.locator('#app-shell').isVisible(),true,'App disappeared after tablet navigation');
+  assert.deepEqual(errors,[],'Browser errors during tablet navigation: '+errors.join(' | '));
+  console.log('OK: Tablet menu opens, closes, and navigates to home');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
