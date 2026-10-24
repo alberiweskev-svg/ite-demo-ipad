@@ -17,7 +17,7 @@ on:
       - 'vault.js'
       - '.github/workflows/build-400.yml'
 permissions:
-  contents: write
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -46,12 +46,8 @@ jobs:
         run: node dev/test_400_posted_documents.cjs
       - name: Linked site and customer views tests
         run: node dev/test_400_linked_views.cjs
-      - name: Commit generated assets
+      - name: Verify generated script integrity without pushing
         run: |
-          git config user.name "ite-400-builder"
-          git config user.email "ite-400-builder@users.noreply.github.com"
-          git add app.js vault.js index.html
-          if ! git diff --cached --quiet; then
-            git commit -m "build: refresh 4.0.0 integrity after source changes [skip ci]"
-            git push
-          fi
+          node dev/sync_sri.cjs
+          node --check app.js
+          node --check vault.js
