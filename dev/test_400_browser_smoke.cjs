@@ -99,5 +99,20 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#appointment-form').isVisible(),false,'Cancel did not close appointment form');
   assert.deepEqual(errors,[],'Browser errors during appointment wizard: '+errors.join(' | '));
   console.log('OK: Appointment form starts client-first, guards dependent fields, and excludes ordinary callout fee');
+  // A fresh archive may have no customers; the wizard must not offer orphan sites.
+  await page.locator('#agenda-new').click();
+  const clientOptions=await page.locator('#appointment-client option').count();
+  assert.ok(clientOptions>=1,'Client selector is missing');
+  assert.equal(await page.locator('#appointment-site option').count(),1,'Orphan sites offered before client selection');
+  assert.equal(await page.locator('#appointment-category option').count(),1,'Equipment categories offered before site selection');
+  assert.equal(await page.locator('#appointment-subject-hint').textContent(),'Seleziona prima il cliente.');
+  await page.locator('#appointment-policy').selectOption('extraordinary');
+  assert.equal(await page.locator('#appointment-fee').isEnabled(),true,'Extraordinary work must enable callout fee');
+  assert.equal(await page.locator('#appointment-fee').inputValue(),'50.00','Extraordinary callout fee default changed');
+  await page.locator('#appointment-policy').selectOption('quoted');
+  assert.equal(await page.locator('#appointment-fee').isDisabled(),true,'Quoted work must disable callout fee');
+  assert.equal(await page.locator('#appointment-fee').inputValue(),'0.00','Quoted work must clear callout fee');
+  await page.locator('#appointment-cancel').click();
+  console.log('OK: Empty-archive client-first wizard and ordinary/extraordinary/quoted fee policies');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
