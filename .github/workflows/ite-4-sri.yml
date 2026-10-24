@@ -6,6 +6,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: ite-4-sri-development
+  cancel-in-progress: false
 jobs:
   sri:
     runs-on: ubuntu-latest
