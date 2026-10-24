@@ -39,4 +39,20 @@ assert.equal(context.readSites(previousMain,storage.getItem('ite_test_aziendale_
 storage.setItem('ite_test',pendingMain);
 assert.equal(context.readSites(pendingMain,storage.getItem('ite_test_aziendale_v1'))[0].id,4);
 assert.throws(()=>context.readSites('unrelated archive',storage.getItem('ite_test_aziendale_v1')),/Archivio modificato/);
+// Se la scrittura finale della chiave aggiuntiva fallisce, il giornale deve restare recuperabile.
+values.clear();
+context.write(next);
+const lastMain=storage.getItem('ite_test');
+const originalSet=storage.setItem;
+let auxWrites=0;
+storage.setItem=(key,value)=>{
+ if(key==='ite_test_aziendale_v1'&&++auxWrites===2)throw Error('Simulated finalization failure');
+ return originalSet(key,value);
+};
+context.write({...next,cantieri:[{id:8,name:'Nuovo cantiere'}]});
+storage.setItem=originalSet;
+const journal=JSON.parse(storage.getItem('ite_test_aziendale_v1'));
+assert(journal.pending,'Il giornale deve restare disponibile se fallisce la finalizzazione');
+assert.equal(context.readSites(storage.getItem('ite_test'),storage.getItem('ite_test_aziendale_v1'))[0].id,8);
+assert.notEqual(storage.getItem('ite_test'),lastMain,'La scrittura principale è completata');
 console.log('OK: archivio interventi persistente, cantieri recuperabili e rollback su scrittura interrotta');
