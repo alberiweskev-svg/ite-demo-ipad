@@ -227,10 +227,10 @@ const server=http.createServer((req,res)=>{
   await page.locator('#docs-file').setInputFiles({name:'test-upload.png',mimeType:'image/png',buffer:sampleBytes});
   await page.locator('#docs-form button[type="submit"]').click();
   await page.waitForFunction(()=>document.getElementById('docs-feedback').textContent.includes('salvati e verificati'),{timeout:30000});
-  const photoBefore=(await page.evaluate(()=>window.ITEDocs.listDocs())).find(d=>d.fileName==='test-upload.png');
+  const photoBefore=await page.evaluate(async()=>{const doc=(await window.ITEDocs.listDocs()).find(d=>d.fileName==='test-upload.png');return doc?{id:doc.id,parentId:doc.parentId,bytes:Array.from(new Uint8Array(doc.fileBytes))}:null});
   assert.ok(photoBefore,'Uploaded synthetic photo missing');
   assert.equal(String(photoBefore.parentId),String(equipmentJob.id));
-  assert.deepEqual(Buffer.from(new Uint8Array(photoBefore.fileBytes)),sampleBytes);
+  assert.deepEqual(Buffer.from(photoBefore.bytes),sampleBytes);
   console.log('OK: Synthetic photo saved through upload form with verified bytes');
   const docsBefore=await page.evaluate(()=>window.ITEDocs.listDocs());
   assert.ok(docsBefore.some(d=>d.id===docId&&d.parentType==='interventi'&&d.parentId===String(equipmentJob.id)),'Synthetic document not linked to intervention');
@@ -240,9 +240,9 @@ const server=http.createServer((req,res)=>{
   await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
   const docsAfter=await page.evaluate(()=>window.ITEDocs.listDocs());
   assert.ok(docsAfter.some(d=>d.id===docId&&d.parentId===String(equipmentJob.id)&&d.note==='[TEST] Allegato revisione'),'Document disappeared or lost intervention link after encrypted reload');
-  const photoAfter=docsAfter.find(d=>d.id===photoBefore.id);
+  const photoAfter=await page.evaluate(async id=>{const doc=(await window.ITEDocs.listDocs()).find(d=>d.id===id);return doc?{parentId:doc.parentId,bytes:Array.from(new Uint8Array(doc.fileBytes))}:null},photoBefore.id);
   assert.ok(photoAfter,'Uploaded photo missing after vault reload');
-  assert.deepEqual(Buffer.from(new Uint8Array(photoAfter.fileBytes)),sampleBytes);
+  assert.deepEqual(Buffer.from(photoAfter.bytes),sampleBytes);
   assert.equal(String(photoAfter.parentId),String(equipmentJob.id));
   console.log('OK: Uploaded photo bytes and intervention link survive vault reload');
   assert.deepEqual(errors,[],'Browser errors during revision workflow: '+errors.join(' | '));
