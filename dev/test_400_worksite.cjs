@@ -15,9 +15,9 @@ function extract(name){
 }
 const db={interventi:[],clienti:[]};
 const state={documents:[],movements:[],articles:[]};
-const ctx={ITE:{snapshot:()=>db},state,same:(a,b)=>String(a)===String(b),cash:n=>'€ '+Number(n).toFixed(2),Date,Number,JSON,String,Array};
+const ctx={ITE:{snapshot:()=>db},state,same:(a,b)=>String(a)===String(b),cash:n=>'€ '+Number(n).toFixed(2),docList:()=>'',Date,Number,JSON,String,Array};
 vm.createContext(ctx);
-vm.runInContext(extract('workHoursDataForSite')+';'+extract('laborCostForSite')+';'+extract('economicSummaryForSite'),ctx);
+vm.runInContext(extract('workHoursDataForSite')+';'+extract('laborCostForSite')+';'+extract('economicSummaryForSite')+';'+extract('summaryForSite'),ctx);
 const job=(id,props)=>({id,cantiere_id:'C1',...props});
 db.clienti=[{id:'A',internal_hourly_cost:'25.50'}];
 db.interventi=[job(1,{work_logs:JSON.stringify([{operator_id:'A',duration_minutes:120}])})];
@@ -72,4 +72,14 @@ state.articles=[{id:'X',price:12.5}];
 html=ctx.economicSummaryForSite('C1');
 assert.match(html,/€ 25\.00/);
 assert.doesNotMatch(html,/1 scarichi senza prezzo valido/);
-console.log('OK: 16 regression scenarios for worksite hours, labor, invoices and stock');
+state.documents=[{siteId:'C1',type:'Fattura vendita',net:'',total:122},{siteId:'C1',type:'Nota credito vendita',net:22}];
+html=ctx.summaryForSite({id:'C1'});
+assert.match(html,/€ 100\.00/);
+assert.match(html,/può comprendere IVA/);
+state.documents=[{siteId:'C1',type:'Fattura vendita',net:''}];
+html=ctx.summaryForSite({id:'C1'});
+assert.match(html,/1 documenti senza importo verificabile/);
+state.documents=[{siteId:'C1',type:'Fattura vendita',net:0,total:500}];
+html=ctx.summaryForSite({id:'C1'});
+assert.match(html,/€ 0\.00/);
+console.log('OK: 19 regression scenarios for worksite hours, labor, invoices, document summary and stock');
