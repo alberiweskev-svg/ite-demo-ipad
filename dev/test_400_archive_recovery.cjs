@@ -49,7 +49,7 @@ storage.setItem=(key,value)=>{
  if(key==='ite_test_aziendale_v1'&&++auxWrites===2)throw Error('Simulated finalization failure');
  return originalSet(key,value);
 };
-context.write({...next,cantieri:[{id:8,name:'Nuovo cantiere'}]});
+context.write({...next,interventi:[{...job,workflow_status:'Chiuso'}],cantieri:[{id:8,name:'Nuovo cantiere'}]});
 storage.setItem=originalSet;
 const journal=JSON.parse(storage.getItem('ite_test_aziendale_v1'));
 assert(journal.pending,'Il giornale deve restare disponibile se fallisce la finalizzazione');
