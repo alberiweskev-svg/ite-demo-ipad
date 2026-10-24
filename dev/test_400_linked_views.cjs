@@ -7,7 +7,7 @@ const makeNode=()=>({innerHTML:'',children:[],querySelector(selector){return thi
 const site=makeNode(),profile=makeNode();
 site.querySelector=selector=>selector==='[data-work-edit]'?{dataset:{workEdit:'S1'}}:site.children.find(c=>('#'+c.id)===selector)||null;
 let economicLabel='economia';
-const ctx={document:{createElement:()=>makeNode()},$:id=>id==='worksite-detail'?site:profile,profileId:'C1',state:{documents:[],movements:[]},ITE:{snapshot:()=>({cantieri:[]})},same:(a,b)=>String(a)===String(b),economicSummaryForSite:()=>'<p>'+economicLabel+'</p>',summaryForSite:()=>'<p>documenti</p>',movementSummaryForSite:()=>'<p>movimenti</p>',workHoursForSite:()=>'<p>ore</p>',docList:()=>'',esc:v=>String(v)};
+const ctx={document:{createElement:()=>makeNode()},$:id=>id==='worksite-detail'?site:profile,profileId:'C1',state:{documents:[],movements:[]},ITE:{snapshot:()=>({cantieri:[{id:'S1',client_id:'C1',name:'Cantiere prova'}]})},same:(a,b)=>String(a)===String(b),economicSummaryForSite:()=>'<p>'+economicLabel+'</p>',summaryForSite:()=>'<p>documenti</p>',movementSummaryForSite:()=>'<p>movimenti</p>',workHoursForSite:()=>'<p>ore</p>',docList:()=>'',esc:v=>String(v)};
 vm.createContext(ctx);vm.runInContext(source.slice(start,end)+';this.refreshLinked=renderLinked',ctx);
 ctx.refreshLinked();assert.equal(site.children.length,1);assert.equal(profile.children.length,1);
 economicLabel='economia aggiornata';
