@@ -1,0 +1,17 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const source=fs.readFileSync('app.js','utf8');
+const start=source.indexOf('function renderLinked(){'),end=source.indexOf('\nfunction render(){if(',start);
+assert(start>=0&&end>start,'renderLinked missing');
+const makeNode=()=>({innerHTML:'',children:[],querySelector(selector){return this.children.find(c=>('#'+c.id)===selector)||null},append(child){this.children.push(child)},closest:()=>null});
+const site=makeNode(),profile=makeNode();
+site.querySelector=selector=>selector==='[data-work-edit]'?{dataset:{workEdit:'S1'}}:site.children.find(c=>('#'+c.id)===selector)||null;
+const ctx={document:{createElement:()=>makeNode()},$:id=>id==='worksite-detail'?site:profile,profileId:'C1',state:{documents:[],movements:[]},ITE:{snapshot:()=>({cantieri:[]})},same:(a,b)=>String(a)===String(b),economicSummaryForSite:()=>'<p>economia</p>',summaryForSite:()=>'<p>documenti</p>',movementSummaryForSite:()=>'<p>movimenti</p>',workHoursForSite:()=>'<p>ore</p>',docList:()=>'',esc:v=>String(v)};
+vm.createContext(ctx);vm.runInContext(source.slice(start,end)+';this.refreshLinked=renderLinked',ctx);
+ctx.refreshLinked();assert.equal(site.children.length,1);assert.equal(profile.children.length,1);
+ctx.economicSummaryForSite=()=>'<p>economia aggiornata</p>';
+ctx.state.movements.push({siteId:'S1'});
+ctx.refreshLinked();assert.equal(site.children.length,1);assert.equal(profile.children.length,1);
+assert.match(site.children[0].innerHTML,/economia aggiornata/);
+assert.match(profile.children[0].innerHTML,/1 movimenti registrati/);
+console.log('OK: 4 linked-summary refresh checks');
