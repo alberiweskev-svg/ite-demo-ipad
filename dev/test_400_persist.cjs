@@ -7,7 +7,7 @@ assert(start>=0&&end>start,'Persistenza principale non trovata');
 const code=source.slice(start,end);
 function scenario(fail){
  const calls=[],original={interventi:[{id:1,technician_id:'1'}]},incoming={interventi:[{id:1,technician_id:'2'}]};
- const context={db:structuredClone(incoming),committed:JSON.stringify(original),storage:true,window:{
+ const context={db:structuredClone(incoming),committed:JSON.stringify(original),storage:fail!=='unavailable',window:{
   ITEAgenda:{validateDatabase:()=>{calls.push('agenda');if(fail==='agenda')throw Error('Agenda incoerente')}},
   ITEOperators:{validateDatabase:()=>{calls.push('operators');if(fail==='operators')throw Error('Operatore incoerente')}}
  },writeArchive:()=>{calls.push('write');if(fail==='storage')throw Error('Memoria piena')},JSON,Error};
@@ -22,8 +22,12 @@ for(const fail of ['agenda','operators','storage']){
  assert.equal(r.db.interventi[0].technician_id,'1',fail);
  assert.equal(r.calls.includes('write'),fail==='storage',fail);
 }
+const unavailable=scenario('unavailable');
+assert.match(unavailable.error,/Memoria non disponibile/);
+assert.deepEqual(unavailable.calls,[]);
+assert.equal(unavailable.db.interventi[0].technician_id,'2');
 const success=scenario();
 assert.deepEqual(success.calls,['agenda','operators','write']);
 assert.equal(success.error,'');
 assert.equal(success.db.interventi[0].technician_id,'2');
-console.log('OK: 4 scenari salvataggio, operatori e rollback');
+console.log('OK: 5 scenari salvataggio, operatori e rollback');
