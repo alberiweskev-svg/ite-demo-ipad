@@ -540,7 +540,7 @@ window.ITEWorksites={open,edit,renderList,refreshFromDocs,validate,checks};rende
 ;
 
 (()=>{'use strict';
-const nav=document.getElementById('app-nav'),toggle=document.getElementById('menu-toggle'),close=document.getElementById('menu-close'),overlay=document.getElementById('nav-overlay'),main=document.querySelector('main'),header=document.querySelector('#app-shell>header'),media=matchMedia('(max-width:980px)');let previousFocus=null;
+const nav=document.getElementById('app-nav'),toggle=document.getElementById('menu-toggle'),close=document.getElementById('menu-close'),overlay=document.getElementById('nav-overlay'),main=document.querySelector('main'),header=document.querySelector('#app-shell>header'),media=matchMedia('(max-width:1180px)');let previousFocus=null;
 const buttons=[...nav.querySelectorAll('[data-menu-group]')];
 const headerObserver=new ResizeObserver(()=>document.documentElement.style.setProperty('--app-header-height',header.getBoundingClientRect().height+'px'));headerObserver.observe(header);
 function accordion(id){for(const button of buttons){const open=button.dataset.menuGroup===id;button.setAttribute('aria-expanded',String(open));document.getElementById(button.getAttribute('aria-controls')).hidden=!open}}
