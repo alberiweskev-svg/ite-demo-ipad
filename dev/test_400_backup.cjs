@@ -37,7 +37,7 @@ async function check(failAt){
 }
 (async()=>{
  let r=await check();
- assert(r.calls.includes('reload'));assert.equal(r.currentCore.clienti[0].id,2);assert.equal(r.coreCount,1);
+ assert(r.calls.includes('reload'));assert(r.calls.includes('download'),'Backup preventivo obbligatorio prima del ripristino');assert(r.calls.indexOf('download')<r.calls.indexOf('reload'),'Backup prima del ricaricamento');assert.equal(r.currentCore.clienti[0].id,2);assert.equal(r.coreCount,1);
  for(const failure of ['docs','commerce','data']){
   r=await check(failure);
   assert(!r.calls.includes('reload'),failure);
