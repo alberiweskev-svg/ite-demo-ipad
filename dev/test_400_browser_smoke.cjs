@@ -179,5 +179,24 @@ const server=http.createServer((req,res)=>{
   assert.equal(equipmentRestored.id,equipmentJob.id,'Equipment appointment ID changed after reload');
   assert.deepEqual(errors,[],'Browser errors during synthetic appointment persistence: '+errors.join(' | '));
   console.log('OK: Synthetic appointment saves with correct links, remains encrypted, and survives reload');
+  // Operative workflow: assigned technician records arrival and departure.
+  page.on('dialog',dialog=>dialog.accept());
+  await page.locator('#app-nav a[href="#calendario"]').first().evaluate(element=>element.click());
+  await page.locator('#agenda-actor').selectOption(operatorId);
+  await page.locator('#agenda-date').fill('2026-11-16');
+  await page.locator('#agenda-date').dispatchEvent('change');
+  const startButton=page.locator('[data-agenda-start="'+equipmentJob.id+'"]').first();
+  await startButton.waitFor({state:'visible',timeout:10000});
+  await startButton.click();
+  const afterArrival=await page.evaluate(id=>window.ITE.snapshot().interventi.find(j=>j.id===id),equipmentJob.id);
+  assert.equal(afterArrival.workflow_status,'In corso','Arrival did not start intervention');
+  assert.equal(JSON.parse(afterArrival.work_sessions).length,1,'Arrival did not create technician session');
+  assert.equal(JSON.parse(afterArrival.work_sessions)[0].operator_id,operatorId,'Wrong technician in arrival session');
+  await page.locator('[data-agenda-finish="'+equipmentJob.id+'"]').first().click();
+  const afterDeparture=await page.evaluate(id=>window.ITE.snapshot().interventi.find(j=>j.id===id),equipmentJob.id);
+  assert.equal(afterDeparture.workflow_status,'Chiuso','Departure did not close intervention');
+  assert.ok(JSON.parse(afterDeparture.work_sessions)[0].departed_at,'Departure timestamp missing');
+  assert.deepEqual(errors,[],'Browser errors during intervention workflow: '+errors.join(' | '));
+  console.log('OK: Assigned technician records arrival, session and departure on equipment appointment');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
