@@ -149,6 +149,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(persisted.job.callout_fee,'50.00');
   assert.ok(persisted.raw&&!persisted.raw.includes('Verifica appuntamento sintetico'),'Appointment stored in cleartext');
   // Exercise the full client -> site -> equipment path with the same synthetic operator.
+  await page.locator('#app-nav a[href="#calendario"]').first().evaluate(element=>element.click());
   await page.locator('#agenda-new').click();
   await page.locator('#appointment-client').selectOption('1');
   await page.locator('#appointment-site').selectOption('1');
