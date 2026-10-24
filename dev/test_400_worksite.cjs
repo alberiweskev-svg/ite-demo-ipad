@@ -87,6 +87,6 @@ state.documents=[];state.movements=[{siteId:'C1',articleId:'X',quantity:''}];sta
 html=ctx.economicSummaryForSite('C1');assert.match(html,/1 movimenti con quantità non valida/);
 html=ctx.movementSummaryForSite('C1');assert.match(html,/Quantità Da verificare/);
 state.movements=[{siteId:'C1',articleId:'X',quantity:'-2'},{siteId:'C2',articleId:'X',quantity:'invalid'}];
-html=ctx.economicSummaryForSite('C1');assert.match(html,/€ 25\\.00/);assert.doesNotMatch(html,/movimenti con quantità non valida/);
+html=ctx.economicSummaryForSite('C1');assert.match(html,/€ 25\.00/);assert.doesNotMatch(html,/movimenti con quantità non valida/);
 html=ctx.movementSummaryForSite('C1');assert.match(html,/Quantità -2/);assert.doesNotMatch(html,/Da verificare/);
 console.log('OK: 23 regression scenarios for worksite hours, labor, invoices, document summary and stock');
