@@ -30,3 +30,18 @@ jobs:
         run: node dev/test_400_revision_audit.cjs
       - name: Test revision attachments
         run: node dev/test_400_revision_attachments.cjs
+      - name: Prepare standalone 4.0 preview with verified script integrity
+        run: |
+          node dev/sync_sri.cjs --write
+          node dev/sync_sri.cjs
+          mkdir -p "$RUNNER_TEMP/ite-4-preview"
+          git ls-files -z | tar --null -T - -cf - | tar -xf - -C "$RUNNER_TEMP/ite-4-preview"
+          cp vault.js index.html "$RUNNER_TEMP/ite-4-preview/"
+          rm -rf "$RUNNER_TEMP/ite-4-preview/.github" "$RUNNER_TEMP/ite-4-preview/dev"
+      - name: Upload tested development preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: ITE-4-development-preview
+          path: ${{ runner.temp }}/ite-4-preview/
+          if-no-files-found: error
+          retention-days: 14
