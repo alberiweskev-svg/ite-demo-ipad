@@ -58,7 +58,7 @@ async function check(failAt){
  assert.equal(r.commerceCount,0,'Missing commerce must not replace warehouse');
  assert(!r.calls.includes('download')&&!r.calls.includes('reload'));
  assert(r.calls.some(x=>x.includes('Modulo magazzino non disponibile')));
- const packStart=source.indexOf('async function pack(){'),packEnd=source.indexOf('\\nfunction downloadObject(',packStart);
+ const packStart=source.indexOf('async function pack(){'),packEnd=source.indexOf('\nfunction downloadObject(',packStart);
  assert(packStart>=0&&packEnd>packStart,'Complete backup function not found');
  const packContext={window:{},Error};
  vm.createContext(packContext);
