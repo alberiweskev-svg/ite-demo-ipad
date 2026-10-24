@@ -27,4 +27,16 @@ assert.throws(()=>context.write({...next,interventi:[]}),/Simulated write interr
 failKey='';
 assert.equal(storage.getItem('ite_test'),previousMain);
 assert.equal(context.readSites(storage.getItem('ite_test'),storage.getItem('ite_test_aziendale_v1'))[0].id,3);
+// Interruzione dopo la scrittura principale: il giornale pending deve consentire il recupero.
+const pendingMain=JSON.stringify({...next,cantieri:undefined,interventi:[{...job,workflow_status:'Chiuso'}]});
+const previousSites=[{id:3,name:'Cantiere demo'}];
+const pendingSites=[{id:4,name:'Cantiere aggiornato'}];
+storage.setItem('ite_test_aziendale_v1',JSON.stringify({
+ schema:1,cantieri:pendingSites,pending:{
+ previousMain:previousMain,nextMain:pendingMain,previousCantieri:previousSites
+ }}));
+assert.equal(context.readSites(previousMain,storage.getItem('ite_test_aziendale_v1'))[0].id,3);
+storage.setItem('ite_test',pendingMain);
+assert.equal(context.readSites(pendingMain,storage.getItem('ite_test_aziendale_v1'))[0].id,4);
+assert.throws(()=>context.readSites('unrelated archive',storage.getItem('ite_test_aziendale_v1')),/Archivio modificato/);
 console.log('OK: archivio interventi persistente, cantieri recuperabili e rollback su scrittura interrotta');
