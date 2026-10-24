@@ -60,5 +60,16 @@ const server=http.createServer((req,res)=>{
   await page.evaluate(key=>window.ITEVault.storage.removeItem(key),testKey);
   assert.deepEqual(errors,[],'Browser errors during lock/reopen: '+errors.join(' | '));
   console.log('OK: Encrypted persistence, lock, wrong password rejection, and correct reopen');
+  // Check navigation and app startup in the real DOM without writing customer records.
+  assert.equal(await page.locator('#execution-status').isVisible(),false,'Application script did not initialize');
+  const routes=['#clienti-cliente','#calendario','#cantieri','#magazzino','#importazioni'];
+  for(const route of routes){
+    await page.locator('.ite-top-actions a[href="'+route+'"]').click();
+    await page.waitForTimeout(200);
+    assert.equal(new URL(page.url()).hash,route,'Navigation did not reach '+route);
+    assert.equal(await page.locator('#app-shell').isVisible(),true,'App disappeared on '+route);
+    assert.deepEqual(errors,[],'Browser errors on '+route+': '+errors.join(' | '));
+  }
+  console.log('OK: Chromium navigates clients, calendar, worksites, warehouse, and imports');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
