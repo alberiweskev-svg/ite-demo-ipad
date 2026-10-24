@@ -1,0 +1,32 @@
+name: ITE 4.0 synchronize script integrity
+on:
+  push:
+    branches:
+      - sviluppo-4.0.0-base
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  sri:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: sviluppo-4.0.0-base
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Refresh app and vault integrity hashes
+        run: node dev/sync_sri.cjs --write
+      - name: Validate refreshed integrity hashes
+        run: node dev/sync_sri.cjs
+      - name: Commit updated hashes if necessary
+        run: |
+          if ! git diff --quiet -- vault.js index.html; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add vault.js index.html
+            git commit -m "build: refresh SRI for ITE 4.0 scripts"
+            git push origin HEAD:sviluppo-4.0.0-base
+          fi
