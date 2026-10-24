@@ -59,4 +59,17 @@ db.interventi=[job(7,{work_logs:JSON.stringify([{operator_id:'A',duration_minute
 db.clienti=[{id:'A',internal_hourly_cost:'25.50'}];
 h=ctx.workHoursDataForSite('C1');c=ctx.laborCostForSite('C1');
 assert.equal(h.total,60);assert.equal(c.estimated,25.5);
-console.log('OK: 13 regression scenarios for worksite hours, labor and fiscal totals');
+state.documents=[];
+state.movements=[{siteId:'C1',articleId:'X',quantity:-2}];
+state.articles=[{id:'X',price:''}];
+html=ctx.economicSummaryForSite('C1');
+assert.match(html,/1 scarichi senza prezzo valido/);
+assert.match(html,/€ 0\.00/);
+state.articles=[{id:'X',price:-5}];
+html=ctx.economicSummaryForSite('C1');
+assert.match(html,/1 scarichi senza prezzo valido/);
+state.articles=[{id:'X',price:12.5}];
+html=ctx.economicSummaryForSite('C1');
+assert.match(html,/€ 25\.00/);
+assert.doesNotMatch(html,/1 scarichi senza prezzo valido/);
+console.log('OK: 16 regression scenarios for worksite hours, labor, invoices and stock');
