@@ -84,5 +84,20 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#app-shell').isVisible(),true,'App disappeared after tablet navigation');
   assert.deepEqual(errors,[],'Browser errors during tablet navigation: '+errors.join(' | '));
   console.log('OK: Tablet menu opens, closes, and navigates to home');
+  // Verify appointment wizard structure and ordering with no personal data.
+  await page.setViewportSize({width:1280,height:800});
+  await page.locator('#app-nav a[href="#calendario"]').first().evaluate(element=>element.click());
+  await page.locator('#agenda-new').click();
+  assert.equal(await page.locator('#appointment-form').isVisible(),true,'Appointment form did not open');
+  assert.equal(await page.locator('#appointment-client').isEnabled(),true,'Client must be selectable first');
+  assert.equal(await page.locator('#appointment-site').isDisabled(),true,'Site must wait for client');
+  assert.equal(await page.locator('#appointment-category').isDisabled(),true,'Equipment category must wait for site');
+  assert.equal(await page.locator('#appointment-device').isDisabled(),true,'Equipment must wait for category');
+  assert.equal(await page.locator('#appointment-policy').inputValue(),'ordinary','Ordinary classification should be default');
+  assert.equal(await page.locator('#appointment-fee').isDisabled(),true,'Callout fee must be disabled for ordinary work');
+  await page.locator('#appointment-cancel').click();
+  assert.equal(await page.locator('#appointment-form').isVisible(),false,'Cancel did not close appointment form');
+  assert.deepEqual(errors,[],'Browser errors during appointment wizard: '+errors.join(' | '));
+  console.log('OK: Appointment form starts client-first, guards dependent fields, and excludes ordinary callout fee');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
