@@ -38,5 +38,27 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#vault-gate').isVisible(),false,'Vault gate remains visible after unlock');
   assert.deepEqual(errors,[],'Runtime errors after unlock: '+errors.join(' | '));
   console.log('OK: Chromium creates a test vault and opens the application shell');
+  const testKey='ite_307_demo_ipad_v1_smoke_check';
+  const testValue='SYNTHETIC_BROWSER_TEST_VALUE';
+  const encrypted=await page.evaluate(([key,value])=>{
+    window.ITEVault.storage.setItem(key,value);
+    return localStorage.getItem(key);
+  },[testKey,testValue]);
+  assert.ok(encrypted,'Encrypted test value was not stored');
+  assert.ok(!encrypted.includes(testValue),'Sensitive value was stored in cleartext');
+  await page.locator('#vault-lock').click();
+  await page.locator('#vault-gate').waitFor({state:'visible',timeout:30000});
+  assert.equal(await page.locator('#app-shell').isVisible(),false,'App visible after vault lock');
+  await page.locator('#vault-password').fill('WRONG-SYNTHETIC-PASSWORD');
+  await page.locator('#vault-submit').click();
+  await page.getByText('Password non valida.',{exact:true}).waitFor({state:'visible',timeout:30000});
+  assert.equal(await page.locator('#app-shell').isVisible(),false,'Wrong password unlocked archive');
+  await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
+  await page.locator('#vault-submit').click();
+  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  assert.equal(await page.evaluate(key=>window.ITEVault.storage.getItem(key),testKey),testValue,'Encrypted value not recovered after reload');
+  await page.evaluate(key=>window.ITEVault.storage.removeItem(key),testKey);
+  assert.deepEqual(errors,[],'Browser errors during lock/reopen: '+errors.join(' | '));
+  console.log('OK: Encrypted persistence, lock, wrong password rejection, and correct reopen');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
