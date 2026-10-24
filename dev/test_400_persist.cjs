@@ -7,7 +7,7 @@ assert(start>=0&&end>start,'Persistenza principale non trovata');
 const code=source.slice(start,end);
 function scenario(fail){
  const calls=[],original={interventi:[{id:1,technician_id:'1'}]},incoming={interventi:[{id:1,technician_id:'2'}]};
- const context={db:structuredClone(incoming),committed:JSON.stringify(original),storage:{},window:{
+ const context={db:structuredClone(incoming),committed:JSON.stringify(original),storage:true,window:{
   ITEAgenda:{validateDatabase:()=>{calls.push('agenda');if(fail==='agenda')throw Error('Agenda incoerente')}},
   ITEOperators:{validateDatabase:()=>{calls.push('operators');if(fail==='operators')throw Error('Operatore incoerente')}}
  },writeArchive:()=>{calls.push('write');if(fail==='storage')throw Error('Memoria piena')},JSON,Error};
