@@ -16,6 +16,7 @@ async function check(failAt){
  pack:async()=>backup,downloadObject:()=>calls.push('download'),confirm:()=>true,location:{reload:()=>calls.push('reload')},
  Uint8Array,atob:()=>'',JSON,Set,Array,Object,Number,String,Error
  };
+ context.ITECommerce=context.window.ITECommerce;context.ITEHistory=context.window.ITEHistory;
  vm.createContext(context);
  vm.runInContext(restoreCode+';this.runRestore=restore',context);
  await context.runRestore({files:[{text:async()=>JSON.stringify(backup)}],value:''});
