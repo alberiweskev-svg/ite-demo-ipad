@@ -46,6 +46,6 @@ html=ctx.economicSummaryForSite('C1');
 assert.match(html,/1 documenti senza importo verificabile/);
 state.documents=[{siteId:'C1',type:'Fattura vendita',net:'',total:122}];
 html=ctx.economicSummaryForSite('C1');
-assert.match(html,/€ 122\\.00/);
+assert.match(html,/€ 122\.00/);
 assert.doesNotMatch(html,/1 documenti senza importo verificabile/);
 console.log('OK: 10 regression scenarios for worksite hours, labor and fiscal totals');
