@@ -8,6 +8,7 @@ on:
       - 'dev/test_400_appointments.cjs'
       - 'dev/test_400_interventions.cjs'
       - 'dev/test_400_backup.cjs'
+      - 'dev/test_400_core_import.cjs'
       - 'dev/test_400_warehouse.cjs'
       - 'dev/test_400_posted_documents.cjs'
       - 'dev/test_400_linked_views.cjs'
@@ -37,6 +38,8 @@ jobs:
         run: node dev/test_400_interventions.cjs
       - name: Backup restore regression tests
         run: node dev/test_400_backup.cjs
+      - name: Encrypted legacy import regression tests
+        run: node dev/test_400_core_import.cjs
       - name: Warehouse stock regression tests
         run: node dev/test_400_warehouse.cjs
       - name: Posted stock document immutability tests
