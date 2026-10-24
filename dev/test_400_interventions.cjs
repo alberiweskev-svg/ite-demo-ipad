@@ -16,3 +16,38 @@ r=scenario({corruptAudit:true});assert.equal(r.alerts.length,1);assert.match(r.a
 r=scenario({corruptAudit:true,action:'revision'});assert.equal(r.alerts.length,1);assert.match(r.alerts[0],/Storico revisioni non leggibile/);assert.equal(r.job.revision_audit,'{invalid');
 r=scenario({revision:true,action:'revision'});assert.equal(r.alerts.length,0);assert.equal(r.job.workflow_status,'In corso');assert.deepEqual(JSON.parse(r.job.revision_audit).map(x=>x.action),['CHIUSURA_INTERVENTO','RIAPERTURA_REVISIONE','RIAPERTURA_REVISIONE']);
 console.log('OK: 7 intervention tests (closure, revision and corrupt audit protection)');
+
+
+// Rettifica: mai modificare direttamente un intervento chiuso o bypassare la chiusura audit.
+function correctionScenario({status='In corso',departed='',actorId='2',answers=['2026-10-24T08:15','', 'Registrazione tardiva']}={}){
+ let current={id:7,appointment:'1',workflow_status:status,assigned_operators:JSON.stringify([{operator_id:'2',role:'Principale'}]),work_sessions:JSON.stringify([{id:'s1',operator_id:'2',arrived_at:'2026-10-24T08:00:00Z',departed_at:departed}]),revision_audit:'[]'};
+ const alerts=[],questions=[],prompts=[...answers];let commits=0,opened=0;
+ const env={actor:()=>actorId,db:()=>({interventi:[current]}),same:(a,b)=>String(a)===String(b),sessions:j=>JSON.parse(j.work_sessions),
+  prompt:q=>{questions.push(q);return prompts.shift()},confirm:()=>true,now:()=> '2026-10-24T09:00:00Z',
+  ITE:{commit:fn=>{const next={interventi:[JSON.parse(JSON.stringify(current))]};fn(next);current=next.interventi[0];commits++}},
+  revisionAudit:j=>JSON.parse(j.revision_audit),recalculate:()=>{},validateDatabase:()=>{},open:()=>{opened++},
+  alert:x=>alerts.push(x),Date,JSON,String,Boolean,Number,Math};
+ vm.createContext(env);vm.runInContext(extract('correctSession')+';correctSession(7,"s1")',env);
+ return {current,alerts,questions,commits,opened};
+}
+let c=correctionScenario({status:'Chiuso'});
+assert.equal(c.commits,0,'Un intervento chiuso non deve essere modificato direttamente');
+assert.equal(c.questions.length,0,'Il controllo deve precedere qualsiasi prompt');
+assert.match(c.alerts[0],/Revisiona intervento/);
+c=correctionScenario({departed:''});
+assert.equal(c.alerts.length,0);
+assert.equal(c.commits,1);
+assert.equal(c.opened,1);
+assert.equal(JSON.parse(c.current.work_sessions)[0].arrived_at,'2026-10-24T08:15:00.000Z');
+let event=JSON.parse(c.current.revision_audit)[0];
+assert.equal(event.action,'RETTIFICA_ORARI');
+assert.equal(event.original.arrived_at,'2026-10-24T08:00:00Z');
+assert.equal(event.reason,'Registrazione tardiva');
+c=correctionScenario({departed:'',answers:['2026-10-24T08:15','2026-10-24T09:00','Registrazione tardiva']});
+assert.equal(c.commits,0,'La rettifica non può chiudere una sessione aperta');
+assert.match(c.alerts[0],/Ho finito/);
+c=correctionScenario({departed:'2026-10-24T08:45:00Z',answers:['2026-10-24T08:15','','Registrazione tardiva']});
+assert.equal(c.commits,0,'La rettifica non può riaprire una sessione già chiusa');
+c=correctionScenario({actorId:'3'});
+assert.equal(c.commits,0,'Un tecnico non assegnato non può correggere gli orari');
+console.log('OK: 5 rettifiche orari (audit, chiusura, revisione, permessi)');
