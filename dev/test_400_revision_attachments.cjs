@@ -27,4 +27,13 @@ assert.equal(audit.length,2);assert.equal(audit[0].action,'CHIUSURA_INTERVENTO')
 assert.equal(audit[1].action,'RIAPERTURA_REVISIONE');
 assert.equal(audit[1].previous_closed_at,'2026-10-24T09:30:00Z');
 assert(notice.includes('riaperto'));
+// Annullamento esplicito: nessuna scrittura e nessuna alterazione dei documenti.
+const originalJob=JSON.stringify(job);
+let cancelledCommits=0;
+const cancelled={...context,confirm:()=>false,ITE:{commit:()=>{cancelledCommits++;}}};
+vm.createContext(cancelled);vm.runInContext(source.slice(start,end)+';this.revise=revision',cancelled);
+cancelled.revise(7);
+assert.equal(cancelledCommits,0);
+assert.equal(JSON.stringify(job),originalJob);
+assert.equal(JSON.stringify(docs),originalDocs);
 console.log('OK: revisione dinamica conserva intervento, chiusura precedente e riferimenti allegati');
