@@ -38,6 +38,20 @@ jobs:
           git ls-files -z | tar --null -T - -cf - | tar -xf - -C "$RUNNER_TEMP/ite-4-preview"
           cp vault.js index.html "$RUNNER_TEMP/ite-4-preview/"
           rm -rf "$RUNNER_TEMP/ite-4-preview/.github" "$RUNNER_TEMP/ite-4-preview/dev"
+      - name: Check preview HTML and essential files
+        run: |
+          test -s "$RUNNER_TEMP/ite-4-preview/index.html"
+          test -s "$RUNNER_TEMP/ite-4-preview/app.js"
+          test -s "$RUNNER_TEMP/ite-4-preview/vault.js"
+          test -s "$RUNNER_TEMP/ite-4-preview/version.json"
+          node --check "$RUNNER_TEMP/ite-4-preview/app.js"
+          node --check "$RUNNER_TEMP/ite-4-preview/vault.js"
+          if grep -q '<script src="./vault.js?v=4.0.0"' "$RUNNER_TEMP/ite-4-preview/index.html"; then
+            echo "Preview HTML includes vault loader"
+          else
+            echo "Missing vault loader in preview" >&2
+            exit 1
+          fi
       - name: Upload tested development preview
         uses: actions/upload-artifact@v4
         with:
