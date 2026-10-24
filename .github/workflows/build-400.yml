@@ -5,6 +5,7 @@ on:
     paths:
       - 'dev/apply_400_step1.py'
       - 'dev/test_400_worksite.cjs'
+      - 'dev/test_400_appointments.cjs'
       - 'app.js'
       - 'index.html'
       - 'vault.js'
@@ -25,6 +26,8 @@ jobs:
         run: python3 dev/apply_400_step1.py
       - name: Worksite regression tests
         run: node dev/test_400_worksite.cjs
+      - name: Appointment workflow regression tests
+        run: node dev/test_400_appointments.cjs
       - name: Commit generated assets
         run: |
           git config user.name "ite-400-builder"
