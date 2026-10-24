@@ -147,8 +147,10 @@ message('Ripristino completato. Ricaricamento…');location.reload();
 }catch(e){message('Ripristino non completato: '+e.message)}finally{busy=false}}
 window.ITEBackup={download,restore,pack};
 const reset=ITE.reset,importData=ITE.importData;
-ITE.reset=async()=>{try{downloadObject(await pack());if(!confirm('Verifica nei Download che il backup completo sia stato salvato. Confermi di avere il file al sicuro prima di azzerare la demo?'))return;reset()}catch(e){message('Ripristino demo bloccato: '+e.message)}};
-ITE.importData=async event=>{const f=event.target.files[0];if(!f)return;try{downloadObject(await pack());if(!confirm('Verifica nei Download che il backup completo sia stato salvato. Confermi di avere il file al sicuro prima di importare dati che sostituiscono l’archivio?'))return;importData({target:{files:[f],value:''}})}catch(e){message('Importazione bloccata: '+e.message)}finally{event.target.value=''}};
+function hasLinkedData(backup){return !!(backup.docs?.length||backup.commerce?.documents?.length||backup.commerce?.movements?.some(m=>m.siteId))}
+function assertCoreOnlySafe(backup){if(hasLinkedData(backup))throw Error('Sono presenti allegati, documenti importati o movimenti collegati ai cantieri. Per evitare riferimenti errati, non sostituire soltanto le anagrafiche: usa Ripristina backup completo, che gestisce tutti gli archivi insieme.')}
+ITE.reset=async()=>{try{const previous=await pack();assertCoreOnlySafe(previous);downloadObject(previous);if(!confirm('Verifica nei Download che il backup completo sia stato salvato. Confermi di avere il file al sicuro prima di azzerare la demo?'))return;reset()}catch(e){message('Ripristino demo bloccato: '+e.message)}};
+ITE.importData=async event=>{const f=event.target.files[0];if(!f)return;try{const previous=await pack();assertCoreOnlySafe(previous);downloadObject(previous);if(!confirm('Verifica nei Download che il backup completo sia stato salvato. Confermi di avere il file al sicuro prima di importare dati che sostituiscono l’archivio?'))return;importData({target:{files:[f],value:''}})}catch(e){message('Importazione bloccata: '+e.message)}finally{event.target.value=''}};
 if(navigator.storage?.persist)navigator.storage.persist().catch(()=>{});
 })();
 
