@@ -12,13 +12,13 @@ assert(digestStart>=0&&packStart>digestStart&&packEnd>packStart&&restoreEnd>rest
 const data={clienti:[{id:1,name:'Cliente fittizio'}],immobili:[],impianti:[],apparecchiature:[],interventi:[],cantieri:[]};
 const fileBytes=Uint8Array.from([1,2,3,4]).buffer;
 const commerce={documents:[],articles:[],movements:[]};
-async function build({bytes=fileBytes,size=4,storedSha256}={}){
+async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data}={}){
  const ctx={KEY:'ite_demo_test',crypto:webcrypto,Uint8Array,btoa,JSON,Date,Error,
    window:{ITECommerce:{exportState:async()=>commerce}},
    ITECommerce:{exportState:async()=>commerce},
-   ITE:{archiveReadable:()=>true,validate:()=>true,snapshot:()=>data},
+   ITE:{archiveReadable:()=>true,validate:()=>true,snapshot:()=>core},
    ITEVault:{storage:{getItem:()=>null}},
-   ITEDocs:{listDocs:async()=>[{id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size,fileBytes:bytes,sha256:storedSha256}]}};
+   ITEDocs:{listDocs:async()=>[{id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size,fileBytes:bytes,sha256:storedSha256,...docOverrides}]}};
  vm.createContext(ctx);
  vm.runInContext(source.slice(digestStart,packEnd)+';this.makeBackup=pack',ctx);
  return ctx.makeBackup();
@@ -44,6 +44,13 @@ async function attempt(backup){
  return {writes,messages,restoredDocs};
 }
 (async()=>{
+ const foreign={id:2,name:'Cliente prova 2'};
+ const linkedData={...data,clienti:[...data.clienti,foreign],cantieri:[{id:8,client_id:'2'},{id:9,client_id:'1'}]};
+ await assert.rejects(build({docOverrides:{parentId:'999'}}),/Collegamento allegato non valido/,'Backup non deve esportare allegati con cliente inesistente');
+ await assert.rejects(build({core:linkedData,docOverrides:{subjectId:'2'}}),/Soggetto allegato incoerente/,'Backup non deve esportare documenti assegnati ad altro cliente');
+ await assert.rejects(build({core:linkedData,docOverrides:{siteId:'8'}}),/Cantiere allegato incoerente/,'Backup non deve esportare foto del cliente su cantiere di terzi');
+ const validLinked=await build({core:linkedData,docOverrides:{siteId:'9'}});
+ assert.equal(validLinked.docs.length,1,'Backup di allegato collegato al proprio cantiere deve riuscire');
  const backup=await build();
  const correctSha=createHash('sha256').update(Buffer.from(fileBytes)).digest('hex');
  await assert.rejects(build({bytes:Uint8Array.from([1,2,3,5]).buffer,storedSha256:correctSha}),/Integrità allegato non valida/,'Backup non deve certificare byte alterati con stessa dimensione');
