@@ -50,7 +50,31 @@ if(!(data()[kind]||[]).some(r=>String(r.id)===parentId))return alert('Seleziona 
 saving=true;const button=$('docs-form').querySelector('[type=submit]');button.disabled=true;try{const doc={id:'d'+Date.now()+'_'+Math.random().toString(36).slice(2),type,parentType:kind,parentId,subjectId,siteId,date,expires,number:$('docs-number').value.trim(),note:$('docs-note').value.trim(),fileName:file.name,size:file.size,mime:mime(file.name),created:Date.now(),fileBytes:await file.arrayBuffer()};await change(store=>store.put(doc));await verifySavedDocument(doc);hideForm();await refresh();note('Documento e collegamenti salvati e verificati nel browser. Conserva anche un backup completo.')}catch(e){note('Salvataggio non verificato: '+e.message+' Conserva il file originale e non chiudere il modulo prima di averne una copia.')}finally{button.disabled=false;saving=false}}
 function closePreview(){if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=null;$('docs-preview').hidden=true;$('docs-preview-content').replaceChildren()}
 async function openFile(id){try{const doc=(await list()).find(d=>d.id===id);if(!doc)throw Error('Documento non trovato');closePreview();const type=mime(doc.fileName)||doc.mime,blob=new Blob([doc.fileBytes||doc.file],{type});previewUrl=URL.createObjectURL(blob);const target=$('docs-preview-content'),heading=document.createElement('strong');heading.textContent=doc.fileName;target.append(heading);if(type==='application/pdf'){const obj=document.createElement('object');obj.type=type;obj.data=previewUrl;obj.style.cssText='width:100%;height:65vh;min-height:350px';obj.textContent='Se l’anteprima non compare, usa Scarica file.';target.append(obj)}else{const img=document.createElement('img');img.src=previewUrl;img.alt=doc.fileName;img.style.cssText='width:100%;max-height:70vh;object-fit:contain';target.append(img)}$('docs-download').href=previewUrl;$('docs-download').download=doc.fileName;$('docs-preview').hidden=false;$('docs-preview').scrollIntoView({behavior:'instant',block:'start'})}catch(e){note('Apertura non riuscita: '+e.message)}}
-async function remove(id){if(!confirm('Eliminare il documento? Gli avvisi verranno ricalcolati.'))return;try{await change(store=>store.delete(id));closePreview();await refresh();note('Documento eliminato.')}catch(e){note('Eliminazione non riuscita: '+e.message)}}
+function protectInterventionDocument(doc){
+ if(doc.parentType!=='interventi')return;
+ const job=(data().interventi||[]).find(j=>String(j.id)===String(doc.parentId));
+ if(!job)throw Error('Intervento collegato non trovato: documento conservato.');
+ if(job.workflow_status!=='Programmato'&&job.workflow_status!=='In corso')throw Error('Intervento chiuso: documenti storici non eliminabili.');
+ let audit=[];
+ if(job.revision_audit){
+  try{audit=JSON.parse(job.revision_audit)}catch{throw Error('Storico intervento illeggibile: eliminazione bloccata.')}
+  if(!Array.isArray(audit)||audit.some(e=>!e||typeof e!=='object'))throw Error('Storico intervento non valido: eliminazione bloccata.');
+ }
+ if(audit.some(e=>['CHIUSURA_INTERVENTO','CHIUSURA_DOPO_REVISIONE','RIAPERTURA_REVISIONE'].includes(e.action)))throw Error('Intervento già chiuso o revisionato: allegati precedenti conservati.');
+}
+async function remove(id){
+ try{
+  const doc=await readOne(id);
+  if(!doc)throw Error('Documento non trovato: nessuna eliminazione effettuata.');
+  protectInterventionDocument(doc);
+  if(!confirm('Eliminare il documento? Gli avvisi verranno ricalcolati.'))return;
+  const current=await readOne(id);
+  if(!current||current.parentType!==doc.parentType||String(current.parentId)!==String(doc.parentId))throw Error('Collegamento documento modificato: eliminazione annullata.');
+  protectInterventionDocument(current);
+  await change(store=>store.delete(id));
+  closePreview();await refresh();note('Documento eliminato.');
+ }catch(e){note('Eliminazione non riuscita: '+e.message)}
+}
 const cameraControls=document.createElement('div');cameraControls.className='form-wide';cameraControls.style.cssText='display:flex;gap:10px;align-items:center;flex-wrap:wrap';const cameraButton=document.createElement('button');cameraButton.type='button';cameraButton.className='secondary';cameraButton.textContent='Scatta foto (iPad)';const cameraInput=document.createElement('input');cameraInput.id='docs-camera';cameraInput.type='file';cameraInput.accept='image/jpeg,image/png,image/webp';cameraInput.setAttribute('capture','environment');cameraInput.setAttribute('aria-label','Scatta foto con fotocamera');cameraInput.style.cssText='position:absolute;width:1px;height:1px;opacity:0;pointer-events:none';cameraButton.addEventListener('click',()=>cameraInput.click());cameraInput.addEventListener('change',()=>{if(!cameraInput.files.length)return;selectedFileSource='camera';$('docs-file').required=false;note('Foto acquisita, non ancora salvata. Premi Salva documento e attendi la verifica.');if([...$('docs-type').options].some(o=>o.value==='Fotografia tecnica'))$('docs-type').value='Fotografia tecnica'});$('docs-file').addEventListener('change',()=>{if(!$('docs-file').files.length)return;selectedFileSource='picker';$('docs-file').required=true;cameraInput.value='';});cameraControls.append(cameraButton,cameraInput);$('docs-file').closest('label').after(cameraControls);
 const extra=document.createElement('div');extra.className='grid';extra.innerHTML='<label>Soggetto collegato<select id="docs-subject"></select></label><label>Cantiere collegato<select id="docs-site"></select></label><label>Numero / riferimento<input id="docs-number" maxlength="100"></label><label>Scadenza / prossimo controllo<input id="docs-expires" type="date"><small class="hint">Per la visura indica la data entro cui ricontrollarla; non viene calcolata una validità automatica.</small></label>';$('docs-form').insertBefore(extra,$('docs-form').querySelector('.actions'));
 $('docs-parent-type').options[0].textContent='Soggetto (cliente, personale o impresa)';$('docs-parent-type').add(new Option('Cantiere','cantieri'));$('docs-parent-type').add(new Option('Impianto','impianti'));$('docs-parent-type').add(new Option('Apparecchiatura','apparecchiature'));$('docs-parent-id').addEventListener('change',refsChanged);$('docs-subject').addEventListener('change',refreshTypes);
