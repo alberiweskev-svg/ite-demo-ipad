@@ -76,5 +76,18 @@ async function verify(changes={},originalChanges={}){
  fields['docs-site'].value='9';
  await saveContext.savePhoto({preventDefault(){}});
  assert.equal(writes,2,'Foto immobile salvabile sul cantiere dello stesso cliente');
+ // Il soggetto selezionato deve essere il cliente proprietario dell'immobile.
+ fields['docs-subject'].value='2';
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,2,'Foto immobile non salvabile sotto il soggetto di altro cliente');
+ assert(notices.some(message=>message.includes('Soggetto non collegato al cliente')));
+ // Un documento di cantiere deve restare collegato al cliente del cantiere.
+ fields['docs-parent-type'].value='cantieri';
+ fields['docs-parent-id'].value='9';
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,2,'Foto cantiere non salvabile sotto il soggetto di altro cliente');
+ fields['docs-subject'].value='1';
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,3,'Foto cantiere salvabile sotto il cliente corretto');
  console.log('OK: metadati, SHA-256, dimensione reale e salvataggio fotocamera con file completo');
 })().catch(error=>{console.error(error);process.exitCode=1});
