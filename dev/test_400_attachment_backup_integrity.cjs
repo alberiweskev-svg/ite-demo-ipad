@@ -92,7 +92,7 @@ async function attempt(backup){
  hierarchy.data.immobili.push({id:3,client_id:'1'});
  hierarchy.data.impianti.push({id:4,immobile_id:'3'});
  hierarchy.data.apparecchiature.push({id:5,impianto_id:'4'});
- for(const [type,id] of [['impianti','4'],['apparecchiature','5']]){
+ for(const [type,id] of [['immobili','3'],['impianti','4'],['apparecchiature','5']]){
   const tampered=structuredClone(hierarchy);
   tampered.docs[0].parentType=type;
   tampered.docs[0].parentId=id;
