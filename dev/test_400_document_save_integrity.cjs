@@ -65,6 +65,7 @@ async function verify(changes={},originalChanges={}){
  await saveContext.savePhoto({preventDefault(){}});
  assert.equal(writes,1,'Foto completa: scrittura consentita');
  assert.equal(captured.fileName,'foto-fittizia.jpg','Deve usare il file fotocamera, non quello da archivio');
+ assert.equal(captured.sha256,require('node:crypto').createHash('sha256').update(Buffer.from(bytes)).digest('hex'),'Impronta SHA-256 salvata con la foto');
  // La selezione manuale del cantiere non deve associare una foto a un altro cliente.
  fields['docs-parent-type'].value='immobili';
  fields['docs-parent-id'].value='3';
