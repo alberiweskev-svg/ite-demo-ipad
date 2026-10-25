@@ -36,6 +36,8 @@ jobs:
         run: node dev/test_400_revision_audit.cjs
       - name: Test revision attachments
         run: node dev/test_400_revision_attachments.cjs
+      - name: Test immutable historical intervention attachments
+        run: node dev/test_400_document_retention.cjs
       - name: Prepare standalone 4.0 preview with verified script integrity
         run: |
           node dev/sync_sri.cjs --write
