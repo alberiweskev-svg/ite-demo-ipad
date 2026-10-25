@@ -47,7 +47,7 @@ async function verify(changes={},originalChanges={}){
   'docs-form':{querySelector:()=>({disabled:false})}
  };
  const saveContext={
-  ITE:{archiveReadable:()=>true},data:()=>({clienti:[{id:1}],cantieri:[]}),
+  ITE:{archiveReadable:()=>true},data:()=>({clienti:[{id:1},{id:2}],immobili:[{id:3,client_id:'1'}],cantieri:[{id:8,client_id:'2'},{id:9,client_id:'1'}]}),ownerFor:()=> '1',
   selectedFileSource:'camera',saving:false,$:id=>fields[id],
   mime:name=>name.endsWith('.jpg')?'image/jpeg':undefined,
   validDate:()=>true,alert:message=>notices.push(message),
@@ -65,5 +65,16 @@ async function verify(changes={},originalChanges={}){
  await saveContext.savePhoto({preventDefault(){}});
  assert.equal(writes,1,'Foto completa: scrittura consentita');
  assert.equal(captured.fileName,'foto-fittizia.jpg','Deve usare il file fotocamera, non quello da archivio');
+ // La selezione manuale del cantiere non deve associare una foto a un altro cliente.
+ fields['docs-parent-type'].value='immobili';
+ fields['docs-parent-id'].value='3';
+ fields['docs-subject'].value='1';
+ fields['docs-site'].value='8';
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,1,'Foto immobile non salvabile sul cantiere di altro cliente');
+ assert(notices.some(message=>message.includes('Cantiere non collegato al cliente')));
+ fields['docs-site'].value='9';
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,2,'Foto immobile salvabile sul cantiere dello stesso cliente');
  console.log('OK: metadati, SHA-256, dimensione reale e salvataggio fotocamera con file completo');
 })().catch(error=>{console.error(error);process.exitCode=1});
