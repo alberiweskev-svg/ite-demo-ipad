@@ -70,8 +70,31 @@ async function attempt(backup){
  const matched=structuredClone(mismatched);matched.docs[0].subjectId='1';
  r=await attempt(matched);
  assert.equal(r.writes,3,'Attachment with matching intervention client must restore normally');
+ // Il modulo documenti vincola il soggetto per clienti, impianti e apparecchiature.
+ // Un backup alterato non deve aggirare questo vincolo né sostituire i dati esistenti.
+ const wrongClient=structuredClone(backup);
+ wrongClient.data.clienti.push({id:2,name:'Cliente fittizio 2'});
+ wrongClient.docs[0].subjectId='2';
+ r=await attempt(wrongClient);
+ assert.equal(r.writes,0,'Client document with a different subject must be rejected');
+ assert(r.messages.some(x=>x.includes('Soggetto allegato incoerente')));
+ const hierarchy=structuredClone(wrongClient);
+ hierarchy.data.immobili.push({id:3,client_id:'1'});
+ hierarchy.data.impianti.push({id:4,immobile_id:'3'});
+ hierarchy.data.apparecchiature.push({id:5,impianto_id:'4'});
+ for(const [type,id] of [['impianti','4'],['apparecchiature','5']]){
+  const tampered=structuredClone(hierarchy);
+  tampered.docs[0].parentType=type;
+  tampered.docs[0].parentId=id;
+  r=await attempt(tampered);
+  assert.equal(r.writes,0,'Cross-client '+type+' attachment must not restore');
+  assert(r.messages.some(x=>x.includes('Soggetto allegato incoerente')));
+  tampered.docs[0].subjectId='1';
+  r=await attempt(tampered);
+  assert.equal(r.writes,3,'Correctly linked '+type+' attachment must restore');
+ }
  const legacy=structuredClone(backup);delete legacy.docs[0].sha256;
  r=await attempt(legacy);
  assert.equal(r.writes,3,'Legacy backups without per-file hashes remain importable');
- console.log('OK: attachment backup SHA-256, tamper rejection, cross-client isolation and legacy compatibility');
+ console.log('OK: attachment backup SHA-256, tamper rejection, cross-client isolation for client, plant, equipment and intervention, and legacy compatibility');
 })().catch(e=>{console.error(e);process.exitCode=1});
