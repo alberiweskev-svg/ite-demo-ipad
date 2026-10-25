@@ -89,5 +89,16 @@ async function verify(changes={},originalChanges={}){
  fields['docs-subject'].value='1';
  await saveContext.savePhoto({preventDefault(){}});
  assert.equal(writes,3,'Foto cantiere salvabile sotto il cliente corretto');
+ // Anche un documento anagrafico del cliente non deve puntare al cantiere di terzi.
+ fields['docs-parent-type'].value='clienti';
+ fields['docs-parent-id'].value='1';
+ fields['docs-subject'].value='1';
+ fields['docs-site'].value='8';
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,3,'Foto cliente non salvabile sul cantiere di un altro cliente');
+ assert(notices.some(message=>message.includes('Cantiere non collegato al cliente')));
+ fields['docs-site'].value='9';
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,4,'Foto cliente salvabile sul proprio cantiere');
  console.log('OK: metadati, SHA-256, dimensione reale e salvataggio fotocamera con file completo');
 })().catch(error=>{console.error(error);process.exitCode=1});
