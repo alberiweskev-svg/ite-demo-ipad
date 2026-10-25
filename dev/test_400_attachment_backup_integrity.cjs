@@ -12,13 +12,13 @@ assert(digestStart>=0&&packStart>digestStart&&packEnd>packStart&&restoreEnd>rest
 const data={clienti:[{id:1,name:'Cliente fittizio'}],immobili:[],impianti:[],apparecchiature:[],interventi:[],cantieri:[]};
 const fileBytes=Uint8Array.from([1,2,3,4]).buffer;
 const commerce={documents:[],articles:[],movements:[]};
-async function build({bytes=fileBytes,size=4}={}){
+async function build({bytes=fileBytes,size=4,storedSha256}={}){
  const ctx={KEY:'ite_demo_test',crypto:webcrypto,Uint8Array,btoa,JSON,Date,Error,
    window:{ITECommerce:{exportState:async()=>commerce}},
    ITECommerce:{exportState:async()=>commerce},
    ITE:{archiveReadable:()=>true,validate:()=>true,snapshot:()=>data},
    ITEVault:{storage:{getItem:()=>null}},
-   ITEDocs:{listDocs:async()=>[{id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size,fileBytes:bytes}]}};
+   ITEDocs:{listDocs:async()=>[{id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size,fileBytes:bytes,sha256:storedSha256}]}};
  vm.createContext(ctx);
  vm.runInContext(source.slice(digestStart,packEnd)+';this.makeBackup=pack',ctx);
  return ctx.makeBackup();
@@ -45,6 +45,10 @@ async function attempt(backup){
 }
 (async()=>{
  const backup=await build();
+ const correctSha=createHash('sha256').update(Buffer.from(fileBytes)).digest('hex');
+ await assert.rejects(build({bytes:Uint8Array.from([1,2,3,5]).buffer,storedSha256:correctSha}),/Integrità allegato non valida/,'Backup non deve certificare byte alterati con stessa dimensione');
+ const checked=await build({storedSha256:correctSha});
+ assert.equal(checked.docs[0].sha256,correctSha,'Backup integro con impronta persistente');
  await assert.rejects(build({size:5}),/Allegato incompleto/,'Mismatched attachment size must prevent unusable backups');
  await assert.rejects(build({bytes:new ArrayBuffer(0),size:0}),/Allegato incompleto/,'Empty attachments must prevent unusable backups');
  assert.equal(backup.docs.length,1);
