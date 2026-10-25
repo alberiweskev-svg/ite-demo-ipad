@@ -28,7 +28,7 @@ async function attempt(backup){
  const ctx={crypto:webcrypto,Uint8Array,atob,JSON,Set,Array,Object,Number,String,Error,
    busy:false,
    window:{ITECommerce:{busy:()=>false,validate:()=>{},replaceState:async()=>{writes++}},
-     ITEHistory:{create:async()=>{}},ITEAgenda:{validateDatabase:()=>{}},ITEOperators:{validateDatabase:()=>{}}},
+     ITEHistory:{create:async()=>{}},ITEAgenda:{validateDatabase:()=>{}},ITEOperators:{validateDatabase:()=>{}},ITEContacts:{validateLinks:()=>{}}},
    document:{getElementById:()=>({hidden:true})},
    message:s=>messages.push(s),
    ITEVault:{openBackup:async()=>backup},
@@ -37,7 +37,7 @@ async function attempt(backup){
    pack:async()=>({data,docs:[],commerce}),
    downloadObject:()=>{},confirm:()=>true,location:{reload:()=>messages.push('reload')}};
  ctx.ITECommerce=ctx.window.ITECommerce;ctx.ITEHistory=ctx.window.ITEHistory;
- ctx.ITEAgenda=ctx.window.ITEAgenda;ctx.ITEOperators=ctx.window.ITEOperators;
+ ctx.ITEAgenda=ctx.window.ITEAgenda;ctx.ITEOperators=ctx.window.ITEOperators;ctx.ITEContacts=ctx.window.ITEContacts;
  vm.createContext(ctx);
  vm.runInContext(source.slice(digestStart,packStart)+source.slice(restoreStart,restoreEnd)+';this.runRestore=restore',ctx);
  await ctx.runRestore({files:[{text:async()=>JSON.stringify(backup)}],value:''});
