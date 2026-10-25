@@ -279,6 +279,10 @@ const server=http.createServer((req,res)=>{
   await page.locator('#agenda-new').click();
   assert.equal(await page.locator('#appointment-form').isVisible(),true,'Synthetic appointment form did not open');
   await page.evaluate(()=>{
+    // Simulate a real background-tab visibility change: unrelated foreground
+    // handlers must not run during the idle-lock check.
+    Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});
+    Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});
     const now=Date.now();
     Date.now=()=>now+5*60*60*1000;
     setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),50);
