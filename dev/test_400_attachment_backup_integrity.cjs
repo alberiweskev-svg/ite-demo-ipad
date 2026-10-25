@@ -57,6 +57,14 @@ async function attempt(backup){
  r=await attempt(tampered);
  assert.equal(r.writes,0,'Modified bytes must be rejected before any restore writes');
  assert(r.messages.some(x=>x.includes('Integrità allegato non valida')));
+ const empty=structuredClone(backup);
+ empty.docs[0].size=0;
+ empty.docs[0].base64='';
+ empty.docs[0].sha256=createHash('sha256').update(Buffer.alloc(0)).digest('hex');
+ r=await attempt(empty);
+ assert.equal(r.writes,0,'Empty attachment with a valid SHA-256 must not replace any existing data');
+ assert(r.messages.some(x=>x.includes('Dimensione allegato non valida')));
+
  const invalid=structuredClone(backup);invalid.docs[0].sha256='not-a-checksum';
  r=await attempt(invalid);
  assert.equal(r.writes,0,'Invalid checksum format must be rejected');
