@@ -264,6 +264,16 @@ const server=http.createServer((req,res)=>{
   assert.equal(String(cameraAfter.parentId),String(equipmentJob.id));
   assert.deepEqual(Buffer.from(cameraAfter.bytes),cameraBytes);
   console.log('OK: Dedicated camera photo survives encrypted vault reload with correct intervention link');
+  // Historical files must not be deleted after the intervention is closed.
+  const retained=await page.evaluate(async id=>{
+    await window.ITEDocs.remove(id);
+    const doc=(await window.ITEDocs.listDocs()).find(d=>d.id===id);
+    return {bytes:doc?Array.from(new Uint8Array(doc.fileBytes)):null,feedback:document.getElementById('docs-feedback').textContent};
+  },photoBefore.id);
+  assert.ok(retained.bytes,'Closed intervention attachment was deleted');
+  assert.deepEqual(Buffer.from(retained.bytes),sampleBytes,'Historical attachment bytes changed after blocked deletion');
+  assert.match(retained.feedback,/Eliminazione non riuscita: Intervento chiuso/,'Closed intervention deletion was not explicitly blocked');
+  console.log('OK: Closed intervention retains uploaded photo when deletion is attempted');
   console.log('OK: Uploaded photo bytes and intervention link survive vault reload');
   assert.deepEqual(errors,[],'Browser errors during revision workflow: '+errors.join(' | '));
   console.log('OK: Revision retains first closure, adds second session and audits final closure');
