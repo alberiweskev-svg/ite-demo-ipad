@@ -103,6 +103,21 @@ async function attempt(backup){
   r=await attempt(tampered);
   assert.equal(r.writes,3,'Correctly linked '+type+' attachment must restore');
  }
+ // Un allegato di immobile non puo' collegarsi a un cantiere di un altro cliente.
+ const crossSite=structuredClone(backup);
+ crossSite.data.clienti.push({id:2,name:'Altro cliente fittizio'});
+ crossSite.data.immobili.push({id:3,client_id:'1'});
+ crossSite.data.cantieri.push({id:8,client_id:'2'},{id:9,client_id:'1'});
+ crossSite.docs[0].parentType='immobili';
+ crossSite.docs[0].parentId='3';
+ crossSite.docs[0].subjectId='1';
+ crossSite.docs[0].siteId='8';
+ r=await attempt(crossSite);
+ assert.equal(r.writes,0,'Cross-client site link must block restore before any writes');
+ assert(r.messages.some(x=>x.includes('Cantiere allegato incoerente')));
+ crossSite.docs[0].siteId='9';
+ r=await attempt(crossSite);
+ assert.equal(r.writes,3,'Same-client worksite link must remain importable');
  const legacy=structuredClone(backup);delete legacy.docs[0].sha256;
  r=await attempt(legacy);
  assert.equal(r.writes,3,'Legacy backups without per-file hashes remain importable');
