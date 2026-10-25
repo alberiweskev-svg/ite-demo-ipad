@@ -18,6 +18,8 @@ jobs:
         run: node --check app.js
       - name: Test backup
         run: node dev/test_400_backup.cjs
+      - name: Test complete backup attachment integrity
+        run: node dev/test_400_attachment_backup_integrity.cjs
       - name: Test persistence
         run: node dev/test_400_persist.cjs
       - name: Test archive recovery
