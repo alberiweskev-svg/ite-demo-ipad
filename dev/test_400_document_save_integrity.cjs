@@ -54,7 +54,7 @@ async function verify(changes={},originalChanges={}){
   note:message=>notices.push(message),
   change:async fn=>fn({put:value=>{writes++;captured=value}}),
   verifySavedDocument:async()=>true,hideForm:()=>{},refresh:async()=>{},
-  ArrayBuffer,Number,Date,Math,Promise,Error
+  ArrayBuffer,Number,Date,Math,Promise,Error,crypto:webcrypto
  };
  vm.createContext(saveContext);
  vm.runInContext(source.slice(saveStart,saveEnd)+';this.savePhoto=save',saveContext);
