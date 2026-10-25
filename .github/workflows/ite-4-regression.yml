@@ -42,6 +42,8 @@ jobs:
         run: node dev/test_400_document_retention.cjs
       - name: Test saved attachment metadata and bytes
         run: node dev/test_400_document_save_integrity.cjs
+      - name: Test backup download link lifecycle
+        run: node dev/test_400_backup_download.cjs
       - name: Prepare standalone 4.0 preview with verified script integrity
         run: |
           node dev/sync_sri.cjs --write
