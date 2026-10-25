@@ -298,6 +298,25 @@ const server=http.createServer((req,res)=>{
   },photoBefore.id);
   assert.deepEqual(Buffer.from(photoAfterIdle||[]),sampleBytes,'Idle lock changed a committed attachment');
   console.log('OK: Four-hour inactivity locks an open form and preserves committed attachment bytes');
+  // On a suspended iPad, the first touch can arrive before the minute timer
+  // resumes. The touch must not reset an expired inactivity deadline.
+  await page.evaluate(()=>{
+    const now=Date.now();
+    Date.now=()=>now+5*60*60*1000;
+    setTimeout(()=>document.dispatchEvent(new Event('pointerdown',{bubbles:true})),50);
+  });
+  await page.locator('#vault-gate').waitFor({state:'visible',timeout:30000});
+  assert.equal(await page.locator('#app-shell').isVisible(),false,'First touch after long suspension kept the archive unlocked');
+  await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
+  await page.locator('#vault-submit').click();
+  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  const photoAfterTouchLock=await page.evaluate(async id=>{
+    const d=(await window.ITEDocs.listDocs()).find(row=>row.id===id);
+    return d?Array.from(new Uint8Array(d.fileBytes)):null;
+  },photoBefore.id);
+  assert.deepEqual(Buffer.from(photoAfterTouchLock||[]),sampleBytes,'Touch-triggered idle lock changed a committed attachment');
+  console.log('OK: First touch after four-hour suspension locks the vault and preserves committed photo');
+
   console.log('OK: Uploaded photo bytes and intervention link survive vault reload');
   assert.deepEqual(errors,[],'Browser errors during revision workflow: '+errors.join(' | '));
   console.log('OK: Revision retains first closure, adds second session and audits final closure');
