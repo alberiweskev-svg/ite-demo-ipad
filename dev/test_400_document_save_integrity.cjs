@@ -9,12 +9,12 @@ const end=source.indexOf('\nconst data=()=>ITE.snapshot();',start);
 assert(start>=0&&end>start,'Verifica documento non trovata');
 const bytes=Uint8Array.from([1,2,3,4]).buffer;
 const doc={id:'d-test',parentType:'interventi',parentId:'1',subjectId:'1',siteId:'2',type:'Fotografia tecnica',mime:'image/jpeg',fileName:'foto-fittizia.jpg',size:4,fileBytes:bytes};
-async function verify(changes={}){
+async function verify(changes={},originalChanges={}){
  const saved={...doc,...changes};
  const context={readOne:async()=>saved,crypto:webcrypto,Uint8Array,ArrayBuffer,Promise,Error};
  vm.createContext(context);
  vm.runInContext(source.slice(start,end)+';this.checkSaved=verifySavedDocument',context);
- return context.checkSaved(doc);
+ return context.checkSaved({...doc,...originalChanges});
 }
 (async()=>{
  assert.equal(await verify(),true,'Foto e metadati identici devono essere recuperabili');
@@ -22,5 +22,48 @@ async function verify(changes={}){
   await assert.rejects(()=>verify({[field]:value}),/File o collegamento non recuperabile/,'Modifica non rilevata: '+field);
  }
  await assert.rejects(()=>verify({fileBytes:Uint8Array.from([1,2,3,5]).buffer}),/Contenuto del file diverso/,'Byte alterati non rilevati');
- console.log('OK: verifica allegato salvato, cliente, cantiere, tipo, MIME, nome e SHA-256');
+ await assert.rejects(()=>verify({size:5},{size:5}),/File acquisito incompleto/,'Dimensione dichiarata incoerente con i byte acquisiti');
+ const partial=Uint8Array.from([1,2,3]).buffer;
+ await assert.rejects(()=>verify({fileBytes:partial},{fileBytes:partial}),/File acquisito incompleto/,'Byte incompleti non devono risultare verificati anche se coincidono in archivio');
+ // Simula il percorso file input fotocamera su iPad: il file incompleto
+ // deve essere rifiutato prima della scrittura IndexedDB.
+ const saveStart=source.indexOf('async function save(e){',end);
+ const saveEnd=source.indexOf('\nfunction closePreview()',saveStart);
+ assert(saveStart>=0&&saveEnd>saveStart,'Salvataggio documento non trovato');
+ let writes=0;const notices=[];let captured;
+ const cameraFile={name:'foto-fittizia.jpg',size:4,arrayBuffer:async()=>partial};
+ const fields={
+  'docs-camera':{files:[cameraFile]},
+  'docs-file':{files:[{name:'altro.pdf',size:100}]},
+  'docs-parent-type':{value:'clienti'},
+  'docs-parent-id':{value:'1'},
+  'docs-subject':{value:'1'},
+  'docs-site':{value:''},
+  'docs-type':{value:'Fotografia tecnica'},
+  'docs-date':{value:''},
+  'docs-expires':{value:''},
+  'docs-number':{value:''},
+  'docs-note':{value:''},
+  'docs-form':{querySelector:()=>({disabled:false})}
+ };
+ const saveContext={
+  ITE:{archiveReadable:()=>true},data:()=>({clienti:[{id:1}],cantieri:[]}),
+  selectedFileSource:'camera',saving:false,$:id=>fields[id],
+  mime:name=>name.endsWith('.jpg')?'image/jpeg':undefined,
+  validDate:()=>true,alert:message=>notices.push(message),
+  note:message=>notices.push(message),
+  change:async fn=>fn({put:value=>{writes++;captured=value}}),
+  verifySavedDocument:async()=>true,hideForm:()=>{},refresh:async()=>{},
+  ArrayBuffer,Number,Date,Math,Promise,Error
+ };
+ vm.createContext(saveContext);
+ vm.runInContext(source.slice(saveStart,saveEnd)+';this.savePhoto=save',saveContext);
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,0,'Foto incompleta: nessuna scrittura IndexedDB');
+ assert(notices.some(message=>message.includes('Acquisizione incompleta')),'Mostrare errore esplicito per la foto incompleta');
+ cameraFile.arrayBuffer=async()=>bytes;
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,1,'Foto completa: scrittura consentita');
+ assert.equal(captured.fileName,'foto-fittizia.jpg','Deve usare il file fotocamera, non quello da archivio');
+ console.log('OK: metadati, SHA-256, dimensione reale e salvataggio fotocamera con file completo');
 })().catch(error=>{console.error(error);process.exitCode=1});
