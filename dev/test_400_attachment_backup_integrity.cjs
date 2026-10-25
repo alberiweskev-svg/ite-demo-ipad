@@ -133,6 +133,19 @@ async function attempt(backup){
  r=await attempt(crossSubject);
  assert.equal(r.writes,0,'Worksite document must not point at a different worksite');
  assert(r.messages.some(x=>x.includes('Cantiere allegato incoerente')));
+ // Anche i documenti collegati direttamente al cliente possono indicare un cantiere:
+ // un riferimento a un cantiere di un altro cliente deve essere rifiutato.
+ const clientSite=structuredClone(crossSite);
+ clientSite.docs[0].parentType='clienti';
+ clientSite.docs[0].parentId='1';
+ clientSite.docs[0].subjectId='1';
+ clientSite.docs[0].siteId='8';
+ r=await attempt(clientSite);
+ assert.equal(r.writes,0,'Client document must not link to another customer worksite');
+ assert(r.messages.some(x=>x.includes('Cantiere allegato incoerente')));
+ clientSite.docs[0].siteId='9';
+ r=await attempt(clientSite);
+ assert.equal(r.writes,3,'Client document may link to own worksite');
  const legacy=structuredClone(backup);delete legacy.docs[0].sha256;
  r=await attempt(legacy);
  assert.equal(r.writes,3,'Legacy backups without per-file hashes remain importable');
