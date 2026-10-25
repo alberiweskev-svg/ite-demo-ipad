@@ -13,7 +13,7 @@ const data={clienti:[{id:1,name:'Cliente fittizio'}],immobili:[],impianti:[],app
 const fileBytes=Uint8Array.from([1,2,3,4]).buffer;
 const commerce={documents:[],articles:[],movements:[]};
 async function build(){
- const ctx={crypto:webcrypto,Uint8Array,btoa,JSON,Date,Error,
+ const ctx={KEY:'ite_demo_test',crypto:webcrypto,Uint8Array,btoa,JSON,Date,Error,
    window:{ITECommerce:{exportState:async()=>commerce}},
    ITECommerce:{exportState:async()=>commerce},
    ITE:{archiveReadable:()=>true,validate:()=>true,snapshot:()=>data},
