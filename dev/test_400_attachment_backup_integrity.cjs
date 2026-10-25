@@ -24,7 +24,7 @@ async function build({bytes=fileBytes,size=4,storedSha256}={}){
  return ctx.makeBackup();
 }
 async function attempt(backup){
- const messages=[];let writes=0;
+ const messages=[];let writes=0,restoredDocs;
  const ctx={crypto:webcrypto,Uint8Array,atob,JSON,Set,Array,Object,Number,String,Error,
    busy:false,
    window:{ITECommerce:{busy:()=>false,validate:()=>{},replaceState:async()=>{writes++}},
@@ -33,7 +33,7 @@ async function attempt(backup){
    message:s=>messages.push(s),
    ITEVault:{openBackup:async()=>backup},
    ITE:{validate:()=>true,replaceData:()=>{writes++}},
-   ITEDocs:{validDate:()=>true,replaceDocs:async()=>{writes++}},
+   ITEDocs:{validDate:()=>true,replaceDocs:async docs=>{writes++;restoredDocs=docs}},
    pack:async()=>({data,docs:[],commerce}),
    downloadObject:()=>{},confirm:()=>true,location:{reload:()=>messages.push('reload')}};
  ctx.ITECommerce=ctx.window.ITECommerce;ctx.ITEHistory=ctx.window.ITEHistory;
@@ -41,7 +41,7 @@ async function attempt(backup){
  vm.createContext(ctx);
  vm.runInContext(source.slice(digestStart,packStart)+source.slice(restoreStart,restoreEnd)+';this.runRestore=restore',ctx);
  await ctx.runRestore({files:[{text:async()=>JSON.stringify(backup)}],value:''});
- return {writes,messages};
+ return {writes,messages,restoredDocs};
 }
 (async()=>{
  const backup=await build();
@@ -56,6 +56,7 @@ async function attempt(backup){
  let r=await attempt(backup);
  assert.equal(r.writes,3,'Valid checksum must allow complete restore');
  assert(r.messages.includes('reload'));
+ assert.equal(r.restoredDocs[0].sha256,backup.docs[0].sha256,'Ripristino deve conservare la verifica SHA-256 della foto');
  const tampered=structuredClone(backup);
  tampered.docs[0].base64=btoa(String.fromCharCode(1,2,3,5));
  r=await attempt(tampered);
@@ -153,5 +154,6 @@ async function attempt(backup){
  const legacy=structuredClone(backup);delete legacy.docs[0].sha256;
  r=await attempt(legacy);
  assert.equal(r.writes,3,'Legacy backups without per-file hashes remain importable');
+ assert.equal(r.restoredDocs[0].sha256,backup.docs[0].sha256,'Backup storico: generare impronta per future anteprime');
  console.log('OK: attachment backup SHA-256, tamper rejection, cross-client isolation for client, plant, equipment and intervention, and legacy compatibility');
 })().catch(e=>{console.error(e);process.exitCode=1});
