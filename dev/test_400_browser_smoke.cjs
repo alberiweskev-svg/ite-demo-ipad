@@ -28,6 +28,14 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#app-shell').count(),1,'Missing application shell');
   assert.equal(await page.locator('#vault-gate').isVisible(),true,'Encrypted entry screen not visible');
   assert.equal(await page.locator('#app-shell').isVisible(),false,'Application shell must remain locked');
+  // Regression: the tablet layout uses display:block!important on #app-shell.
+  // Its [hidden] state must win in portrait, landscape, and desktop modes.
+  for(const [width,height] of [[768,1024],[1024,768],[1280,800]]){
+    await page.setViewportSize({width,height});
+    assert.equal(await page.locator('#app-shell').evaluate(el=>getComputedStyle(el).display),'none',
+      'Locked archive content visible at '+width+'x'+height);
+  }
+  console.log('OK: Locked archive remains visually hidden on iPad portrait, landscape and desktop');
   assert.deepEqual(errors,[],'Browser runtime errors: '+errors.join(' | '));
   console.log('OK: Chromium loads encrypted entry screen and keeps app locked');
   // Use only synthetic credentials and a fresh, isolated browser profile.
