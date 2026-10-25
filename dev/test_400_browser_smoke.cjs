@@ -274,6 +274,26 @@ const server=http.createServer((req,res)=>{
   assert.deepEqual(Buffer.from(retained.bytes),sampleBytes,'Historical attachment bytes changed after blocked deletion');
   assert.match(retained.feedback,/Eliminazione non riuscita: Intervento chiuso/,'Closed intervention deletion was not explicitly blocked');
   console.log('OK: Closed intervention retains uploaded photo when deletion is attempted');
+  // Lock an unattended, unlocked archive even when an unsaved form is open.
+  await page.locator('#app-nav a[href="#calendario"]').first().evaluate(el=>el.click());
+  await page.locator('#agenda-new').click();
+  assert.equal(await page.locator('#appointment-form').isVisible(),true,'Synthetic appointment form did not open');
+  await page.evaluate(()=>{
+    const now=Date.now();
+    Date.now=()=>now+5*60*60*1000;
+    setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),50);
+  });
+  await page.locator('#vault-gate').waitFor({state:'visible',timeout:30000});
+  assert.equal(await page.locator('#app-shell').isVisible(),false,'Idle timeout left sensitive data visible behind an open form');
+  await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
+  await page.locator('#vault-submit').click();
+  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  const photoAfterIdle=await page.evaluate(async id=>{
+    const d=(await window.ITEDocs.listDocs()).find(row=>row.id===id);
+    return d?Array.from(new Uint8Array(d.fileBytes)):null;
+  },photoBefore.id);
+  assert.deepEqual(Buffer.from(photoAfterIdle||[]),sampleBytes,'Idle lock changed a committed attachment');
+  console.log('OK: Four-hour inactivity locks an open form and preserves committed attachment bytes');
   console.log('OK: Uploaded photo bytes and intervention link survive vault reload');
   assert.deepEqual(errors,[],'Browser errors during revision workflow: '+errors.join(' | '));
   console.log('OK: Revision retains first closure, adds second session and audits final closure');
