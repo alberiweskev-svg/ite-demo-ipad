@@ -22,6 +22,7 @@ async function check(failAt){
    currentCore=value;
    if((failAt==='data'||failAt==='coreRollback')&&coreCount===1)throw Error('Data error');
   }},
+  validateInterventionEquipmentOwners:()=>{},
   ITEDocs:{validDate:()=>true,replaceDocs:async()=>{
    docsCount++;if(failAt==='docs'&&docsCount===1)throw Error('Docs error')
   }},
