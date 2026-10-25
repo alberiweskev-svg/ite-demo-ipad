@@ -44,6 +44,23 @@ async function attempt(backup){
  return {writes,messages,restoredDocs};
 }
 (async()=>{
+ // Intervento storico (non appuntamento): apparecchiatura di un altro cliente.
+ // Il collegamento errato non deve essere esportato né ripristinato.
+ const equipmentOwnerMismatch={...data,
+  clienti:[{id:1,name:'Cliente fittizio A'},{id:2,name:'Cliente fittizio B'}],
+  immobili:[{id:11,client_id:'2'}],impianti:[{id:12,immobile_id:'11'}],
+  apparecchiature:[{id:13,impianto_id:'12'}],
+  interventi:[{id:14,appointment:'0',client_id:'1',apparecchiatura_id:'13'}]};
+ await assert.rejects(build({core:equipmentOwnerMismatch}),/Apparecchiatura intervento non collegata al cliente/,'Non esportare interventi con apparecchiatura di un altro cliente');
+ const foreignEquipmentBackup=await build();
+ foreignEquipmentBackup.data=equipmentOwnerMismatch;
+ let equipmentResult=await attempt(foreignEquipmentBackup);
+ assert.equal(equipmentResult.writes,0,'Non ripristinare interventi storici con apparecchiatura di un altro cliente');
+ assert(equipmentResult.messages.some(x=>x.includes('Apparecchiatura intervento non collegata al cliente')));
+ const matchingEquipment={...equipmentOwnerMismatch,interventi:[{...equipmentOwnerMismatch.interventi[0],client_id:'2'}]};
+ const validEquipmentBackup=await build({core:matchingEquipment});
+ equipmentResult=await attempt(validEquipmentBackup);
+ assert.equal(equipmentResult.writes,3,'Intervento con apparecchiatura dello stesso cliente rimane importabile');
  const foreign={id:2,name:'Cliente prova 2'};
  const linkedData={...data,clienti:[...data.clienti,foreign],cantieri:[{id:8,client_id:'2'},{id:9,client_id:'1'}]};
  await assert.rejects(build({docOverrides:{parentId:'999'}}),/Collegamento allegato non valido/,'Backup non deve esportare allegati con cliente inesistente');
