@@ -12,13 +12,17 @@ assert(digestStart>=0&&packStart>digestStart&&packEnd>packStart&&restoreEnd>rest
 const data={clienti:[{id:1,name:'Cliente fittizio'}],immobili:[],impianti:[],apparecchiature:[],interventi:[],cantieri:[]};
 const fileBytes=Uint8Array.from([1,2,3,4]).buffer;
 const commerce={documents:[],articles:[],movements:[]};
-async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data}={}){
+async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data,missingModule='',rejectModule=''}={}){
  const ctx={KEY:'ite_demo_test',crypto:webcrypto,Uint8Array,btoa,JSON,Date,Error,
    window:{ITECommerce:{exportState:async()=>commerce}},
    ITECommerce:{exportState:async()=>commerce},
    ITE:{archiveReadable:()=>true,validate:()=>true,snapshot:()=>core},
    ITEVault:{storage:{getItem:()=>null}},
    ITEDocs:{listDocs:async()=>[{id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size,fileBytes:bytes,sha256:storedSha256,...docOverrides}]}};
+ const contacts={validateLinks:db=>{if(rejectModule==='ITEContacts')throw Error('Anagrafiche non valide');for(const site of db.cantieri||[])if(site.client_id&&!db.clienti.some(c=>String(c.id)===String(site.client_id)))throw Error('Cliente del cantiere non presente');}};
+ const agenda={validateDatabase:()=>{if(rejectModule==='ITEAgenda')throw Error('Appuntamenti non validi');}};
+ const operators={validateDatabase:()=>{if(rejectModule==='ITEOperators')throw Error('Operatori non validi');}};
+ for(const [name,module] of [['ITEContacts',contacts],['ITEAgenda',agenda],['ITEOperators',operators]])if(name!==missingModule){ctx.window[name]=module;ctx[name]=module;}
  vm.createContext(ctx);
  vm.runInContext(source.slice(digestStart,packEnd)+';this.makeBackup=pack',ctx);
  return ctx.makeBackup();
@@ -61,6 +65,13 @@ async function attempt(backup){
  const validEquipmentBackup=await build({core:matchingEquipment});
  equipmentResult=await attempt(validEquipmentBackup);
  assert.equal(equipmentResult.writes,3,'Intervento con apparecchiatura dello stesso cliente rimane importabile');
+ // Non esportare un backup che il ripristino rifiuterebbe: cantiere orfano
+ // oppure moduli di validazione non disponibili.
+ await assert.rejects(build({core:{...data,cantieri:[{id:8,client_id:'404'}]}}),/Cliente del cantiere non presente/);
+ for(const module of ['ITEContacts','ITEAgenda','ITEOperators']){
+  await assert.rejects(build({missingModule:module}),/Moduli anagrafiche, appuntamenti o operatori non disponibili/);
+  await assert.rejects(build({rejectModule:module}),/non validi|non valide/);
+ }
  const foreign={id:2,name:'Cliente prova 2'};
  const linkedData={...data,clienti:[...data.clienti,foreign],cantieri:[{id:8,client_id:'2'},{id:9,client_id:'1'}]};
  await assert.rejects(build({docOverrides:{parentId:'999'}}),/Collegamento allegato non valido/,'Backup non deve esportare allegati con cliente inesistente');
