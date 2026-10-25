@@ -2,6 +2,7 @@
 // Anteprima allegati: mai mostrare come valida una foto tronca o priva di byte.
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
+const {webcrypto,createHash}=require('node:crypto');
 const source=fs.readFileSync('app.js','utf8');
 const start=source.indexOf('async function openFile(id){');
 const end=source.indexOf('\nfunction protectInterventionDocument(doc){',start);
@@ -15,7 +16,7 @@ async function preview(doc){
  };
  const context={
   list:async()=>[doc],closePreview:()=>{},mime:()=> 'image/jpeg',
-  Blob,ArrayBuffer,Uint8Array,Number,Error,
+  Blob,ArrayBuffer,Uint8Array,Number,Error,crypto:webcrypto,
   URL:{createObjectURL:()=>{urls++;return 'blob:foto-fittizia'}},
   document:{createElement:()=>({style:{},textContent:'',src:'',alt:''})},
   note:text=>notices.push(text),$:id=>fields[id],previewUrl:null
@@ -32,6 +33,12 @@ async function preview(doc){
  assert.equal(r.urls,1,'Foto integra: anteprima consentita');
  assert.equal(r.visible,true,'Foto integra: anteprima visibile');
  assert.equal(r.download.download,'foto-fittizia.jpg');
+ const originalSha=createHash('sha256').update(Buffer.from(bytes)).digest('hex');
+ r=await preview({...doc,sha256:originalSha});
+ assert.equal(r.urls,1,'Foto con impronta corretta: anteprima consentita');
+ r=await preview({...doc,sha256:originalSha,fileBytes:Uint8Array.from([1,2,3,5]).buffer});
+ assert.equal(r.urls,0,'Foto alterata a parita di dimensione: anteprima bloccata');
+ assert(r.notices.some(x=>x.includes('Integrità allegato non valida')),'Foto alterata: errore di integrita esplicito');
  r=await preview({...doc,fileBytes:Uint8Array.from([1,2,3]).buffer});
  assert.equal(r.urls,0,'Foto tronca: non creare URL di anteprima');
  assert.equal(r.visible,false,'Foto tronca: non dichiarare anteprima visibile');
