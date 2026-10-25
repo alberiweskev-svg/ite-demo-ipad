@@ -54,9 +54,14 @@ const server=http.createServer((req,res)=>{
   },[testKey,testValue]);
   assert.ok(encrypted,'Encrypted test value was not stored');
   assert.ok(!encrypted.includes(testValue),'Sensitive value was stored in cleartext');
+  // Verify the real manual-lock transition while the tablet layout is active.
+  await page.setViewportSize({width:768,height:1024});
   await page.locator('#vault-lock').click();
   await page.locator('#vault-gate').waitFor({state:'visible',timeout:30000});
   assert.equal(await page.locator('#app-shell').isVisible(),false,'App visible after vault lock');
+  assert.equal(await page.locator('#app-shell').evaluate(el=>getComputedStyle(el).display),'none',
+    'Manual lock left the app shell visible on iPad portrait');
+  await page.setViewportSize({width:1280,height:800});
   await page.locator('#vault-password').fill('WRONG-SYNTHETIC-PASSWORD');
   await page.locator('#vault-submit').click();
   await page.waitForFunction(()=>/Password errata o archivio danneggiato|Password non valida/.test(document.getElementById('vault-message').textContent),{timeout:30000});
