@@ -1,4 +1,4 @@
-<!doctype html><html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>I.T.E. 4.0.014 — Lettura fattura PDF</title><style>body{font:17px system-ui;margin:2rem auto;max-width:800px;padding:0 1rem;color:#193650}button,input{font:inherit;padding:.8rem}button{background:#245b83;color:white;border:0;border-radius:8px}pre{white-space:pre-wrap;background:#eef3f7;padding:1rem;border-radius:8px}label{display:block;margin:1rem 0}</style><h1>I.T.E. 4.0.014 — Lettura fattura PDF</h1><p>Prova locale separata. Non usare dati reali: questa versione non salva né invia file, ma non è ancora stata collaudata su iPad reale.</p><label>Seleziona PDF di prova (massimo 10 MB) <input id="file" type="file" accept="application/pdf,.pdf"></label><button id="read" type="button">Analizza fattura</button><p id="status" role="status"></p><h2>Dati proposti — da verificare</h2><pre id="result">Nessun documento analizzato.</pre><p>Le fotografie e i PDF scansiti richiedono OCR: non ancora disponibile. Nessun dato viene inserito automaticamente nell'archivio.</p><script>
+<!doctype html><html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>I.T.E. 4.0.015 — Lettura fattura PDF</title><style>body{font:17px system-ui;margin:2rem auto;max-width:800px;padding:0 1rem;color:#193650}button,input{font:inherit;padding:.8rem}button{background:#245b83;color:white;border:0;border-radius:8px}pre{white-space:pre-wrap;background:#eef3f7;padding:1rem;border-radius:8px}label{display:block;margin:1rem 0}</style><h1>I.T.E. 4.0.015 — Lettura fattura PDF</h1><p>Prova locale separata. Non usare dati reali: questa versione non salva né invia file, ma non è ancora stata collaudata su iPad reale.</p><label>Seleziona PDF di prova (massimo 10 MB) <input id="file" type="file" accept="application/pdf,.pdf"></label><button id="read" type="button">Analizza fattura</button><p id="status" role="status"></p><h2>Dati proposti — da verificare</h2><pre id="result">Nessun documento analizzato.</pre><p>Le fotografie e i PDF scansiti richiedono OCR: non ancora disponibile. Nessun dato viene inserito automaticamente nell'archivio.</p><script>
 window.ITEInvoiceText = {
  extractInvoiceText: function(text) {
   const t=String(text||'').replace(/\r/g,'');
@@ -7,11 +7,12 @@ window.ITEInvoiceText = {
   const findMoney=label=>{const m=t.match(new RegExp('(?:'+label+')\\s*[:€\\s]*([0-9.]+,[0-9]{2})','i'));return m?money(m[1]):null;};
   const date=v=>v?v.replace(/(\d{2})[-/](\d{2})[-/](\d{4})/,'$3-$2-$1'):null;
   const pr=!!(inv&&/\/PR/i.test(inv[1]));
-  const client=t.match(/(?:destinatario|cliente)\s*:?\s*\n\s*([^\n]+)/i);
-  const name=client&&client[1].trim()&&!/^(?:x+|\*+|oscurat|omissis)/i.test(client[1].trim())?client[1].trim().split(/\s{3,}|\s+copia di cortesia/i)[0].trim():null;
+  const clientLine=t.match(/(?:^|\n)\s*(?:destinatario|cliente|cessionario\s*\/\s*committente)\s*:?\s*\n\s*([^\n]+)/im);
+  let name=clientLine?clientLine[1].trim().split(/\s{3,}|\s+copia di cortesia/i)[0].trim():null;
+  if(name&&(/fattura|copia di cortesia|^[-*x#█.\s]+$|oscurat|omissis/i.test(name)))name=null;
   const taxable=findMoney('imponibile');
   const vat=findMoney('totale\\s+iva|importo\\s+iva');
-  const total=findMoney('totale(?!\\s+iva)');
+  const total=findMoney('totale(?:\\s+documento|\\s+fattura)?');
   const due=t.match(/scadenze?\s*[:\s]*\n?\s*(\d{2}[-/]\d{2}[-/]\d{4})/i);
   return {tipo_documento:inv?(pr?'proforma':'fattura'):null,numero_documento:inv?inv[1]:null,data_emissione:inv?date(inv[2]):null,cliente:name,cliente_stato:name?'Da verificare':'Cliente non individuato',imponibile:taxable,importo_iva:vat,totale_documento:total,scadenza:due?date(due[1]):null,richiede_conferma:true};
  }
