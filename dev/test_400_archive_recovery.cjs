@@ -10,7 +10,7 @@ const storage={getItem:k=>values.has(k)?values.get(k):null,
  setItem:(k,v)=>{if(k===failKey)throw Error('Simulated write interruption');values.set(k,v)},
  removeItem:k=>values.delete(k)};
 const initial={clienti:[],immobili:[],impianti:[],apparecchiature:[],interventi:[],cantieri:[]};
-const context={ITEVault:{storage},STORE:'ite_test',AUX:'ite_test_aziendale_v1',db:initial,valid:()=>true,JSON,Array,Error};
+const context={ITEVault:{storage},STORE:'ite_test',AUX:'ite_test_aziendale_v1',db:initial,valid:()=>true,assertArchiveFresh:()=>{},JSON,Array,Error};
 vm.createContext(context);
 vm.runInContext(source.slice(start,end)+';this.write=writeArchive;this.readSites=readSites;',context);
 const job={id:7,workflow_status:'In corso',revision_audit:'[{"action":"RIAPERTURA_REVISIONE"}]',work_sessions:'[]'};
