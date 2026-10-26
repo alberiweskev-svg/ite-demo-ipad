@@ -80,6 +80,9 @@ async function attempt(backup){
  // Il magazzino può cambiare durante la lettura asincrona degli allegati:
  // un backup misto non deve essere esportato.
  await assert.rejects(build({commerceSnapshots:[commerce,{...commerce,revision:2}]}),/Magazzino modificato durante il backup/,'Rifiutare magazzino modificato mentre si acquisiscono i documenti');
+ // Il magazzino puo' cambiare dopo la prima verifica finale, durante la rilettura SHA-256 delle fotografie.
+ // Il terzo snapshot simula tale modifica senza utilizzare dati reali.
+ await assert.rejects(build({commerceSnapshots:[commerce,commerce,{...commerce,revision:3}]}),/Magazzino modificato durante il backup/,'Rifiutare magazzino cambiato durante la verifica finale degli allegati');
  // Gli identificativi duplicati o non validi produrrebbero un backup non ripristinabile.
  const duplicateDoc={id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'seconda-foto-fittizia.png',size:4,fileBytes};
  await assert.rejects(build({docSnapshots:[[{id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size:4,fileBytes},duplicateDoc]]}),/Identificativo allegato non valido o duplicato/,'Rifiutare due allegati con lo stesso ID');
