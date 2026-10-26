@@ -1,4 +1,4 @@
-<!doctype html><html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>I.T.E. 4.0.022 — Lettura fattura PDF</title><style>body{font:17px system-ui;margin:2rem auto;max-width:800px;padding:0 1rem;color:#193650}button,input{font:inherit;padding:.8rem}button{background:#245b83;color:white;border:0;border-radius:8px}pre{white-space:pre-wrap;background:#eef3f7;padding:1rem;border-radius:8px}label{display:block;margin:1rem 0}</style><h1>I.T.E. 4.0.022 — Lettura fattura PDF</h1><p>Prova locale separata. Non usare dati reali: questa versione non salva né invia file, ma non è ancora stata collaudata su iPad reale.</p><label>Seleziona PDF di prova (massimo 10 MB) <input id="file" type="file" accept="application/pdf,.pdf"></label><button id="read" type="button">Analizza fattura</button><p id="status" role="status"></p><h2>Dati proposti — da verificare</h2><pre id="result">Nessun documento analizzato.</pre><section aria-label="Verifica destinatario"><h2>Verifica cliente (solo prova)</h2><p>Controlla o correggi il nominativo estratto. Nessun dato viene salvato.</p><label>Cliente / destinatario <input id="customer-verified" type="text" autocomplete="off" placeholder="Nome cliente da verificare" style="width:100%;box-sizing:border-box"></label><button id="confirm-customer" type="button" disabled>Conferma cliente nella prova</button><p id="customer-message" role="status"></p></section><p>Le fotografie e i PDF scansiti richiedono OCR: non ancora disponibile. Nessun dato viene inserito automaticamente nell'archivio.</p><script>
+<!doctype html><html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>I.T.E. 4.0.023 — Lettura fattura PDF</title><style>body{font:17px system-ui;margin:2rem auto;max-width:800px;padding:0 1rem;color:#193650}button,input{font:inherit;padding:.8rem}button{background:#245b83;color:white;border:0;border-radius:8px}pre{white-space:pre-wrap;background:#eef3f7;padding:1rem;border-radius:8px}label{display:block;margin:1rem 0}</style><h1>I.T.E. 4.0.023 — Lettura fattura PDF</h1><p>Prova locale separata. Non usare dati reali: questa versione non salva né invia file, ma non è ancora stata collaudata su iPad reale.</p><label>Seleziona PDF di prova (massimo 10 MB) <input id="file" type="file" accept="application/pdf,.pdf"></label><button id="read" type="button">Analizza fattura</button><p id="status" role="status"></p><h2>Dati proposti — da verificare</h2><pre id="result">Nessun documento analizzato.</pre><section aria-label="Verifica destinatario"><h2>Verifica cliente (solo prova)</h2><p>Controlla o correggi il nominativo estratto. Nessun dato viene salvato.</p><label>Cliente / destinatario <input id="customer-verified" type="text" autocomplete="off" placeholder="Nome cliente da verificare" style="width:100%;box-sizing:border-box"></label><button id="confirm-customer" type="button" disabled>Conferma cliente nella prova</button><p id="customer-message" role="status"></p></section><p>Le fotografie e i PDF scansiti richiedono OCR: non ancora disponibile. Nessun dato viene inserito automaticamente nell'archivio.</p><script>
 window.ITEInvoiceText = {
  extractInvoiceText: function(text) {
   const t=String(text||'').replace(/\r/g,'');
@@ -36,6 +36,7 @@ const amount=v=>{const m=norm(v).match(/\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}/);re
 const nearby=(anchor,range=20)=>positioned.filter(q=>q.page===anchor.page&&Math.abs(q.y-anchor.y)<range);
 const label=(pattern)=>positioned.find(q=>pattern.test(norm(q.text)));
 const recipient=label(/^destinatario$/i);
+const diagnostic={etichetta_destinatario:!!recipient,righe_candidate:[],motivo:''};
 parsed.cliente=null;parsed.cliente_stato='Cliente non individuato';
 if(recipient){
  const clean=v=>norm(v).replace(/\s+/g,' ');
@@ -43,11 +44,12 @@ if(recipient){
  const rows=positioned.filter(q=>q.page===recipient.page&&q.y<recipient.y-2&&q.y>recipient.y-95&&q.x>=recipient.x-12&&q.x<recipient.x+190).sort((a,b)=>b.y-a.y||a.x-b.x);
  const grouped=[];
  for(const item of rows){let row=grouped.find(z=>Math.abs(z.y-item.y)<3);if(!row){row={y:item.y,items:[]};grouped.push(row);}row.items.push(item);}
- const candidates=grouped.map(z=>clean(z.items.sort((a,b)=>a.x-b.x).map(q=>q.text).join(' '))).filter(v=>v&&!bad.test(v)&&/[a-zà-ù]{2}/i.test(v));
+ const candidateRows=grouped.map(z=>clean(z.items.sort((a,b)=>a.x-b.x).map(q=>q.text).join(' ')));diagnostic.righe_candidate=candidateRows.map((v,i)=>({riga:i+1,testo:v}));const candidates=candidateRows.filter(v=>v&&!bad.test(v)&&/[a-zà-ù]{2}/i.test(v));
  const names=candidates.filter(v=>/\b(?:s\.?r\.?l\.?|s\.?p\.?a\.?|s\.?n\.?c\.?)\b/i.test(v)||v.split(/\s+/).length>=2);
- if(names.length===1){parsed.cliente=names[0];parsed.cliente_stato='Da verificare';}
- else if(names.length>1){parsed.cliente_stato='Destinatario ambiguo: verifica manuale';}
+ if(names.length===1){parsed.cliente=names[0];parsed.cliente_stato='Da verificare';diagnostic.motivo='Un solo possibile nominativo';}
+ else if(names.length>1){parsed.cliente_stato='Destinatario ambiguo: verifica manuale';diagnostic.motivo='Più nominativi candidati';}else{diagnostic.motivo='Nessun nominativo attendibile nella zona destinatario';}
 }
+if(!recipient)diagnostic.motivo='Etichetta Destinatario non trovata come elemento isolato nel PDF';
 const totalLabel=positioned.filter(q=>/^totale$/i.test(norm(q.text))).sort((a,b)=>a.y-b.y)[0];
 if(totalLabel){const candidates=nearby(totalLabel,20).filter(q=>q.x>=totalLabel.x-120).map(q=>({v:amount(q.text),d:Math.abs(q.y-totalLabel.y)})).filter(q=>q.v!==null).sort((a,b)=>a.d-b.d);if(candidates.length)parsed.totale_documento=candidates[0].v;}
 const dueLabel=label(/^scadenze?$/i);
@@ -62,4 +64,4 @@ if(!reverse&&parsed.imponibile!==null&&parsed.importo_iva!==null){
 }
 if(reverse){parsed.trattamento_iva='Inversione contabile (reverse charge)';if(parsed.importo_iva===0)parsed.verifica_contabile='IVA non addebitata: verificare dicitura fiscale';}
 if(parsed.cliente===null)parsed.cliente_stato='Cliente non individuato';
-lastParsed=parsed;customerInput.value=parsed.cliente||'';customerButton.disabled=false;customerMessage.textContent=parsed.cliente?'Verifica il nominativo prima della conferma.':'Cliente non individuato: puoi indicarlo manualmente per il collaudo.';result.textContent=JSON.stringify(parsed,null,2);status.textContent='Analisi terminata: controlla i dati proposti. Nessun salvataggio effettuato.';}catch(e){status.textContent='Impossibile analizzare il PDF: '+e.message;}finally{button.disabled=false;}});</script></html>
+parsed.diagnostica_destinatario=diagnostic;lastParsed=parsed;customerInput.value=parsed.cliente||'';customerButton.disabled=false;customerMessage.textContent=parsed.cliente?'Verifica il nominativo prima della conferma.':'Cliente non individuato: puoi indicarlo manualmente per il collaudo.';result.textContent=JSON.stringify(parsed,null,2);status.textContent='Analisi terminata: controlla i dati proposti. Nessun salvataggio effettuato.';}catch(e){status.textContent='Impossibile analizzare il PDF: '+e.message;}finally{button.disabled=false;}});</script></html>
