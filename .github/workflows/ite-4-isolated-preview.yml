@@ -1,0 +1,41 @@
+name: ITE 4 isolated web preview preparation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'prova-fattura-4.0.009.html'
+      - 'src/invoice-text-parser.js'
+      - 'vendor/pdf.mjs'
+      - 'vendor/pdf.worker.mjs'
+      - '.github/workflows/ite-4-isolated-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check invoice parser and test
+        run: |
+          node --check src/invoice-text-parser.js
+          node tests/invoice-text-parser.test.js
+      - name: Assemble isolated web preview
+        run: |
+          mkdir -p preview/vendor preview/src
+          cp prova-fattura-4.0.009.html preview/index.html
+          cp src/invoice-text-parser.js preview/src/
+          cp vendor/pdf.mjs vendor/pdf.worker.mjs preview/vendor/
+          test -s preview/index.html
+          test -s preview/vendor/pdf.mjs
+          test -s preview/vendor/pdf.worker.mjs
+          ! grep -R -E 'CLIENTE REALE|IBAN REALE' preview/
+      - name: Upload isolated preview (not published)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ITE-4-isolated-invoice-web-preview
+          path: preview/
+          retention-days: 14
