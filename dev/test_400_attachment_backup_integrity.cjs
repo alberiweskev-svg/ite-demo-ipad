@@ -86,6 +86,11 @@ async function attempt(backup){
  await assert.rejects(build({docSnapshots:[[photo],[]]}),/Allegati modificati durante il backup/,'Rifiutare una fotografia eliminata durante il backup');
  await assert.rejects(build({docSnapshots:[[photo],[photo,{...photo,id:'d-nuova'}]]}),/Allegati modificati durante il backup/,'Rifiutare una fotografia aggiunta durante il backup');
  await assert.rejects(build({docSnapshots:[[photo],[{...photo,fileName:'foto-rinominata.png'}]]}),/Allegati modificati durante il backup/,'Rifiutare metadati di foto cambiati durante il backup');
+ // I metadati possono restare identici mentre i byte della foto cambiano.
+ // Anche in assenza di SHA-256 storico, il backup deve rilevare la modifica.
+ const alteredBytes=Uint8Array.from([1,2,3,5]).buffer;
+ await assert.rejects(build({docSnapshots:[[photo],[{...photo,fileBytes:alteredBytes}]]}),/Allegati modificati durante il backup/,'Rifiutare foto con byte alterati ma dimensione e metadati invariati');
+ await assert.rejects(build({docSnapshots:[[photo],[{...photo,fileBytes:new ArrayBuffer(0)}]]}),/Allegati modificati durante il backup/,'Rifiutare foto svuotata mantenendo metadati originali');
  const stablePhotos=await build({docSnapshots:[[photo],[{...photo}]]});
  assert.equal(stablePhotos.docs.length,1,'Fotografia invariata deve essere esportata');
  // Una modifica durante l'esportazione asincrona deve annullare la copia.
