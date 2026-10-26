@@ -5,6 +5,7 @@ on:
     paths:
       - 'prova-fattura-4.0.009.html'
       - 'src/invoice-text-parser.js'
+      - 'tests/invoice-text-parser.test.js'
       - 'vendor/pdf.mjs'
       - 'vendor/pdf.worker.mjs'
       - '.github/workflows/ite-4-isolated-preview.yml'
