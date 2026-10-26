@@ -12,10 +12,12 @@ assert(digestStart>=0&&packStart>digestStart&&packEnd>packStart&&restoreEnd>rest
 const data={clienti:[{id:1,name:'Cliente fittizio'}],immobili:[],impianti:[],apparecchiature:[],interventi:[],cantieri:[]};
 const fileBytes=Uint8Array.from([1,2,3,4]).buffer;
 const commerce={documents:[],articles:[],movements:[]};
-async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data,missingModule='',rejectModule='',rejectCommerce=false,onExport=null}={}){
+async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data,missingModule='',rejectModule='',rejectCommerce=false,onExport=null,commerceSnapshots=null}={}){
+ let exportCount=0;
+ const exportSnapshot=async()=>{if(onExport)onExport();return commerceSnapshots?structuredClone(commerceSnapshots[Math.min(exportCount++,commerceSnapshots.length-1)]):commerce};
  const ctx={KEY:'ite_demo_test',crypto:webcrypto,Uint8Array,btoa,JSON,Date,Error,
-   window:{ITECommerce:{exportState:async()=>{if(onExport)onExport();return commerce},validate:()=>{if(rejectCommerce)throw Error('Archivio magazzino non valido')}}},
-   ITECommerce:{exportState:async()=>{if(onExport)onExport();return commerce},validate:()=>{if(rejectCommerce)throw Error('Archivio magazzino non valido')}},
+   window:{ITECommerce:{exportState:exportSnapshot,validate:()=>{if(rejectCommerce)throw Error('Archivio magazzino non valido')}}},
+   ITECommerce:{exportState:exportSnapshot,validate:()=>{if(rejectCommerce)throw Error('Archivio magazzino non valido')}},
    ITE:{archiveReadable:()=>true,validate:()=>true,snapshot:()=>core},
    ITEVault:{storage:{getItem:()=>null}},
    ITEDocs:{listDocs:async()=>[{id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size,fileBytes:bytes,sha256:storedSha256,...docOverrides}]}};
@@ -74,6 +76,9 @@ async function attempt(backup){
  }
  // Il backup non deve esportare un magazzino che il ripristino rifiuterebbe.
  await assert.rejects(build({rejectCommerce:true}),/Archivio magazzino non valido/);
+ // Il magazzino può cambiare durante la lettura asincrona degli allegati:
+ // un backup misto non deve essere esportato.
+ await assert.rejects(build({commerceSnapshots:[commerce,{...commerce,revision:2}]}),/Magazzino modificato durante il backup/,'Rifiutare magazzino modificato mentre si acquisiscono i documenti');
  // Una modifica durante l'esportazione asincrona deve annullare la copia.
  const changingCore=structuredClone(data);
  await assert.rejects(build({core:changingCore,onExport:()=>{changingCore.clienti[0].name='Modificato durante backup';}}),/Dati modificati durante il backup/,'Rifiutare snapshot modificati durante esportazione asincrona');
