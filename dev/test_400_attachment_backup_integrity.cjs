@@ -12,10 +12,10 @@ assert(digestStart>=0&&packStart>digestStart&&packEnd>packStart&&restoreEnd>rest
 const data={clienti:[{id:1,name:'Cliente fittizio'}],immobili:[],impianti:[],apparecchiature:[],interventi:[],cantieri:[]};
 const fileBytes=Uint8Array.from([1,2,3,4]).buffer;
 const commerce={documents:[],articles:[],movements:[]};
-async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data,missingModule='',rejectModule='',rejectCommerce=false,onExport=null,commerceSnapshots=null,docSnapshots=null}={}){
- let exportCount=0,docRead=0;
+async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data,missingModule='',rejectModule='',rejectCommerce=false,onExport=null,commerceSnapshots=null,docSnapshots=null,photoSaving=false,savingOnExport=false}={}){
+ let exportCount=0,docRead=0,saving=photoSaving;
  const demoDoc={id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size,fileBytes:bytes,sha256:storedSha256,...docOverrides};
- const exportSnapshot=async()=>{if(onExport)onExport();return commerceSnapshots?structuredClone(commerceSnapshots[Math.min(exportCount++,commerceSnapshots.length-1)]):commerce};
+ const exportSnapshot=async()=>{if(onExport)onExport();if(savingOnExport)saving=true;return commerceSnapshots?structuredClone(commerceSnapshots[Math.min(exportCount++,commerceSnapshots.length-1)]):commerce};
  const ctx={KEY:'ite_demo_test',crypto:webcrypto,Uint8Array,btoa,JSON,Date,Error,
    window:{ITECommerce:{exportState:exportSnapshot,validate:()=>{if(rejectCommerce)throw Error('Archivio magazzino non valido')}}},
    ITECommerce:{exportState:exportSnapshot,validate:()=>{if(rejectCommerce)throw Error('Archivio magazzino non valido')}},
@@ -26,22 +26,23 @@ async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=d
  const agenda={validateDatabase:()=>{if(rejectModule==='ITEAgenda')throw Error('Appuntamenti non validi');}};
  const operators={validateDatabase:()=>{if(rejectModule==='ITEOperators')throw Error('Operatori non validi');}};
  for(const [name,module] of [['ITEContacts',contacts],['ITEAgenda',agenda],['ITEOperators',operators]])if(name!==missingModule){ctx.window[name]=module;ctx[name]=module;}
+ ctx.ITEDocs.isSaving=()=>saving;ctx.window.ITEDocs=ctx.ITEDocs;
  vm.createContext(ctx);
  vm.runInContext(source.slice(digestStart,packEnd)+';this.makeBackup=pack',ctx);
  return ctx.makeBackup();
 }
-async function attempt(backup){
- const messages=[];let writes=0,restoredDocs;
+async function attempt(backup,{savingAfterPack=false}={}){
+ const messages=[];let writes=0,restoredDocs,saving=false;
  const ctx={crypto:webcrypto,Uint8Array,atob,JSON,Set,Array,Object,Number,String,Error,
    busy:false,
-   window:{ITECommerce:{busy:()=>false,validate:()=>{},replaceState:async()=>{writes++}},
+   window:{ITEDocs:{isSaving:()=>saving},ITECommerce:{busy:()=>false,validate:()=>{},replaceState:async()=>{writes++}},
      ITEHistory:{create:async()=>{}},ITEAgenda:{validateDatabase:()=>{}},ITEOperators:{validateDatabase:()=>{}},ITEContacts:{validateLinks:()=>{}}},
    document:{getElementById:()=>({hidden:true})},
    message:s=>messages.push(s),
    ITEVault:{openBackup:async()=>backup},
    ITE:{validate:()=>true,replaceData:()=>{writes++}},
    ITEDocs:{validDate:()=>true,replaceDocs:async docs=>{writes++;restoredDocs=docs}},
-   pack:async()=>({data,docs:[],commerce}),
+   pack:async()=>{if(savingAfterPack)saving=true;return {data,docs:[],commerce}},
    downloadObject:()=>{},confirm:()=>true,location:{reload:()=>messages.push('reload')}};
  ctx.ITECommerce=ctx.window.ITECommerce;ctx.ITEHistory=ctx.window.ITEHistory;
  ctx.ITEAgenda=ctx.window.ITEAgenda;ctx.ITEOperators=ctx.window.ITEOperators;ctx.ITEContacts=ctx.window.ITEContacts;
@@ -77,6 +78,9 @@ async function attempt(backup){
  }
  // Il backup non deve esportare un magazzino che il ripristino rifiuterebbe.
  await assert.rejects(build({rejectCommerce:true}),/Archivio magazzino non valido/);
+ // Una foto in acquisizione non deve essere esclusa da un backup dichiarato completo.
+ await assert.rejects(build({photoSaving:true}),/Salvataggio fotografia in corso/,'Bloccare backup se la fotocamera sta salvando');
+ await assert.rejects(build({savingOnExport:true}),/Salvataggio fotografia in corso/,'Bloccare backup se acquisizione inizia durante esportazione');
  // Il magazzino può cambiare durante la lettura asincrona degli allegati:
  // un backup misto non deve essere esportato.
  await assert.rejects(build({commerceSnapshots:[commerce,{...commerce,revision:2}]}),/Magazzino modificato durante il backup/,'Rifiutare magazzino modificato mentre si acquisiscono i documenti');
@@ -124,7 +128,10 @@ async function attempt(backup){
  await assert.rejects(build({bytes:new ArrayBuffer(0),size:0}),/Allegato incompleto/,'Empty attachments must prevent unusable backups');
  assert.equal(backup.docs.length,1);
  assert.equal(backup.docs[0].sha256,createHash('sha256').update(Buffer.from(fileBytes)).digest('hex'));
- let r=await attempt(backup);
+ let r=await attempt(backup,{savingAfterPack:true});
+ assert.equal(r.writes,0,'Ripristino non deve sovrascrivere una foto che inizia a salvarsi dopo il backup di sicurezza');
+ assert(r.messages.some(x=>x.includes('Salvataggio fotografia in corso')));
+ r=await attempt(backup);
  assert.equal(r.writes,3,'Valid checksum must allow complete restore');
  assert(r.messages.includes('reload'));
  assert.equal(r.restoredDocs[0].sha256,backup.docs[0].sha256,'Ripristino deve conservare la verifica SHA-256 della foto');
