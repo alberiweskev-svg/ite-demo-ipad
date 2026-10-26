@@ -108,5 +108,12 @@ async function verify(changes={},originalChanges={}){
  await saveContext.savePhoto({preventDefault(){}});
  assert.equal(writes,4,'Cliente eliminato durante acquisizione: nessuna foto orfana');
  assert(notices.some(message=>/riferimento|cliente|soggetto/i.test(message)),'Segnalare che il riferimento non esiste più');
+ // Un cantiere spostato ad altro cliente durante la lettura non deve ricevere la foto.
+ currentRecords={clienti:[{id:1},{id:2}],immobili:[{id:3,client_id:'1'}],cantieri:[{id:9,client_id:'1'}]};
+ fields['docs-site'].value='9';
+ cameraFile.arrayBuffer=async()=>{currentRecords.cantieri[0].client_id='2';return bytes};
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,4,'Cantiere riassegnato durante acquisizione: nessuna foto con cliente errato');
+ assert(notices.some(message=>/cantiere modificato/i.test(message)),'Segnalare il cambiamento del cantiere');
  console.log('OK: metadati, SHA-256, dimensione reale e salvataggio fotocamera con file completo');
 })().catch(error=>{console.error(error);process.exitCode=1});
