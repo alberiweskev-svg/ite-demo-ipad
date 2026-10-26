@@ -204,6 +204,24 @@ message('Ripristino completato. Ricaricamento…');location.reload();
 }catch(e){message('Ripristino non completato: '+e.message)}finally{busy=false}}
 window.ITEBackup={download,restore,pack};
 const reset=ITE.reset,importData=ITE.importData;
+// Prima di eliminare un'anagrafica verifica gli allegati in IndexedDB.
+// Altrimenti rimangono documenti orfani e il backup completo diventa inutilizzabile.
+const removeCore=ITE.remove;
+ITE.remove=async(kind,id)=>{
+ try{
+  if(!window.ITEDocs?.listDocs)throw Error('Modulo documenti non disponibile.');
+  const docs=await window.ITEDocs.listDocs();
+  if(!Array.isArray(docs))throw Error('Elenco documenti non valido.');
+  if(docs.some(d=>d.parentType===kind&&String(d.parentId)===String(id))){
+   alert('Eliminazione bloccata: questo record ha documenti o fotografie collegati. Verifica e gestisci prima gli allegati nella sezione Documenti.');
+   return false;
+  }
+  return removeCore(kind,id);
+ }catch(error){
+  alert('Eliminazione bloccata: impossibile verificare gli allegati. Nessun record eliminato. '+error.message);
+  return false;
+ }
+};
 function hasLinkedData(backup){return !!(backup.docs?.length||backup.commerce?.documents?.length||backup.commerce?.movements?.some(m=>m.siteId))}
 function assertCoreOnlySafe(backup){if(hasLinkedData(backup))throw Error('Sono presenti allegati, documenti importati o movimenti collegati ai cantieri. Per evitare riferimenti errati, non sostituire soltanto le anagrafiche: usa Ripristina backup completo, che gestisce tutti gli archivi insieme.')}
 ITE.reset=async()=>{try{const previous=await pack();assertCoreOnlySafe(previous);downloadObject(previous);if(!confirm('Verifica nei Download che il backup completo sia stato salvato. Confermi di avere il file al sicuro prima di azzerare la demo?'))return;reset()}catch(e){message('Ripristino demo bloccato: '+e.message)}};
