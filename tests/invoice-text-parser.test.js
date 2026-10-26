@@ -44,6 +44,19 @@ assert.equal(proforma.scadenza,'2025-01-07');
 assert.deepEqual(proforma.anomalie,[]);
 assert.equal(proforma.richiede_conferma,true);
 
+const proformaDash=extractInvoiceText([
+  'Destinatario: CLIENTE DEMO SRL',
+  'Fattura 42-PR del 10/10/2026',
+  'Imponibile € 100,00',
+  'Totale IVA € 10,00',
+  'Totale € 110,00'
+].join('\n'));
+assert.equal(proformaDash.tipo_documento,'proforma','Il suffisso -PR identifica una proforma');
+assert.equal(proformaDash.numero_documento,'42-PR');
+assert.equal(proformaDash.totale_documento,110);
+assert.equal(extractInvoiceText('Fattura 43-pr del 10/10/2026').tipo_documento,'proforma','Suffisso -pr minuscolo');
+assert.equal(extractInvoiceText('Fattura 44/A del 10/10/2026').tipo_documento,'fattura','Un suffisso ordinario non è proforma');
+
 assert.equal(extractInvoiceText('documento sconosciuto').tipo_documento,null);
 assert.equal(extractInvoiceText('Fattura n° 7 del 07/01/2025').numero_documento,'7');
 assert.equal(extractInvoiceText('Fattura nr. 22 del 07/01/2025').numero_documento,'22');
