@@ -70,6 +70,9 @@ function protectInterventionDocument(doc){
 }
 async function remove(id){
  try{
+  // Evita che una cancellazione manuale interferisca con il backup o ripristino
+  // completo nella stessa scheda, anche durante le letture asincrone IndexedDB.
+  if(window.ITEBackup?.busy?.())throw Error('Backup o ripristino in corso: attendi prima di eliminare documenti.');
   const doc=await readOne(id);
   if(!doc)throw Error('Documento non trovato: nessuna eliminazione effettuata.');
   protectInterventionDocument(doc);
@@ -77,7 +80,13 @@ async function remove(id){
   const current=await readOne(id);
   if(!current||current.parentType!==doc.parentType||String(current.parentId)!==String(doc.parentId))throw Error('Collegamento documento modificato: eliminazione annullata.');
   protectInterventionDocument(current);
-  await change(store=>store.delete(id));
+  if(window.ITEBackup?.busy?.())throw Error('Backup o ripristino in corso: eliminazione annullata.');
+  await change(store=>{
+   // change() apre IndexedDB in modo asincrono: ricontrolla appena prima
+   // della richiesta di eliminazione nella transazione di scrittura.
+   if(window.ITEBackup?.busy?.())throw Error('Backup o ripristino in corso: eliminazione annullata.');
+   store.delete(id);
+  });
   closePreview();await refresh();note('Documento eliminato.');
  }catch(e){note('Eliminazione non riuscita: '+e.message)}
 }
