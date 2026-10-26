@@ -73,6 +73,14 @@ assert.equal(td04Reference.tipo_documento,'nota_credito');
 assert.equal(td04Reference.numero_documento,null,'Non usare il numero della fattura richiamata');
 assert.equal(td04Reference.data_emissione,null,'Non usare la data della fattura richiamata');
 assert.ok(td04Reference.anomalie.includes('Numero nota di credito non individuato'));
+const invoiceReferringToCredit=extractInvoiceText([
+  'Fattura 12 del 15/10/2026',
+  'Riferimento nota di credito n. 5 del 14/10/2026'
+].join('\n'));
+assert.equal(invoiceReferringToCredit.tipo_documento,'fattura','Un riferimento a una nota non cambia il tipo fattura');
+assert.equal(invoiceReferringToCredit.numero_documento,'12');
+assert.equal(invoiceReferringToCredit.data_emissione,'2026-10-15');
+
 
 assert.equal(extractInvoiceText('documento sconosciuto').tipo_documento,null);
 assert.equal(extractInvoiceText('Fattura n° 7 del 07/01/2025').numero_documento,'7');
