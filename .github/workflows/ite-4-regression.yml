@@ -20,6 +20,8 @@ jobs:
         run: node dev/test_400_backup.cjs
       - name: Test complete backup attachment integrity
         run: node dev/test_400_attachment_backup_integrity.cjs
+      - name: Test record deletion with attached documents
+        run: node dev/test_400_core_delete_attachments.cjs
       - name: Test persistence
         run: node dev/test_400_persist.cjs
       - name: Test archive recovery
