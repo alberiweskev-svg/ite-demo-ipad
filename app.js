@@ -216,6 +216,20 @@ ITE.remove=async(kind,id)=>{
    alert('Eliminazione bloccata: questo record ha documenti o fotografie collegati. Verifica e gestisci prima gli allegati nella sezione Documenti.');
    return false;
   }
+  // Anche fatture, documenti importati e movimenti di magazzino possono
+  // riferirsi al record: cancellarlo renderebbe impossibile un backup valido.
+  if(!window.ITECommerce?.exportState)throw Error('Modulo magazzino non disponibile.');
+  const commerce=await window.ITECommerce.exportState();
+  if(!commerce||!Array.isArray(commerce.documents)||!Array.isArray(commerce.movements))throw Error('Archivio magazzino non valido.');
+  const linkFields={clienti:['subjectId','clientId'],immobili:['propertyId'],impianti:['plantId'],apparecchiature:['deviceId'],interventi:['jobId'],cantieri:['siteId']};
+  const linked=value=>value!==undefined&&value!==null&&String(value)!==''&&String(value)===String(id);
+  const linkedDocument=commerce.documents.some(d=>(linkFields[kind]||[]).some(field=>linked(d[field]))||
+   (kind==='clienti'&&Array.isArray(d.subjectIds)&&d.subjectIds.some(linked)));
+  const linkedMovement=kind==='cantieri'&&commerce.movements.some(m=>linked(m.siteId));
+  if(linkedDocument||linkedMovement){
+   alert('Eliminazione bloccata: questo record è collegato a documenti importati o movimenti di magazzino. Riassegna prima i collegamenti.');
+   return false;
+  }
   return removeCore(kind,id);
  }catch(error){
   alert('Eliminazione bloccata: impossibile verificare gli allegati. Nessun record eliminato. '+error.message);
