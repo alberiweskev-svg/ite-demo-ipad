@@ -12,10 +12,10 @@ assert(digestStart>=0&&packStart>digestStart&&packEnd>packStart&&restoreEnd>rest
 const data={clienti:[{id:1,name:'Cliente fittizio'}],immobili:[],impianti:[],apparecchiature:[],interventi:[],cantieri:[]};
 const fileBytes=Uint8Array.from([1,2,3,4]).buffer;
 const commerce={documents:[],articles:[],movements:[]};
-async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data,missingModule='',rejectModule=''}={}){
+async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data,missingModule='',rejectModule='',onExport=null}={}){
  const ctx={KEY:'ite_demo_test',crypto:webcrypto,Uint8Array,btoa,JSON,Date,Error,
-   window:{ITECommerce:{exportState:async()=>commerce}},
-   ITECommerce:{exportState:async()=>commerce},
+   window:{ITECommerce:{exportState:async()=>{if(onExport)onExport();return commerce}}},
+   ITECommerce:{exportState:async()=>{if(onExport)onExport();return commerce}},
    ITE:{archiveReadable:()=>true,validate:()=>true,snapshot:()=>core},
    ITEVault:{storage:{getItem:()=>null}},
    ITEDocs:{listDocs:async()=>[{id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size,fileBytes:bytes,sha256:storedSha256,...docOverrides}]}};
@@ -72,6 +72,9 @@ async function attempt(backup){
   await assert.rejects(build({missingModule:module}),/Moduli anagrafiche, appuntamenti o operatori non disponibili/);
   await assert.rejects(build({rejectModule:module}),/non validi|non valide/);
  }
+ // Una modifica durante l'esportazione asincrona deve annullare la copia.
+ const changingCore=structuredClone(data);
+ await assert.rejects(build({core:changingCore,onExport:()=>{changingCore.clienti[0].name='Modificato durante backup';}}),/Dati modificati durante il backup/,'Rifiutare snapshot modificati durante esportazione asincrona');
  const foreign={id:2,name:'Cliente prova 2'};
  const linkedData={...data,clienti:[...data.clienti,foreign],cantieri:[{id:8,client_id:'2'},{id:9,client_id:'1'}]};
  await assert.rejects(build({docOverrides:{parentId:'999'}}),/Collegamento allegato non valido/,'Backup non deve esportare allegati con cliente inesistente');
