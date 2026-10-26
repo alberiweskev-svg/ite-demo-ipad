@@ -6,12 +6,12 @@ const source=fs.readFileSync('app.js','utf8');
 const start=source.indexOf('const reset=ITE.reset,importData=ITE.importData;');
 const end=source.indexOf('function hasLinkedData(',start);
 assert(start>=0&&end>start,'Wrapper eliminazione anagrafica non trovato');
-async function scenario({kind='clienti',id=1,docs=[],docSnapshots=null,missing=false,invalid=false,commerce={documents:[],movements:[]},commerceSnapshots=null,commerceMissing=false,commerceInvalid=false,commerceFail=false}={}){
+async function scenario({kind='clienti',id=1,docs=[],docSnapshots=null,missing=false,invalid=false,commerce={documents:[],movements:[]},commerceSnapshots=null,commerceMissing=false,commerceInvalid=false,commerceFail=false,docsSaving=false}={}){
  const removed=[],alerts=[];let docRead=0,commerceRead=0;
  const context={
   ITE:{remove:(k,n)=>{removed.push([k,n]);return 'eliminato'},reset:()=>{},importData:()=>{}},
   window:{
-   ITEDocs:missing?undefined:{listDocs:async()=>{if(invalid)throw Error('Archivio documenti non leggibile');return docSnapshots?docSnapshots[Math.min(docRead++,docSnapshots.length-1)]:docs}},
+   ITEDocs:missing?undefined:{isSaving:()=>docsSaving,listDocs:async()=>{if(invalid)throw Error('Archivio documenti non leggibile');return docSnapshots?docSnapshots[Math.min(docRead++,docSnapshots.length-1)]:docs}},
    ITECommerce:commerceMissing?undefined:{exportState:async()=>{if(commerceFail)throw Error('Archivio magazzino non leggibile');return commerceInvalid?{documents:null,movements:null}:commerceSnapshots?commerceSnapshots[Math.min(commerceRead++,commerceSnapshots.length-1)]:commerce}}
   },
   alert:s=>alerts.push(s)
@@ -38,6 +38,9 @@ async function scenario({kind='clienti',id=1,docs=[],docSnapshots=null,missing=f
  assert(r.alerts.some(s=>/non leggibile/i.test(s)),'Mostrare il problema di lettura');
  r=await scenario({docs:[]});
  assert.equal(r.removed.length,1,'Consentire eliminazione di record senza allegati');
+ r=await scenario({docs:[],docsSaving:true});
+ assert.equal(r.removed.length,0,'Bloccare eliminazione durante il salvataggio di una foto non ancora visibile in IndexedDB');
+ assert(r.alerts.some(s=>/salvataggio|acquisizione|fotograf/i.test(s)),'Segnalare che la foto e in acquisizione');
  r=await scenario({kind:'cantieri',id:9,commerce:{documents:[],movements:[{siteId:'9'}]}});
  assert.equal(r.removed.length,0,'Non eliminare cantiere con movimenti magazzino collegati');
  assert(r.alerts.some(s=>/magazzino|moviment/i.test(s)),'Mostrare la causa del blocco magazzino');
