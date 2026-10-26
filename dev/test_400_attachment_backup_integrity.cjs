@@ -21,7 +21,7 @@ async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=d
    ITECommerce:{exportState:exportSnapshot,validate:()=>{if(rejectCommerce)throw Error('Archivio magazzino non valido')}},
    ITE:{archiveReadable:()=>true,validate:()=>true,snapshot:()=>core},
    ITEVault:{storage:{getItem:()=>null}},
-   ITEDocs:{listDocs:async()=>docSnapshots?structuredClone(docSnapshots[Math.min(docRead++,docSnapshots.length-1)]):[demoDoc]}};
+   ITEDocs:{validDate:s=>!s||/^\d{4}-\d{2}-\d{2}$/.test(s)&&(()=>{const d=new Date(s+'T12:00:00');return !Number.isNaN(d.getTime())&&d.getFullYear()===+s.slice(0,4)&&d.getMonth()+1===+s.slice(5,7)&&d.getDate()===+s.slice(8,10)})(),listDocs:async()=>docSnapshots?structuredClone(docSnapshots[Math.min(docRead++,docSnapshots.length-1)]):[demoDoc]}};
  const contacts={validateLinks:db=>{if(rejectModule==='ITEContacts')throw Error('Anagrafiche non valide');for(const site of db.cantieri||[])if(site.client_id&&!db.clienti.some(c=>String(c.id)===String(site.client_id)))throw Error('Cliente del cantiere non presente');}};
  const agenda={validateDatabase:()=>{if(rejectModule==='ITEAgenda')throw Error('Appuntamenti non validi');}};
  const operators={validateDatabase:()=>{if(rejectModule==='ITEOperators')throw Error('Operatori non validi');}};
@@ -84,6 +84,11 @@ async function attempt(backup){
  const duplicateDoc={id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'seconda-foto-fittizia.png',size:4,fileBytes};
  await assert.rejects(build({docSnapshots:[[{id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size:4,fileBytes},duplicateDoc]]}),/Identificativo allegato non valido o duplicato/,'Rifiutare due allegati con lo stesso ID');
  await assert.rejects(build({docOverrides:{id:'id non valido'}}),/Identificativo allegato non valido o duplicato/,'Rifiutare ID allegato non ripristinabile');
+ // Il ripristino rifiuta date inesistenti: il backup deve bloccarle prima del download.
+ await assert.rejects(build({docOverrides:{date:'2026-13-99'}}),/Data documento non valida/,'Rifiutare la data non valida prima del backup');
+ await assert.rejects(build({docOverrides:{expires:'2026-02-30'}}),/Data documento non valida/,'Rifiutare una scadenza inesistente prima del backup');
+ const dated=await build({docOverrides:{date:'2026-10-26',expires:'2027-10-26'}});
+ assert.equal(dated.docs[0].date,'2026-10-26','Conservare le date valide');
  // Le foto possono essere aggiunte, eliminate o rinominate durante l'esportazione.
  // Il backup deve rifiutare un elenco di allegati non piu' corrispondente all'archivio.
  const photo={id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size:4,fileBytes};
