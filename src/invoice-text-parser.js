@@ -18,8 +18,8 @@ function extractInvoiceText(text){
   var t=text.replace(/\r/g,'').normalize('NFKC');
   var lines=t.split('\n').map(function(x){return x.trim();}).filter(Boolean);
   var invoice=t.match(/(?:copia\s+di\s+cortesia\s+)?fattura\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)?)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/i);
-  var credit=t.match(/nota\s+(?:di\s+)?(?:credito|accredito)\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)?)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/i);
-  var isCredit=!!credit||/\bnota\s+(?:di\s+)?(?:credito|accredito)\b|\bTD04\b/i.test(t);
+  var credit=t.match(/(?:^|\n)\s*(?:copia\s+di\s+cortesia\s+)?nota\s+(?:di\s+)?(?:credito|accredito)\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)?)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/im);
+  var isCredit=!!credit||/(?:^|\n)\s*(?:nota\s+(?:di\s+)?(?:credito|accredito)\b|TD04\b)|\btipo\s*documento\s*:?\s*TD04\b/im.test(t);
   var documentMatch=credit||(isCredit?null:invoice);
   var number=documentMatch?documentMatch[1]:null;
   var proforma=!isCredit&&!!(number&&/[\/-]PR$/i.test(number));
