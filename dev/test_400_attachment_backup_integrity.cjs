@@ -15,8 +15,8 @@ const commerce={documents:[],articles:[],movements:[]};
 async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data,missingModule='',rejectModule='',rejectCommerce=false,onExport=null,commerceSnapshots=null,docSnapshots=null,photoSaving=false,savingOnExport=false}={}){
  let exportCount=0,docRead=0,saving=photoSaving;
  const demoDoc={id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size,fileBytes:bytes,sha256:storedSha256,...docOverrides};
- const exportSnapshot=async()=>{if(onExport)onExport();if(savingOnExport)saving=true;return commerceSnapshots?structuredClone(commerceSnapshots[Math.min(exportCount++,commerceSnapshots.length-1)]):commerce};
- const ctx={KEY:'ite_demo_test',crypto:webcrypto,Uint8Array,btoa,JSON,Date,Error,
+ const exportSnapshot=async()=>{if(onExport)await onExport(ctx);if(savingOnExport)saving=true;return commerceSnapshots?structuredClone(commerceSnapshots[Math.min(exportCount++,commerceSnapshots.length-1)]):commerce};
+ const ctx={KEY:'ite_demo_test',crypto:webcrypto,Uint8Array,btoa,JSON,Date,Error,packing:false,busy:false,download:()=>{},restore:()=>{},
    window:{ITECommerce:{exportState:exportSnapshot,validate:()=>{if(rejectCommerce)throw Error('Archivio magazzino non valido')}}},
    ITECommerce:{exportState:exportSnapshot,validate:()=>{if(rejectCommerce)throw Error('Archivio magazzino non valido')}},
    ITE:{archiveReadable:()=>true,validate:()=>true,snapshot:()=>core},
@@ -29,6 +29,9 @@ async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=d
  ctx.ITEDocs.isSaving=()=>saving;ctx.window.ITEDocs=ctx.ITEDocs;
  vm.createContext(ctx);
  vm.runInContext(source.slice(digestStart,packEnd)+';this.makeBackup=pack',ctx);
+ const apiStart=source.indexOf('window.ITEBackup={download,restore,pack,busy:',restoreEnd);
+ assert(apiStart>0,'Backup busy API missing');
+ vm.runInContext(source.slice(apiStart,source.indexOf(';',apiStart)+1),ctx);
  return ctx.makeBackup();
 }
 async function attempt(backup,{savingAfterPack=false}={}){
@@ -81,6 +84,19 @@ async function attempt(backup,{savingAfterPack=false}={}){
  // Una foto in acquisizione non deve essere esclusa da un backup dichiarato completo.
  await assert.rejects(build({photoSaving:true}),/Salvataggio fotografia in corso/,'Bloccare backup se la fotocamera sta salvando');
  await assert.rejects(build({savingOnExport:true}),/Salvataggio fotografia in corso/,'Bloccare backup se acquisizione inizia durante esportazione');
+ // Anche i backup automatici devono segnalare occupato durante l'esportazione.
+ // Una foto o un secondo backup non devono sovrapporsi alla copia in corso.
+ let activePackContext;
+ const lockedBackup=await build({onExport:async ctx=>{
+  activePackContext=ctx;
+  assert.equal(ctx.window.ITEBackup.busy(),true,'Pack automatico deve bloccare la fotocamera');
+  await assert.rejects(ctx.makeBackup(),/Backup completo già in corso/,'Due pack non devono sovrapporsi');
+ }});
+ assert.equal(lockedBackup.docs.length,1,'Il primo backup deve terminare normalmente');
+ assert.equal(activePackContext.window.ITEBackup.busy(),false,'Blocco liberato dopo backup riuscito');
+ let failedPackContext;
+ await assert.rejects(build({onExport:ctx=>{failedPackContext=ctx;throw Error('Esportazione sintetica interrotta')}}),/Esportazione sintetica interrotta/);
+ assert.equal(failedPackContext.window.ITEBackup.busy(),false,'Blocco liberato anche dopo errore');
  // Il magazzino può cambiare durante la lettura asincrona degli allegati:
  // un backup misto non deve essere esportato.
  await assert.rejects(build({commerceSnapshots:[commerce,{...commerce,revision:2}]}),/Magazzino modificato durante il backup/,'Rifiutare magazzino modificato mentre si acquisiscono i documenti');
