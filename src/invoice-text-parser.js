@@ -24,8 +24,12 @@ function extractInvoiceText(text){
   var number=documentMatch?documentMatch[1]:null;
   var proforma=!isCredit&&!!(number&&/[\/-]PR$/i.test(number));
   function amount(label){
-    var re=new RegExp('^(?:'+label+')[ \\t]*[:\\-]?[ \\t]*(?:€[ \\t]*)?([0-9][0-9.]*,[0-9]{2})(?=[ \\t€]|$)','i');
-    for(var i=0;i<lines.length;i++){var m=lines[i].match(re);if(m)return parseItalianMoney(m[1]);}
+    // Preserve negative signs before or after the euro symbol in credit-note amounts.
+    var re=new RegExp('^(?:'+label+')[ \\t]*:?[ \\t]*(-?[ \\t]*€[ \\t]*-?|€[ \\t]*-?|-[ \\t]*|)([0-9][0-9.]*,[0-9]{2})(?=[ \\t€]|$)','i');
+    for(var i=0;i<lines.length;i++){
+      var m=lines[i].match(re);
+      if(m)return parseItalianMoney((m[1].indexOf('-')!==-1?'-':'')+m[2]);
+    }
     return null;
   }
   var taxable=amount('imponibile|totale[ \\t]+imponibile|base[ \\t]+imponibile');
