@@ -47,7 +47,9 @@ async function verify(changes={},originalChanges={}){
   'docs-note':{value:''},
   'docs-form':{querySelector:()=>({disabled:false})}
  };
+ let backupBusy=false;
  const saveContext={
+  window:{ITEBackup:{busy:()=>backupBusy}},
   ITE:{archiveReadable:()=>true},data:()=>currentRecords,ownerFor:()=> '1',
   selectedFileSource:'camera',saving:false,$:id=>fields[id],
   mime:name=>name.endsWith('.jpg')?'image/jpeg':undefined,
@@ -59,6 +61,11 @@ async function verify(changes={},originalChanges={}){
  };
  vm.createContext(saveContext);
  vm.runInContext(source.slice(saveStart,saveEnd)+';this.savePhoto=save',saveContext);
+ backupBusy=true;
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,0,'Non acquisire foto durante backup o ripristino');
+ assert(notices.some(message=>message.includes('Backup o ripristino in corso')));
+ backupBusy=false;
  await saveContext.savePhoto({preventDefault(){}});
  assert.equal(writes,0,'Foto incompleta: nessuna scrittura IndexedDB');
  assert(notices.some(message=>message.includes('Acquisizione incompleta')),'Mostrare errore esplicito per la foto incompleta');
