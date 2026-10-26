@@ -25,7 +25,7 @@ for(const fail of ['agenda','operators','storage']){
 const unavailable=scenario('unavailable');
 assert.match(unavailable.error,/Memoria non disponibile/);
 assert.deepEqual(unavailable.calls,[]);
-assert.equal(unavailable.db.interventi[0].technician_id,'2');
+assert.equal(unavailable.db.interventi[0].technician_id,'1','Se la memoria non è disponibile, non mantenere la modifica solo in RAM');
 const success=scenario();
 assert.deepEqual(success.calls,['agenda','operators','write']);
 assert.equal(success.error,'');
