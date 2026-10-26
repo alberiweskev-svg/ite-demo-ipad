@@ -6,15 +6,16 @@ const start=source.indexOf('function protectInterventionDocument(doc){');
 const end=source.indexOf('const cameraControls=',start);
 assert(start>=0&&end>start,'Controllo conservazione documenti non trovato');
 const code=source.slice(start,end)+';this.removeDoc=remove;';
-async function scenario({status='In corso',audit='[]',parentType='interventi',jobExists=true,allow=true,missing=false,changed=false}={}){
+async function scenario({status='In corso',audit='[]',parentType='interventi',jobExists=true,allow=true,missing=false,changed=false,backupBusy=false,busyOnSecondRead=false,busyBeforeTransaction=false}={}){
  let doc=missing?null:{id:'foto-test',parentType,parentId:'7',fileName:'foto-fittizia.jpg'};
  const job={id:7,workflow_status:status,revision_audit:audit};
- let reads=0,confirms=0,deletes=0,refreshes=0,previews=0;const notices=[];
+ let reads=0,confirms=0,deletes=0,refreshes=0,previews=0,busy=backupBusy;const notices=[];
  const ctx={
   data:()=>({interventi:jobExists?[job]:[]}),
-  readOne:async()=>{reads++;return changed&&reads===2?{...doc,parentId:'999'}:doc},
-  change:async fn=>fn({delete:()=>{deletes++;doc=null}}),
+  readOne:async()=>{reads++;if(busyOnSecondRead&&reads===2)busy=true;return changed&&reads===2?{...doc,parentId:'999'}:doc},
+  change:async fn=>{if(busyBeforeTransaction)busy=true;return fn({delete:()=>{deletes++;doc=null}})},
   confirm:()=>{confirms++;return allow},
+  window:{ITEBackup:{busy:()=>busy}},
   closePreview:()=>{previews++},refresh:async()=>{refreshes++},note:s=>notices.push(s)
  };
  vm.createContext(ctx);vm.runInContext(code,ctx);
@@ -42,6 +43,14 @@ async function scenario({status='In corso',audit='[]',parentType='interventi',jo
  assert.equal(r.deletes,0);assert.equal(r.confirms,1);
  r=await scenario({changed:true});
  assert.equal(r.deletes,0);assert.match(r.notices[0],/Collegamento documento modificato/);
+ r=await scenario({backupBusy:true});
+ assert.equal(r.deletes,0,'Backup attivo: non cancellare il documento');
+ assert.equal(r.confirms,0,'Backup attivo: non chiedere conferma di cancellazione');
+ assert(r.notices.some(s=>/backup|ripristino/i.test(s)),'Spiegare il blocco per backup attivo');
+ r=await scenario({busyOnSecondRead:true});
+ assert.equal(r.deletes,0,'Backup iniziato durante la verifica: non cancellare');
+ r=await scenario({busyBeforeTransaction:true});
+ assert.equal(r.deletes,0,'Backup iniziato mentre si apre IndexedDB: non cancellare');
  r=await scenario({missing:true});
  assert.equal(r.deletes,0);assert.equal(r.confirms,0);
  console.log('OK: 11 controlli conservazione allegati (chiusura, revisione, corruzione, permessi di cancellazione e collegamenti)');
