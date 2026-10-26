@@ -46,6 +46,26 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#vault-gate').isVisible(),false,'Vault gate remains visible after unlock');
   assert.deepEqual(errors,[],'Runtime errors after unlock: '+errors.join(' | '));
   console.log('OK: Chromium creates a test vault and opens the application shell');
+  // A second tab in the same browser profile must never unlock the same
+  // encrypted archive concurrently: it could otherwise overwrite newer work.
+  const concurrentTab=await page.context().newPage();
+  try{
+    const concurrentErrors=[];
+    concurrentTab.on('pageerror',e=>concurrentErrors.push(e.message));
+    await concurrentTab.goto(url,{waitUntil:'networkidle',timeout:30000});
+    await concurrentTab.waitForFunction(
+      ()=>document.getElementById('vault-message').textContent.includes('già aperto in un’altra scheda'),
+      {timeout:30000}
+    );
+    assert.equal(await concurrentTab.locator('#app-shell').isVisible(),false,
+      'Concurrent tab exposed protected archive');
+    assert.equal(await concurrentTab.locator('#vault-submit').isDisabled(),true,
+      'Concurrent tab allowed vault unlock despite exclusive session');
+    assert.deepEqual(concurrentErrors,[],'Concurrent-tab browser errors: '+concurrentErrors.join(' | '));
+    assert.equal(await page.locator('#app-shell').isVisible(),true,
+      'Rejected concurrent tab interrupted the active operator');
+    console.log('OK: Second browser tab is denied concurrent encrypted archive access');
+  }finally{await concurrentTab.close()}
   const testKey='ite_307_demo_ipad_v1_smoke_check';
   const testValue='SYNTHETIC_BROWSER_TEST_VALUE';
   const encrypted=await page.evaluate(([key,value])=>{
