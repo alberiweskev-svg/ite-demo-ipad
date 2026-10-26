@@ -34,10 +34,10 @@ async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=d
  vm.runInContext(source.slice(apiStart,source.indexOf(';',apiStart)+1),ctx);
  return ctx.makeBackup();
 }
-async function attempt(backup,{savingAfterPack=false}={}){
+async function attempt(backup,{savingAfterPack=false,packingAtStart=false}={}){
  const messages=[];let writes=0,restoredDocs,saving=false;
  const ctx={crypto:webcrypto,Uint8Array,atob,JSON,Set,Array,Object,Number,String,Error,
-   busy:false,
+   busy:false,packing:packingAtStart,
    window:{ITEDocs:{isSaving:()=>saving},ITECommerce:{busy:()=>false,validate:()=>{},replaceState:async()=>{writes++}},
      ITEHistory:{create:async()=>{}},ITEAgenda:{validateDatabase:()=>{}},ITEOperators:{validateDatabase:()=>{}},ITEContacts:{validateLinks:()=>{}}},
    document:{getElementById:()=>({hidden:true})},
@@ -136,6 +136,11 @@ async function attempt(backup,{savingAfterPack=false}={}){
  const validLinked=await build({core:linkedData,docOverrides:{siteId:'9'}});
  assert.equal(validLinked.docs.length,1,'Backup di allegato collegato al proprio cantiere deve riuscire');
  const backup=await build();
+ // Un backup automatico in corso non deve essere sovrapposto dal ripristino.
+ // In questo caso nessun documento o record deve essere sovrascritto.
+ const overlappingRestore=await attempt(backup,{packingAtStart:true});
+ assert.equal(overlappingRestore.writes,0,'Ripristino deve attendere la fine del backup completo in corso');
+ assert(overlappingRestore.messages.some(m=>m.includes('Backup completo in corso')),'Avviso visibile se il backup impedisce il ripristino');
  const correctSha=createHash('sha256').update(Buffer.from(fileBytes)).digest('hex');
  await assert.rejects(build({bytes:Uint8Array.from([1,2,3,5]).buffer,storedSha256:correctSha}),/Integrità allegato non valida/,'Backup non deve certificare byte alterati con stessa dimensione');
  const checked=await build({storedSha256:correctSha});
