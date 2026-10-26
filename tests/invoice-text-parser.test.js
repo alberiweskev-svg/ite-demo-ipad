@@ -5,11 +5,49 @@ assert.equal(parseItalianMoney('1.234,56'),1234.56);
 assert.equal(parseItalianMoney('320,00'),320);
 assert.equal(parseItalianMoney('12,34,56'),null);
 assert.equal(parseDate('31-02-2026'),null);
-const result=extractInvoiceText('Copia di cortesia Fattura 1 del 07-01-2025\nTotale € 320,00\nScadenze\n31-03-2025');
-assert.deepEqual(result,{tipo_documento:'fattura',direzione:'da_verificare',numero_documento:'1',data_emissione:'2025-01-07',totale_documento:320,scadenza:'2025-03-31',origine:'testo_fornito',richiede_conferma:true});
+
+const obscured=extractInvoiceText([
+  'Destinatario',
+  'Copia di cortesia Fattura 1 del 07-01-2025 FORNITORE ESEMPIO',
+  'Imponibile € 320,00',
+  'Totale IVA € 0,00',
+  'Scadenze',
+  '31-03-2025'
+].join('\n'));
+assert.equal(obscured.tipo_documento,'fattura');
+assert.equal(obscured.numero_documento,'1');
+assert.equal(obscured.data_emissione,'2025-01-07');
+assert.equal(obscured.cliente,null);
+assert.equal(obscured.cliente_stato,'Cliente non individuato');
+assert.equal(obscured.imponibile,320);
+assert.equal(obscured.importo_iva,0);
+assert.equal(obscured.totale_documento,null);
+assert.equal(obscured.scadenza,'2025-03-31');
+assert.ok(obscured.anomalie.includes('Totale non individuato'));
+
+const proforma=extractInvoiceText([
+  'Destinatario',
+  'CLIENTE FANTASIA SRL     Copia di cortesia Fattura 10/PR del 07-01-2025',
+  'Imponibile € 261,50',
+  'Totale IVA € 26,15',
+  'Totale € 287,65',
+  'Scadenze',
+  '07-01-2025 - € 287,65'
+].join('\n'));
+assert.equal(proforma.tipo_documento,'proforma');
+assert.equal(proforma.numero_documento,'10/PR');
+assert.equal(proforma.cliente,'CLIENTE FANTASIA SRL');
+assert.equal(proforma.imponibile,261.5);
+assert.equal(proforma.importo_iva,26.15);
+assert.equal(proforma.totale_documento,287.65);
+assert.equal(proforma.scadenza,'2025-01-07');
+assert.deepEqual(proforma.anomalie,[]);
+assert.equal(proforma.richiede_conferma,true);
+
 assert.equal(extractInvoiceText('documento sconosciuto').tipo_documento,null);
 assert.equal(extractInvoiceText('Fattura n° 7 del 07/01/2025').numero_documento,'7');
 assert.equal(extractInvoiceText('Fattura nr. 22 del 07/01/2025').numero_documento,'22');
 assert.equal(extractInvoiceText('Fattura 3 del 07/01/2025').direzione,'da_verificare');
 assert.equal(extractInvoiceText('Documento sconosciuto').direzione,null);
-console.log('Invoice text parser: OK');
+assert.equal(extractInvoiceText('Fattura 9 del 07/01/2025\nIVA 10%').importo_iva,null);
+console.log('Invoice text parser: OK (synthetic fixtures)');
