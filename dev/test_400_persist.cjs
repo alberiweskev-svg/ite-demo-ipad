@@ -10,7 +10,7 @@ function scenario(fail){
  const context={db:structuredClone(incoming),committed:JSON.stringify(original),storage:fail!=='unavailable',window:{
   ITEAgenda:{validateDatabase:()=>{calls.push('agenda');if(fail==='agenda')throw Error('Agenda incoerente')}},
   ITEOperators:{validateDatabase:()=>{calls.push('operators');if(fail==='operators')throw Error('Operatore incoerente')}}
- },writeArchive:()=>{calls.push('write');if(fail==='storage')throw Error('Memoria piena')},JSON,Error};
+ },assertArchiveFresh:()=>{calls.push('fresh');if(fail==='stale')throw Error('Archivio modificato da un’altra scheda: riapri il gestionale prima di salvare.')},writeArchive:()=>{calls.push('write');if(fail==='storage')throw Error('Memoria piena')},JSON,Error};
  context.ITEAgenda=context.window.ITEAgenda;context.ITEOperators=context.window.ITEOperators;
  vm.createContext(context);vm.runInContext(code+';this.runPersist=persist',context);
  let error='';try{context.runPersist()}catch(e){error=e.message}
@@ -27,7 +27,11 @@ assert.match(unavailable.error,/Memoria non disponibile/);
 assert.deepEqual(unavailable.calls,[]);
 assert.equal(unavailable.db.interventi[0].technician_id,'1','Se la memoria non è disponibile, non mantenere la modifica solo in RAM');
 const success=scenario();
-assert.deepEqual(success.calls,['agenda','operators','write']);
+assert.deepEqual(success.calls,['agenda','operators','fresh','write']);
 assert.equal(success.error,'');
 assert.equal(success.db.interventi[0].technician_id,'2');
-console.log('OK: 5 scenari salvataggio, operatori e rollback');
+const stale=scenario('stale');
+assert.match(stale.error,/Archivio modificato da un’altra scheda/);
+assert.deepEqual(stale.calls,['agenda','operators','fresh']);
+assert.equal(stale.db.interventi[0].technician_id,'1','Stale tab must roll back local edits');
+console.log('OK: 6 scenari salvataggio, operatori, conflitto fra schede e rollback');

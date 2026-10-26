@@ -26,6 +26,8 @@ jobs:
         run: node dev/test_400_persist.cjs
       - name: Test archive recovery
         run: node dev/test_400_archive_recovery.cjs
+      - name: Test concurrent tabs archive freshness
+        run: node dev/test_400_cross_tab_core.cjs
       - name: Test appointment validation
         run: node dev/test_400_appointments.cjs
       - name: Test employee calendar colors
