@@ -12,7 +12,7 @@ async function check(failAt){
  const previous={format:'ITE-complete',schema:1,data:original,docs:[],commerce};
  let docsCount=0,commerceCount=0,coreCount=0,currentCore=original;
  const context={
-  busy:false,window:{ITECommerce:{busy:()=>false,validate:()=>{},replaceState:async()=>{
+  busy:false,packing:false,window:{ITECommerce:{busy:()=>false,validate:()=>{},replaceState:async()=>{
    commerceCount++;if(failAt==='commerce'&&commerceCount===1)throw Error('Commerce error')
   }},ITEHistory:{create:async()=>{}},ITEOperators:{validateDatabase:()=>{if(failAt==='operatorInvalid')throw Error('Tempi operatore incoerenti')}},ITEAgenda:{validateDatabase:()=>{if(failAt==='agendaInvalid')throw Error('Appuntamento incoerente')}},ITEContacts:{validateLinks:()=>{if(failAt==='contactsInvalid')throw Error('Professionista del cantiere non valido')}}},
   document:{getElementById:()=>({hidden:true})},message:m=>calls.push(m),
