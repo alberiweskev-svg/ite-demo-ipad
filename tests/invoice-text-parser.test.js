@@ -88,4 +88,22 @@ assert.equal(extractInvoiceText('Fattura nr. 22 del 07/01/2025').numero_document
 assert.equal(extractInvoiceText('Fattura 3 del 07/01/2025').direzione,'da_verificare');
 assert.equal(extractInvoiceText('Documento sconosciuto').direzione,null);
 assert.equal(extractInvoiceText('Fattura 9 del 07/01/2025\nIVA 10%').importo_iva,null);
+
+const negativeCredit=extractInvoiceText([
+  'Destinatario: CLIENTE INVENTATO SRL',
+  'Nota di credito n. 15 del 25/10/2026',
+  'Imponibile € -100,00',
+  'Totale IVA -€ 10,00',
+  'Totale -110,00'
+].join('\n'));
+assert.equal(negativeCredit.tipo_documento,'nota_credito');
+assert.equal(negativeCredit.imponibile,-100,'Preservare segno con € prima del meno');
+assert.equal(negativeCredit.importo_iva,-10,'Preservare segno con meno prima di €');
+assert.equal(negativeCredit.totale_documento,-110,'Preservare segno senza €');
+assert.deepEqual(negativeCredit.anomalie,[]);
+const positiveCredit=extractInvoiceText('Nota di credito n. 16 del 26/10/2026\nTotale € 110,00');
+assert.equal(positiveCredit.totale_documento,110,'Non cambiare automaticamente segno delle note di credito');
+const positiveInvoice=extractInvoiceText('Fattura 17 del 26/10/2026\nTotale € 110,00');
+assert.equal(positiveInvoice.totale_documento,110,'Importo fattura positiva invariato');
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
