@@ -212,7 +212,12 @@ ITE.remove=async(kind,id)=>{
   if(!window.ITEDocs?.listDocs)throw Error('Modulo documenti non disponibile.');
   const docs=await window.ITEDocs.listDocs();
   if(!Array.isArray(docs))throw Error('Elenco documenti non valido.');
-  if(docs.some(d=>d.parentType===kind&&String(d.parentId)===String(id))){
+  // Anche subjectId e siteId sono collegamenti: non bastano parentType e parentId.
+  const linkedDoc=d=>d.parentType===kind&&String(d.parentId)===String(id)||
+   kind==='clienti'&&d.subjectId!=null&&String(d.subjectId)===String(id)||
+   kind==='cantieri'&&d.siteId!=null&&String(d.siteId)===String(id);
+  if(docs.some(d=>!d||typeof d!=='object'))throw Error('Elenco documenti non valido.');
+  if(docs.some(linkedDoc)){
    alert('Eliminazione bloccata: questo record ha documenti o fotografie collegati. Verifica e gestisci prima gli allegati nella sezione Documenti.');
    return false;
   }
@@ -228,6 +233,18 @@ ITE.remove=async(kind,id)=>{
   const linkedMovement=kind==='cantieri'&&commerce.movements.some(m=>linked(m.siteId));
   if(linkedDocument||linkedMovement){
    alert('Eliminazione bloccata: questo record è collegato a documenti importati o movimenti di magazzino. Riassegna prima i collegamenti.');
+   return false;
+  }
+  // Rilettura prima della cancellazione: una modifica durante le letture asincrone
+  // non deve lasciare riferimenti orfani. Non sostituisce una transazione atomica.
+  const latestCommerce=await window.ITECommerce.exportState();
+  if(!latestCommerce||!Array.isArray(latestCommerce.documents)||!Array.isArray(latestCommerce.movements)||
+     JSON.stringify(latestCommerce)!==JSON.stringify(commerce))
+   throw Error('Magazzino modificato durante la verifica: riprova.');
+  const latestDocs=await window.ITEDocs.listDocs();
+  if(!Array.isArray(latestDocs)||latestDocs.some(d=>!d||typeof d!=='object'))throw Error('Elenco documenti non valido.');
+  if(latestDocs.some(linkedDoc)){
+   alert('Eliminazione bloccata: sono stati rilevati documenti collegati durante la verifica. Riprova dopo averli gestiti.');
    return false;
   }
   return removeCore(kind,id);

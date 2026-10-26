@@ -6,13 +6,13 @@ const source=fs.readFileSync('app.js','utf8');
 const start=source.indexOf('const reset=ITE.reset,importData=ITE.importData;');
 const end=source.indexOf('function hasLinkedData(',start);
 assert(start>=0&&end>start,'Wrapper eliminazione anagrafica non trovato');
-async function scenario({kind='clienti',id=1,docs=[],missing=false,invalid=false,commerce={documents:[],movements:[]},commerceMissing=false,commerceInvalid=false,commerceFail=false}={}){
- const removed=[],alerts=[];
+async function scenario({kind='clienti',id=1,docs=[],docSnapshots=null,missing=false,invalid=false,commerce={documents:[],movements:[]},commerceSnapshots=null,commerceMissing=false,commerceInvalid=false,commerceFail=false}={}){
+ const removed=[],alerts=[];let docRead=0,commerceRead=0;
  const context={
   ITE:{remove:(k,n)=>{removed.push([k,n]);return 'eliminato'},reset:()=>{},importData:()=>{}},
   window:{
-   ITEDocs:missing?undefined:{listDocs:async()=>{if(invalid)throw Error('Archivio documenti non leggibile');return docs}},
-   ITECommerce:commerceMissing?undefined:{exportState:async()=>{if(commerceFail)throw Error('Archivio magazzino non leggibile');return commerceInvalid?{documents:null,movements:null}:commerce}}
+   ITEDocs:missing?undefined:{listDocs:async()=>{if(invalid)throw Error('Archivio documenti non leggibile');return docSnapshots?docSnapshots[Math.min(docRead++,docSnapshots.length-1)]:docs}},
+   ITECommerce:commerceMissing?undefined:{exportState:async()=>{if(commerceFail)throw Error('Archivio magazzino non leggibile');return commerceInvalid?{documents:null,movements:null}:commerceSnapshots?commerceSnapshots[Math.min(commerceRead++,commerceSnapshots.length-1)]:commerce}}
   },
   alert:s=>alerts.push(s)
  };
@@ -67,5 +67,19 @@ async function scenario({kind='clienti',id=1,docs=[],missing=false,invalid=false
  assert.equal(r.removed.length,0,'Blocco sicuro se il magazzino restituisce dati non validi');
  r=await scenario({commerceFail:true});
  assert.equal(r.removed.length,0,'Blocco sicuro se la lettura del magazzino fallisce');
+ r=await scenario({docs:[{id:'d-subject',parentType:'cantieri',parentId:'9',subjectId:'1'}]});
+ assert.equal(r.removed.length,0,'Un allegato associato al soggetto deve impedirne la cancellazione');
+ r=await scenario({kind:'cantieri',id:9,docs:[{id:'d-site',parentType:'clienti',parentId:'2',siteId:'9'}]});
+ assert.equal(r.removed.length,0,'Un allegato associato al cantiere deve impedirne la cancellazione');
+ r=await scenario({docSnapshots:[[],[{id:'d-late',parentType:'clienti',parentId:'1'}]]});
+ assert.equal(r.removed.length,0,'Un documento aggiunto durante la verifica non deve diventare orfano');
+ r=await scenario({docSnapshots:[[],[{id:'d-other',parentType:'clienti',parentId:'2'}]]});
+ assert.equal(r.removed.length,1,'Un documento aggiunto a un altro cliente non deve bloccare');
+ r=await scenario({docSnapshots:[[],null]});
+ assert.equal(r.removed.length,0,'Una seconda lettura documenti corrotta deve bloccare');
+ r=await scenario({commerceSnapshots:[{documents:[],movements:[]},{documents:[{id:'invoice-late',clientId:'1'}],movements:[]}]});
+ assert.equal(r.removed.length,0,'Una fattura aggiunta durante la verifica deve bloccare');
+ r=await scenario({commerceSnapshots:[{documents:[],movements:[]},{documents:[{id:'invoice-other',clientId:'2'}],movements:[]}]});
+ assert.equal(r.removed.length,0,'Una modifica concorrente del magazzino deve richiedere una nuova verifica');
  console.log('OK: cancellazione anagrafiche protetta da allegati e riferimenti magazzino, fallimento sicuro e casi leciti');
 })().catch(e=>{console.error(e);process.exitCode=1});
