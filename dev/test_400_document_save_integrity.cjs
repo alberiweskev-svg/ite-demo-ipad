@@ -31,6 +31,7 @@ async function verify(changes={},originalChanges={}){
  const saveEnd=source.indexOf('\nfunction closePreview()',saveStart);
  assert(saveStart>=0&&saveEnd>saveStart,'Salvataggio documento non trovato');
  let writes=0;const notices=[];let captured;
+ let currentRecords={clienti:[{id:1},{id:2}],immobili:[{id:3,client_id:'1'}],cantieri:[{id:8,client_id:'2'},{id:9,client_id:'1'}]};
  const cameraFile={name:'foto-fittizia.jpg',size:4,arrayBuffer:async()=>partial};
  const fields={
   'docs-camera':{files:[cameraFile]},
@@ -47,7 +48,7 @@ async function verify(changes={},originalChanges={}){
   'docs-form':{querySelector:()=>({disabled:false})}
  };
  const saveContext={
-  ITE:{archiveReadable:()=>true},data:()=>({clienti:[{id:1},{id:2}],immobili:[{id:3,client_id:'1'}],cantieri:[{id:8,client_id:'2'},{id:9,client_id:'1'}]}),ownerFor:()=> '1',
+  ITE:{archiveReadable:()=>true},data:()=>currentRecords,ownerFor:()=> '1',
   selectedFileSource:'camera',saving:false,$:id=>fields[id],
   mime:name=>name.endsWith('.jpg')?'image/jpeg':undefined,
   validDate:()=>true,alert:message=>notices.push(message),
@@ -101,5 +102,11 @@ async function verify(changes={},originalChanges={}){
  fields['docs-site'].value='9';
  await saveContext.savePhoto({preventDefault(){}});
  assert.equal(writes,4,'Foto cliente salvabile sul proprio cantiere');
+ // Un cliente eliminato mentre iOS legge il file non deve ricevere un allegato orfano.
+ fields['docs-site'].value='';
+ cameraFile.arrayBuffer=async()=>{currentRecords={...currentRecords,clienti:currentRecords.clienti.filter(r=>r.id!==1)};return bytes};
+ await saveContext.savePhoto({preventDefault(){}});
+ assert.equal(writes,4,'Cliente eliminato durante acquisizione: nessuna foto orfana');
+ assert(notices.some(message=>/riferimento|cliente|soggetto/i.test(message)),'Segnalare che il riferimento non esiste più');
  console.log('OK: metadati, SHA-256, dimensione reale e salvataggio fotocamera con file completo');
 })().catch(error=>{console.error(error);process.exitCode=1});
