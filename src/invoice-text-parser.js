@@ -18,8 +18,11 @@ function extractInvoiceText(text){
   var t=text.replace(/\r/g,'').normalize('NFKC');
   var lines=t.split('\n').map(function(x){return x.trim();}).filter(Boolean);
   var invoice=t.match(/(?:copia\s+di\s+cortesia\s+)?fattura\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)?)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/i);
-  var number=invoice?invoice[1]:null;
-  var proforma=!!(number&&/[\/-]PR$/i.test(number));
+  var credit=t.match(/nota\s+(?:di\s+)?(?:credito|accredito)\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)?)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/i);
+  var isCredit=!!credit||/\bnota\s+(?:di\s+)?(?:credito|accredito)\b|\bTD04\b/i.test(t);
+  var documentMatch=credit||(isCredit?null:invoice);
+  var number=documentMatch?documentMatch[1]:null;
+  var proforma=!isCredit&&!!(number&&/[\/-]PR$/i.test(number));
   function amount(label){
     var re=new RegExp('^(?:'+label+')[ \\t]*[:\\-]?[ \\t]*(?:€[ \\t]*)?([0-9][0-9.]*,[0-9]{2})(?=[ \\t€]|$)','i');
     for(var i=0;i<lines.length;i++){var m=lines[i].match(re);if(m)return parseItalianMoney(m[1]);}
@@ -43,13 +46,14 @@ function extractInvoiceText(text){
   var dueMatch=t.match(/(?:^|\n)\s*scadenze?\s*:?\s*\n?\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/im);
   if(dueMatch)due=parseDate(dueMatch[1]);
   var missing=[];
+  if(isCredit&&!number)missing.push('Numero nota di credito non individuato');
   if(!client)missing.push('Cliente non individuato');
   if(taxable===null)missing.push('Imponibile non individuato');
   if(vat===null&&!reverse)missing.push('Importo IVA non individuato');
   if(total===null)missing.push('Totale non individuato');
-  return {tipo_documento:invoice?(proforma?'proforma':'fattura'):null,
-    direzione:invoice?'da_verificare':null,numero_documento:number,
-    data_emissione:invoice?parseDate(invoice[2]):null,
+  return {tipo_documento:isCredit?'nota_credito':invoice?(proforma?'proforma':'fattura'):null,
+    direzione:(isCredit||invoice)?'da_verificare':null,numero_documento:number,
+    data_emissione:documentMatch?parseDate(documentMatch[2]):null,
     cliente:client,cliente_stato:client?'Da verificare':'Cliente non individuato',
     imponibile:taxable,importo_iva:vat,
     aliquota_iva:rateMatch?Number(rateMatch[1].replace(',','.')):null,
