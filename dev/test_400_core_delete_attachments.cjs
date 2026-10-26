@@ -57,6 +57,10 @@ async function scenario({kind='clienti',id=1,docs=[],missing=false,invalid=false
  assert.equal(r.removed.length,0,'Non eliminare cantiere collegato a un documento importato');
  r=await scenario({kind:'cantieri',id:9,commerce:{documents:[{id:'pos-altro',siteId:'10'}],movements:[{siteId:'10'}]}});
  assert.equal(r.removed.length,1,'Movimenti e documenti di un altro cantiere non devono bloccare');
+ r=await scenario({kind:'clienti',id:1,commerce:{documents:[{id:'fattura-altro',subjectIds:['2']}],movements:[]}});
+ assert.equal(r.removed.length,1,'Soggetti diversi nei documenti importati non devono impedire la cancellazione');
+ r=await scenario({commerce:{documents:[null],movements:[]}});
+ assert.equal(r.removed.length,0,'Bloccare in sicurezza se un documento importato e corrotto');
  r=await scenario({commerceMissing:true});
  assert.equal(r.removed.length,0,'Blocco sicuro se il magazzino non e disponibile');
  r=await scenario({commerceInvalid:true});
