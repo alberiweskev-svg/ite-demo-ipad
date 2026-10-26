@@ -16,10 +16,10 @@ function parseDate(value){
 function extractInvoiceText(text){
   if(typeof text!=='string'||text.length>1000000)throw new Error('Testo non valido o troppo grande');
   var t=text.replace(/\r/g,'').normalize('NFKC');
-  var invoice=t.match(/(?:copia\s+di\s+cortesia\s+)?fattura\s*(?:n\.?\s*)?(\d+[\w/-]*)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/i);
+  var invoice=t.match(/(?:copia\s+di\s+cortesia\s+)?fattura\s*(?:n(?:\.|°|º|r\.?)?\s*)?(\d+[\w/-]*)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/i);
   var total=t.match(/(?:^|\n)\s*totale\s*(?:documento|fattura)?\s*[:€\s]*([\d.,]+)\s*(?:€)?\s*(?:\n|$)/im);
   var due=t.match(/(?:scadenza|scadenze)\s*[:\n\s]*(\d{2}[\/-]\d{2}[\/-]\d{4})/i);
-  var result={tipo_documento:invoice?'fattura_vendita':null,numero_documento:invoice?invoice[1]:null,data_emissione:invoice?parseDate(invoice[2]):null,totale_documento:total?parseItalianMoney(total[1]):null,scadenza:due?parseDate(due[1]):null,origine:'testo_fornito',richiede_conferma:true};
+  var result={tipo_documento:invoice?'fattura':null,direzione:invoice?'da_verificare':null,numero_documento:invoice?invoice[1]:null,data_emissione:invoice?parseDate(invoice[2]):null,totale_documento:total?parseItalianMoney(total[1]):null,scadenza:due?parseDate(due[1]):null,origine:'testo_fornito',richiede_conferma:true};
   return result;
 }
 var api={parseItalianMoney:parseItalianMoney,parseDate:parseDate,extractInvoiceText:extractInvoiceText};
