@@ -12,15 +12,16 @@ assert(digestStart>=0&&packStart>digestStart&&packEnd>packStart&&restoreEnd>rest
 const data={clienti:[{id:1,name:'Cliente fittizio'}],immobili:[],impianti:[],apparecchiature:[],interventi:[],cantieri:[]};
 const fileBytes=Uint8Array.from([1,2,3,4]).buffer;
 const commerce={documents:[],articles:[],movements:[]};
-async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data,missingModule='',rejectModule='',rejectCommerce=false,onExport=null,commerceSnapshots=null}={}){
- let exportCount=0;
+async function build({bytes=fileBytes,size=4,storedSha256,docOverrides={},core=data,missingModule='',rejectModule='',rejectCommerce=false,onExport=null,commerceSnapshots=null,docSnapshots=null}={}){
+ let exportCount=0,docRead=0;
+ const demoDoc={id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size,fileBytes:bytes,sha256:storedSha256,...docOverrides};
  const exportSnapshot=async()=>{if(onExport)onExport();return commerceSnapshots?structuredClone(commerceSnapshots[Math.min(exportCount++,commerceSnapshots.length-1)]):commerce};
  const ctx={KEY:'ite_demo_test',crypto:webcrypto,Uint8Array,btoa,JSON,Date,Error,
    window:{ITECommerce:{exportState:exportSnapshot,validate:()=>{if(rejectCommerce)throw Error('Archivio magazzino non valido')}}},
    ITECommerce:{exportState:exportSnapshot,validate:()=>{if(rejectCommerce)throw Error('Archivio magazzino non valido')}},
    ITE:{archiveReadable:()=>true,validate:()=>true,snapshot:()=>core},
    ITEVault:{storage:{getItem:()=>null}},
-   ITEDocs:{listDocs:async()=>[{id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size,fileBytes:bytes,sha256:storedSha256,...docOverrides}]}};
+   ITEDocs:{listDocs:async()=>docSnapshots?structuredClone(docSnapshots[Math.min(docRead++,docSnapshots.length-1)]):[demoDoc]}};
  const contacts={validateLinks:db=>{if(rejectModule==='ITEContacts')throw Error('Anagrafiche non valide');for(const site of db.cantieri||[])if(site.client_id&&!db.clienti.some(c=>String(c.id)===String(site.client_id)))throw Error('Cliente del cantiere non presente');}};
  const agenda={validateDatabase:()=>{if(rejectModule==='ITEAgenda')throw Error('Appuntamenti non validi');}};
  const operators={validateDatabase:()=>{if(rejectModule==='ITEOperators')throw Error('Operatori non validi');}};
@@ -79,6 +80,14 @@ async function attempt(backup){
  // Il magazzino può cambiare durante la lettura asincrona degli allegati:
  // un backup misto non deve essere esportato.
  await assert.rejects(build({commerceSnapshots:[commerce,{...commerce,revision:2}]}),/Magazzino modificato durante il backup/,'Rifiutare magazzino modificato mentre si acquisiscono i documenti');
+ // Le foto possono essere aggiunte, eliminate o rinominate durante l'esportazione.
+ // Il backup deve rifiutare un elenco di allegati non piu' corrispondente all'archivio.
+ const photo={id:'d-demo',parentType:'clienti',parentId:'1',subjectId:'1',fileName:'foto-fittizia.png',size:4,fileBytes};
+ await assert.rejects(build({docSnapshots:[[photo],[]]}),/Allegati modificati durante il backup/,'Rifiutare una fotografia eliminata durante il backup');
+ await assert.rejects(build({docSnapshots:[[photo],[photo,{...photo,id:'d-nuova'}]]}),/Allegati modificati durante il backup/,'Rifiutare una fotografia aggiunta durante il backup');
+ await assert.rejects(build({docSnapshots:[[photo],[{...photo,fileName:'foto-rinominata.png'}]]}),/Allegati modificati durante il backup/,'Rifiutare metadati di foto cambiati durante il backup');
+ const stablePhotos=await build({docSnapshots:[[photo],[{...photo}]]});
+ assert.equal(stablePhotos.docs.length,1,'Fotografia invariata deve essere esportata');
  // Una modifica durante l'esportazione asincrona deve annullare la copia.
  const changingCore=structuredClone(data);
  await assert.rejects(build({core:changingCore,onExport:()=>{changingCore.clienti[0].name='Modificato durante backup';}}),/Dati modificati durante il backup/,'Rifiutare snapshot modificati durante esportazione asincrona');
