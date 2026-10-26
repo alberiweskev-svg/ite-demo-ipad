@@ -58,4 +58,30 @@ storage.setItem('ite_test_aziendale_v1','{bad-json');
 writes.length=0;
 assert.throws(()=>context.check(),SyntaxError);
 assert.deepEqual(writes,[]);
+// Una seconda scheda scrive dopo il primo controllo di freschezza, ma prima
+// della prima scrittura del giornale. Il secondo controllo deve bloccare il salvataggio.
+const writerStart=source.indexOf('function writeArchive(value){');
+const writerEnd=source.indexOf('\n\ntry{const raw=',writerStart);
+assert(writerStart>=0&&writerEnd>writerStart,'Archive writer not found');
+vm.runInContext(source.slice(writerStart,writerEnd),context);
+values.set('ite_test',main(initial));
+values.delete('ite_test_aziendale_v1');
+context.committed=JSON.stringify(initial);
+context.db=makeData('Modifica locale');
+writes.length=0;
+const readBeforeRace=storage.getItem;
+let raceInjected=false;
+storage.getItem=key=>{
+ const current=readBeforeRace(key);
+ if(!raceInjected&&key==='ite_test_aziendale_v1'){
+  raceInjected=true;
+  values.set('ite_test',main(makeData('Modifica da altra scheda')));
+ }
+ return current;
+};
+assert.throws(()=>context.save(),/Archivio modificato da un’altra scheda/);
+assert.equal(raceInjected,true,'Il test deve simulare davvero la modifica concorrente');
+assert.deepEqual(writes,[],'Nessuna scrittura locale dopo il conflitto');
+assert.equal(JSON.parse(values.get('ite_test')).clienti[0].name,'Modifica da altra scheda');
+assert.equal(context.db.clienti[0].name,'Cliente demo','Rollback della modifica locale');
 console.log('OK: rilevazione conflitti tra schede, cantieri, pending journal e rollback senza sovrascritture');
