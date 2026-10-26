@@ -19,7 +19,7 @@ function extractInvoiceText(text){
   var lines=t.split('\n').map(function(x){return x.trim();}).filter(Boolean);
   var invoice=t.match(/(?:copia\s+di\s+cortesia\s+)?fattura\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)?)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/i);
   var number=invoice?invoice[1]:null;
-  var proforma=!!(number&&/\/PR$/i.test(number));
+  var proforma=!!(number&&/[\/-]PR$/i.test(number));
   function amount(label){
     var re=new RegExp('^(?:'+label+')[ \\t]*[:\\-]?[ \\t]*(?:€[ \\t]*)?([0-9][0-9.]*,[0-9]{2})(?=[ \\t€]|$)','i');
     for(var i=0;i<lines.length;i++){var m=lines[i].match(re);if(m)return parseItalianMoney(m[1]);}
