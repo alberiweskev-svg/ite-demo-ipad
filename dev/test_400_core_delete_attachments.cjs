@@ -81,5 +81,11 @@ async function scenario({kind='clienti',id=1,docs=[],docSnapshots=null,missing=f
  assert.equal(r.removed.length,0,'Una fattura aggiunta durante la verifica deve bloccare');
  r=await scenario({commerceSnapshots:[{documents:[],movements:[]},{documents:[{id:'invoice-other',clientId:'2'}],movements:[]}]});
  assert.equal(r.removed.length,0,'Una modifica concorrente del magazzino deve richiedere una nuova verifica');
+ r=await scenario({kind:'cantieri',id:9,docSnapshots:[[],[{id:'late-site',parentType:'clienti',parentId:'2',siteId:'9'}]]});
+ assert.equal(r.removed.length,0,'Un collegamento al cantiere aggiunto durante la verifica deve bloccare');
+ r=await scenario({commerceSnapshots:[{documents:[],movements:[]},null]});
+ assert.equal(r.removed.length,0,'Una seconda lettura del magazzino non valida deve bloccare');
+ r=await scenario({docs:[null]});
+ assert.equal(r.removed.length,0,'Un documento corrotto deve bloccare prima della cancellazione');
  console.log('OK: cancellazione anagrafiche protetta da allegati e riferimenti magazzino, fallimento sicuro e casi leciti');
 })().catch(e=>{console.error(e);process.exitCode=1});
