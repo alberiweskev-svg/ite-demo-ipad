@@ -19,7 +19,8 @@ const server=http.createServer((req,res)=>{
  const url='http://127.0.0.1:'+server.address().port+'/';
  const browser=await chromium.launch({headless:true});
  try{
-  const page=await browser.newPage();
+  const context=await browser.newContext();
+  const page=await context.newPage();
   const errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   const response=await page.goto(url,{waitUntil:'networkidle',timeout:30000});
@@ -48,7 +49,7 @@ const server=http.createServer((req,res)=>{
   console.log('OK: Chromium creates a test vault and opens the application shell');
   // A second tab in the same browser profile must never unlock the same
   // encrypted archive concurrently: it could otherwise overwrite newer work.
-  const concurrentTab=await page.context().newPage();
+  const concurrentTab=await context.newPage();
   try{
     const concurrentErrors=[];
     concurrentTab.on('pageerror',e=>concurrentErrors.push(e.message));
