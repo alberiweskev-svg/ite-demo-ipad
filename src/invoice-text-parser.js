@@ -3,6 +3,8 @@
 function parseItalianMoney(value){
   if(typeof value!=='string')return null;
   var s=value.replace(/\u2212/g,'-').replace(/[€\s]/g,'').trim();
+  // Le parentesi contabili indicano un importo negativo, anche nelle note di credito.
+  if(/^\([0-9][0-9.,]*\)$/.test(s))s='-'+s.slice(1,-1);
   if(!/^-?\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?$|^-?\d+(?:,\d{1,2})?$/.test(s))return null;
   var n=Number(s.replace(/\./g,'').replace(',','.'));
   return Number.isFinite(n)?n:null;
@@ -40,12 +42,16 @@ function extractInvoiceText(text){
   var amountConflicts=[];
   function amount(label,fieldName){
     // Preserve negative signs before or after the euro symbol in credit-note amounts.
-    var re=new RegExp('^(?:'+label+')[ \\t]*:?[ \\t]*(-?[ \\t]*€[ \\t]*-?|€[ \\t]*-?|-[ \\t]*|)([0-9][0-9.]*,[0-9]{2})(?=[ \\t€]|$)','i');
+    var re=new RegExp('^(?:'+label+')[ \\t]*:?[ \\t]*(?:'+
+      '(-?[ \\t]*€[ \\t]*-?|€[ \\t]*-?|-[ \\t]*|)([0-9][0-9.]*,[0-9]{2})'+
+      '|(?:€[ \\t]*)?\\([ \\t]*(?:€[ \\t]*)?([0-9][0-9.]*,[0-9]{2})[ \\t]*\\)'+
+      ')(?=[ \\t€]|$)','i');
     var found=[];
     for(var i=0;i<lines.length;i++){
       var m=lines[i].match(re);
       if(m){
-        var value=parseItalianMoney((m[1].indexOf('-')!==-1?'-':'')+m[2]);
+        var value=m[3]!==undefined?parseItalianMoney('('+m[3]+')'):
+          parseItalianMoney((m[1].indexOf('-')!==-1?'-':'')+m[2]);
         if(value!==null)found.push(value);
       }
     }

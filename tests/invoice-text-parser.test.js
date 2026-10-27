@@ -263,4 +263,25 @@ assert.equal(repeatedPayable.totale_documento,80);
 assert.equal(repeatedPayable.totale_da_pagare,60);
 assert.ok(repeatedPayable.anomalie.includes('Valori discordanti per totale da pagare: verificare originale'));
 
+
+const accountingCredit=extractInvoiceText([
+  'Nota di credito 701 del 27/10/2026',
+  'Destinatario: CLIENTE SINTETICO SRL',
+  'Imponibile (100,00)',
+  'Totale IVA € (10,00)',
+  'Totale (€ 110,00)'
+].join('\n'));
+assert.equal(parseItalianMoney('(1.234,56)'),-1234.56,'Parentesi contabili indicano importo negativo');
+assert.equal(parseItalianMoney('(€ 1.234,56)'),-1234.56,'Euro all interno delle parentesi');
+assert.equal(parseItalianMoney('€ (1.234,56)'),-1234.56,'Euro all esterno delle parentesi');
+assert.equal(parseItalianMoney('(-1.234,56)'),null,'Non accettare doppia indicazione di segno');
+assert.equal(parseItalianMoney('(1.234,56'),null,'Non accettare parentesi incomplete');
+assert.equal(accountingCredit.tipo_documento,'nota_credito');
+assert.equal(accountingCredit.imponibile,-100,'Imponibile negativo con parentesi');
+assert.equal(accountingCredit.importo_iva,-10,'IVA negativa con euro esterno');
+assert.equal(accountingCredit.totale_documento,-110,'Totale negativo con euro interno');
+assert.ok(!accountingCredit.anomalie.some(x=>x.includes('Totale non coerente')),'Importi contabili coerenti');
+const accountingInvoice=extractInvoiceText('Fattura 702 del 27/10/2026\nTotale € 110,00');
+assert.equal(accountingInvoice.totale_documento,110,'Fatture positive invariate');
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
