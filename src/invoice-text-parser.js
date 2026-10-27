@@ -92,6 +92,16 @@ function extractInvoiceText(text){
   // Senza intestazione della nota, non assumere che la fattura sia una TD04.
   if(isCredit&&invoices.length&&credits.length===0)
     missing.push('Intestazioni documento discordanti: verificare originale');
+  // Un campo TD01 (fattura) e una testata nota di credito sono incompatibili.
+  // Anche due campi Tipo documento discordanti richiedono verifica manuale.
+  var declaredTypes=lines.map(function(line){
+    var m=line.match(/^tipo[ \\t]+documento[ \\t]*:?[ \\t]*(TD\\d{2})\\b/i);
+    return m?m[1].toUpperCase():null;
+  }).filter(Boolean);
+  if((declaredTypes.some(function(value){return value!==declaredTypes[0];})||
+      (credits.length&&declaredTypes.indexOf('TD01')!==-1))&&
+      missing.indexOf('Intestazioni documento discordanti: verificare originale')===-1)
+    missing.push('Intestazioni documento discordanti: verificare originale');
   // Non correggere gli importi letti: segnala le differenze per verifica manuale.
   if(taxable!==null&&vat!==null&&total!==null){
     var deltaCents=Math.abs(Math.round((taxable+vat)*100)-Math.round(total*100));
