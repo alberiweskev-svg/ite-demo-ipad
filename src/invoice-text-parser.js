@@ -56,7 +56,9 @@ function extractInvoiceText(text){
   }
   var taxable=amount('imponibile|totale[ \\t]+imponibile|base[ \\t]+imponibile','imponibile');
   var vat=amount('totale[ \\t]+iva|importo[ \\t]+iva|iva[ \\t]+importo','IVA');
-  var total=amount('totale(?:[ \\t]+documento|[ \\t]+fattura|[ \\t]+da[ \\t]+pagare)?|importo[ \\t]+totale','totale');
+  var total=amount('totale(?:[ \\t]+documento|[ \\t]+fattura)?|importo[ \\t]+totale','totale');
+  // Il netto da pagare puo' differire dal totale documento per ritenute o anticipi.
+  var payable=amount('totale[ \\t]+da[ \\t]+pagare|netto[ \\t]+a[ \\t]+pagare','totale da pagare');
   var rateMatch=t.match(/(?:aliquota(?:\s+iva)?|iva)\s*[:\s]*(\d{1,2}(?:[.,]\d+)?)\s*%/i);
   var reverse=/reverse\s*charge|inversione\s+contabile/i.test(t);
   var client=null;
@@ -95,7 +97,7 @@ function extractInvoiceText(text){
     cliente:client,cliente_stato:client?'Da verificare':'Cliente non individuato',
     imponibile:taxable,importo_iva:vat,
     aliquota_iva:rateMatch?Number(rateMatch[1].replace(',','.')):null,
-    reverse_charge:reverse,totale_documento:total,scadenza:due,
+    reverse_charge:reverse,totale_documento:total,totale_da_pagare:payable,scadenza:due,
     anomalie:missing,origine:'testo_fornito',richiede_conferma:true};
 }
 var api={parseItalianMoney:parseItalianMoney,parseDate:parseDate,extractInvoiceText:extractInvoiceText};
