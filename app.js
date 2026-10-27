@@ -1318,7 +1318,7 @@ function textDocs(text){const d=blank();d.text=text.slice(0,250000);const match=
     }else{
       const check=window.ITEInvoiceText.extractInvoiceText(text);
       if(check.tipo_documento){
-        const issues=check.anomalie.filter(x=>/discordanti|non coerente|data documento non valida/i.test(x));
+        const issues=check.anomalie.filter(x=>/discordanti|non coerente|data documento non valida|Numero nota di credito non individuato/i.test(x));
         if(check.numero_documento&&d.number&&check.numero_documento!==d.number)
           issues.push('Numero documento discordante tra due letture: verificare originale');
         // Una data citata prima dell'intestazione non deve sostituire la data della fattura.
