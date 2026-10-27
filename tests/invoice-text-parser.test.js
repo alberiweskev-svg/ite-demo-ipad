@@ -284,6 +284,22 @@ assert.ok(!accountingCredit.anomalie.some(x=>x.includes('Totale non coerente')),
 const accountingInvoice=extractInvoiceText('Fattura 702 del 27/10/2026\nTotale € 110,00');
 assert.equal(accountingInvoice.totale_documento,110,'Fatture positive invariate');
 
+
+const multipartInvoice=extractInvoiceText('Fattura 125/2026/A del 27/10/2026');
+assert.equal(multipartInvoice.tipo_documento,'fattura','Fattura con piu segmenti nel numero');
+assert.equal(multipartInvoice.numero_documento,'125/2026/A','Conservare tutto il numero fattura');
+assert.equal(multipartInvoice.data_emissione,'2026-10-27');
+const multipartCredit=extractInvoiceText('Nota di credito n. 8-2026/NC del 27/10/2026');
+assert.equal(multipartCredit.tipo_documento,'nota_credito','Nota TD04 con numero composto');
+assert.equal(multipartCredit.numero_documento,'8-2026/NC','Conservare il numero della nota');
+const multipartProforma=extractInvoiceText('Fattura 126/2026/PR del 27/10/2026');
+assert.equal(multipartProforma.tipo_documento,'proforma','Riconoscere il suffisso PR anche dopo altri segmenti');
+assert.equal(multipartProforma.numero_documento,'126/2026/PR');
+const multipartReference=extractInvoiceText('Riferimento fattura 125/2026/A del 27/10/2026');
+assert.equal(multipartReference.numero_documento,null,'Un riferimento con numero composto non e una testata');
+const multipartConflict=extractInvoiceText('Fattura 125/2026/A del 27/10/2026\\nFattura 125/2026/B del 27/10/2026'.replace('\\n','\n'));
+assert.ok(multipartConflict.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Segnalare numeri composti differenti');
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
 
 
