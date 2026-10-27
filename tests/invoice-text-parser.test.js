@@ -617,3 +617,21 @@ assert.equal(mixedInvalidDue.scadenza,null,'Non sostituire silenziosamente la pr
 assert.ok(mixedInvalidDue.anomalie.some(x=>x.includes('Scadenza pagamento non valida')));
 assert.ok(mixedInvalidDue.anomalie.some(x=>x.includes('Scadenze pagamento discordanti')));
 console.log('Invalid payment deadline guard: OK (synthetic fixtures)');
+
+
+// Regressione: il campo destinatario vuoto non deve diventare un identificativo fiscale
+// o una voce contabile. Tutti i dati qui sotto sono fittizi.
+for (const [label, followingLine] of [
+  ['partita IVA abbreviata', 'P.IVA: 00000000000'],
+  ['codice fiscale abbreviato', 'C.F.: ABCDEF00A00A000A'],
+  ['partita IVA estesa', 'Partita IVA 00000000000'],
+  ['codice fiscale esteso', 'Codice fiscale: ABCDEF00A00A000A'],
+  ['riga imponibile', 'Imponibile € 100,00']
+]) {
+  const doc=extractInvoiceText('Fattura 1001 del 27/10/2026\nDestinatario\n'+followingLine);
+  assert.equal(doc.cliente,null,'Non interpretare '+label+' come cliente');
+  assert.ok(doc.anomalie.includes('Cliente non individuato'),'Segnalare il destinatario assente: '+label);
+}
+const legitimateRecipient=extractInvoiceText('Fattura 1002 del 27/10/2026\nDestinatario: CLIENTE INVENTATO SRL');
+assert.equal(legitimateRecipient.cliente,'CLIENTE INVENTATO SRL','Un destinatario valido resta leggibile');
+console.log('Missing recipient metadata guard: OK (synthetic fixtures)');

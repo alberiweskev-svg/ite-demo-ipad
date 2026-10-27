@@ -85,7 +85,8 @@ function extractInvoiceText(text){
     if(!header)continue;
     var candidate=header[1].trim()||lines[j+1]||'';
     candidate=candidate.split(/\s{3,}|\s+copia\s+di\s+cortesia/i)[0].trim();
-    if(candidate&&!/fattura|copia\s+di\s+cortesia|oscurat|omissis|redatt/i.test(candidate)&&!/^[-*xX#█•.\s]+$/.test(candidate))client=candidate;
+    // Un destinatario vuoto non deve diventare una partita IVA o una voce contabile.
+    if(candidate&&!/^(?:p\.?\s*iva|partita\s+iva|c\.?\s*f\.?|codice\s+fiscale|pec|codice\s+destinatario|sdi|imponibile|totale|iva|scadenz[ae])(?=\s|:|=|$)/i.test(candidate)&&!/fattura|copia\s+di\s+cortesia|oscurat|omissis|redatt/i.test(candidate)&&!/^[-*xX#█•.\s]+$/.test(candidate))client=candidate;
     break;
   }
   var due=null;
