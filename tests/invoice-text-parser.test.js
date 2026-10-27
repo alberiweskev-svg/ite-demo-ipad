@@ -242,4 +242,25 @@ assert.ok(!referenceIsNotHeading.anomalie.some(x=>x.includes('Intestazioni docum
 const mixedDocumentHeadings=extractInvoiceText('Fattura 508 del 27/10/2026\nNota di credito 509 del 27/10/2026');
 assert.ok(mixedDocumentHeadings.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Segnalare intestazioni di tipo diverso');
 
+
+const payableSeparate=extractInvoiceText([
+  'Fattura 610 del 27/10/2026',
+  'Destinatario: CLIENTE FITTIZIO SRL',
+  'Imponibile € 100,00',
+  'Totale IVA € 22,00',
+  'Totale documento € 122,00',
+  'Totale da pagare € 102,00'
+].join('\n'));
+assert.equal(payableSeparate.totale_documento,122,'Non confondere totale documento con netto da pagare');
+assert.equal(payableSeparate.totale_da_pagare,102,'Estrarre il netto da pagare separatamente');
+assert.ok(!payableSeparate.anomalie.some(x=>x.includes('Valori discordanti per totale:')),'Totale e netto diversi non sono automaticamente un conflitto');
+const onlyPayable=extractInvoiceText('Fattura 611 del 27/10/2026\nTotale da pagare € 50,00');
+assert.equal(onlyPayable.totale_documento,null,'Il solo netto da pagare non e un totale documento');
+assert.equal(onlyPayable.totale_da_pagare,50);
+assert.ok(onlyPayable.anomalie.includes('Totale non individuato'));
+const repeatedPayable=extractInvoiceText('Fattura 612 del 27/10/2026\nTotale € 80,00\nTotale da pagare € 60,00\nNetto a pagare € 55,00');
+assert.equal(repeatedPayable.totale_documento,80);
+assert.equal(repeatedPayable.totale_da_pagare,60);
+assert.ok(repeatedPayable.anomalie.includes('Valori discordanti per totale da pagare: verificare originale'));
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
