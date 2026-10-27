@@ -80,6 +80,7 @@ function extractInvoiceText(text){
   var rateMatch=t.match(/(?:aliquota(?:\s+iva)?|iva)\s*[:\s]*(\d{1,2}(?:[.,]\d+)?)\s*%/i);
   var reverse=/reverse\s*charge|inversione\s+contabile/i.test(t);
   var client=null;
+  var recipientCandidates=[];
   for(var j=0;j<lines.length;j++){
     var header=lines[j].match(/^(?:destinatario|cliente|cessionario\s*\/\s*committente|intestatario)\s*:?\s*(.*)$/i);
     if(!header)continue;
@@ -90,8 +91,10 @@ function extractInvoiceText(text){
     // In particolare, dopo "Destinatario" vuoto non associare una via o un telefono.
     var nonRecipientLine=/^(?:indirizzo|telefono|tel\.?|cellulare|e-?mail|iban|cap|citt[aà]|provincia|pdr|pod|tipo\s+documento|nota\s+(?:di\s+)?(?:credito|accredito)|proforma)(?=\s|:|=|$)/i.test(candidate)
       || /^(?:via|viale|piazza|corso|largo|vicolo|strada)\s+.*\b\d+[a-z]?\b/i.test(candidate);
-    if(candidate&&!nonRecipientLine&&!/^(?:p\.?\s*iva|partita\s+iva|c\.?\s*f\.?|codice\s+fiscale|pec|codice\s+destinatario|sdi|imponibile|totale|iva|scadenz[ae])(?=\s|:|=|$)/i.test(candidate)&&!/fattura|copia\s+di\s+cortesia|oscurat|omissis|redatt/i.test(candidate)&&!/^[-*xX#█•.\s]+$/.test(candidate))client=candidate;
-    break;
+    if(candidate&&!nonRecipientLine&&!/^(?:p\.?\s*iva|partita\s+iva|c\.?\s*f\.?|codice\s+fiscale|pec|codice\s+destinatario|sdi|imponibile|totale|iva|scadenz[ae])(?=\s|:|=|$)/i.test(candidate)&&!/fattura|copia\s+di\s+cortesia|oscurat|omissis|redatt/i.test(candidate)&&!/^[-*xX#█•.\s]+$/.test(candidate)){
+      if(client===null)client=candidate;
+      recipientCandidates.push(candidate);
+    }
   }
   var due=null;
   var dueDates=[];
@@ -105,6 +108,13 @@ function extractInvoiceText(text){
   }
   if(dueDates.length)due=dueDates[0];
   var missing=amountConflicts.slice();
+  // Intestazioni destinatario discordanti possono associare il documento al cliente sbagliato.
+  // Conserva la prima lettura ma richiedi verifica, senza collegamenti automatici.
+  if(recipientCandidates.length>1){
+    var firstRecipient=recipientCandidates[0].replace(/\s+/g,' ').trim().toUpperCase();
+    if(recipientCandidates.some(function(value){return value.replace(/\s+/g,' ').trim().toUpperCase()!==firstRecipient;}))
+      missing.push('Destinatari discordanti: verificare originale');
+  }
   if(invalidDueDate)missing.push('Scadenza pagamento non valida: verificare originale');
   // Multiple different payment deadlines must not be silently reduced to the first one.
   if(dueDates.length>1&&dueDates.some(function(value){return value!==dueDates[0];}))
