@@ -557,3 +557,35 @@ const numberedCredit=importText('Nota di credito 303 del 27/10/2026\nTipo docume
 assert.ok(!numberedCredit.notes.some(n=>n.includes('Numero nota di credito non individuato')),
   'Nota numerata non deve generare falso avviso');
 console.log('Credit note missing number import guard: OK (synthetic fixtures)');
+
+
+// Regressione: scadenze di pagamento discordanti nella stessa fattura.
+// Conservare la prima lettura, ma richiedere una verifica esplicita.
+const conflictingDeadlines=extractInvoiceText([
+  'Fattura 991 del 27/10/2026',
+  'Destinatario: CLIENTE FITTIZIO SCADENZE SRL',
+  'Imponibile € 100,00',
+  'Totale IVA € 22,00',
+  'Totale documento € 122,00',
+  'Scadenza pagamento: 30/10/2026',
+  'Scadenza pagamento: 31/10/2026'
+].join('\n'));
+assert.equal(conflictingDeadlines.scadenza,'2026-10-30','Prima scadenza conservata');
+assert.ok(conflictingDeadlines.anomalie.includes('Scadenze pagamento discordanti: verificare originale'),
+  'Scadenze diverse devono essere segnalate');
+const matchingDeadlines=extractInvoiceText(
+  'Fattura 992 del 27/10/2026\nScadenza pagamento: 30.10.2026\nScadenza pagamento: 30/10/2026'
+);
+assert.equal(matchingDeadlines.scadenza,'2026-10-30');
+assert.ok(!matchingDeadlines.anomalie.some(x=>x.includes('Scadenze pagamento discordanti')),
+  'Date equivalenti con separatori diversi non devono generare falsi conflitti');
+const oneDeadline=extractInvoiceText('Fattura 993 del 27/10/2026\nScadenza pagamento: 30/10/2026');
+assert.ok(!oneDeadline.anomalie.some(x=>x.includes('Scadenze pagamento discordanti')),
+  'Una sola scadenza non e un conflitto');
+const integratedDeadlineConflict=importText(
+  'Fattura 994 del 27/10/2026\nScadenza pagamento: 30/10/2026\nScadenza pagamento: 31/10/2026'
+)[0];
+assert.equal(integratedDeadlineConflict.type,'Da verificare');
+assert.ok(integratedDeadlineConflict.notes.some(x=>x.includes('Scadenze pagamento discordanti')),
+  'Il controllo del gestionale deve mostrare il conflitto');
+console.log('Conflicting payment deadlines: OK (synthetic fixtures)');

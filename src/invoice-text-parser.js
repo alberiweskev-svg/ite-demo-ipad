@@ -89,9 +89,15 @@ function extractInvoiceText(text){
     break;
   }
   var due=null;
-  var dueMatch=t.match(/(?:^|\n)\s*scadenz[ae](?:\s+pagamento)?\s*:?\s*\n?\s*(\d{2}[\/.-]\d{2}[\/.-]\d{4})/im);
-  if(dueMatch)due=parseDate(dueMatch[1]);
+  var dueDates=[];
+  var duePattern=/(?:^|\n)\s*scadenz[ae](?:\s+pagamento)?\s*:?\s*\n?\s*(\d{2}[\/.-]\d{2}[\/.-]\d{4})/gim;
+  var dueMatch;
+  while((dueMatch=duePattern.exec(t))!==null)dueDates.push(parseDate(dueMatch[1]));
+  if(dueDates.length)due=dueDates[0];
   var missing=amountConflicts.slice();
+  // Multiple different payment deadlines must not be silently reduced to the first one.
+  if(dueDates.length>1&&dueDates.some(function(value){return value!==dueDates[0];}))
+    missing.push('Scadenze pagamento discordanti: verificare originale');
   // Repeated headings may be harmless copies; conflicting headings require manual review.
   // Never silently select a different document number or date.
   var headings=invoices.map(function(m){return 'fattura:'+m[1].toUpperCase()+':'+m[2].replace(/[\/.]/g,'-');})
