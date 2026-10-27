@@ -470,3 +470,47 @@ assert.equal(conflictingTd04Import.type,'Da verificare','Una fattura con TD04 co
 assert.ok(conflictingTd04Import.notes.some(n=>n.includes('Intestazioni documento discordanti')));
 
 console.log('Invoice import guard: OK (synthetic fixtures)');
+
+
+// Regressione: proforma con intestazione autonoma, anche senza suffisso /PR.
+const explicitProformaHeading=extractInvoiceText([
+  'Proforma n. 940 del 27/10/2026',
+  'Destinatario: CLIENTE SINTETICO PROFORMA SRL',
+  'Imponibile € 100,00',
+  'Totale IVA € 10,00',
+  'Totale documento € 110,00'
+].join('\n'));
+assert.equal(explicitProformaHeading.tipo_documento,'proforma');
+assert.equal(explicitProformaHeading.numero_documento,'940');
+assert.equal(explicitProformaHeading.data_emissione,'2026-10-27');
+assert.equal(explicitProformaHeading.totale_documento,110);
+assert.deepEqual(explicitProformaHeading.anomalie,[],'Proforma coerente non produce anomalie');
+assert.equal(explicitProformaHeading.richiede_conferma,true,'La proforma resta soggetta a verifica');
+
+const invoiceProformaHeading=extractInvoiceText('Fattura proforma n. 941/2026 del 27.10.2026');
+assert.equal(invoiceProformaHeading.tipo_documento,'proforma');
+assert.equal(invoiceProformaHeading.numero_documento,'941/2026');
+assert.equal(invoiceProformaHeading.data_emissione,'2026-10-27');
+
+const courtesyProformaHeading=extractInvoiceText('Copia di cortesia Proforma 942 del 27/10/2026');
+assert.equal(courtesyProformaHeading.tipo_documento,'proforma');
+assert.equal(courtesyProformaHeading.numero_documento,'942');
+
+const referencedProformaOnly=extractInvoiceText('Riferimento proforma n. 943 del 27/10/2026');
+assert.equal(referencedProformaOnly.tipo_documento,null,'Un riferimento a proforma non e un documento autonomo');
+assert.equal(referencedProformaOnly.numero_documento,null,'Non usare il numero della proforma richiamata');
+
+const mixedInvoiceProforma=extractInvoiceText('Proforma 944 del 27/10/2026\nFattura 945 del 27/10/2026');
+assert.ok(mixedInvoiceProforma.anomalie.includes('Intestazioni documento discordanti: verificare originale'),
+  'Una proforma e una fattura diverse richiedono verifica');
+const mixedCreditProforma=extractInvoiceText('Proforma 946 del 27/10/2026\nNota di credito 947 del 27/10/2026');
+assert.equal(mixedCreditProforma.tipo_documento,'nota_credito');
+assert.ok(mixedCreditProforma.anomalie.includes('Intestazioni documento discordanti: verificare originale'));
+
+const integratedProforma=importText('Proforma n. 948 del 27/10/2026\nTotale documento € 110,00')[0];
+assert.equal(integratedProforma.number,'948','Conservare il numero proforma letto nel gestionale');
+assert.equal(integratedProforma.total,110,'Conservare il totale proforma');
+assert.ok(!integratedProforma.notes.some(n=>n.includes('Intestazioni documento discordanti')),
+  'Nessun falso conflitto nella lettura integrata');
+
+console.log('Explicit proforma headings: OK (synthetic fixtures)');
