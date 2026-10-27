@@ -1321,6 +1321,9 @@ function textDocs(text){const d=blank();d.text=text.slice(0,250000);const match=
         const issues=check.anomalie.filter(x=>/discordanti|non coerente|data documento non valida/i.test(x));
         if(check.numero_documento&&d.number&&check.numero_documento!==d.number)
           issues.push('Numero documento discordante tra due letture: verificare originale');
+        // Una data citata prima dell'intestazione non deve sostituire la data della fattura.
+        if(check.data_emissione&&d.date&&check.data_emissione!==d.date)
+          issues.push('Data documento discordante tra due letture: verificare originale');
         // Il netto da pagare non e' un totale documento, anche se e' l'unico importo presente.
         if(check.totale_documento===null&&check.totale_da_pagare!==null)
           issues.push('Totale documento assente: presente solo netto da pagare; verificare originale');

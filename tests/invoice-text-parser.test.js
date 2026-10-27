@@ -339,7 +339,7 @@ assert.match(appSource,/docs=await checkedTextDocs\(await ocr\(url\)\)/);
 const sandbox={
   window:{ITEInvoiceText:{extractInvoiceText}},
   blank:()=>({type:'Da verificare',number:'',date:'',net:null,tax:null,total:null,party:{name:''},lines:[],notes:[]}),
-  norm:()=>'',date:()=>'',num:value=>value?Number(String(value).replace(/\./g,'').replace(',','.')):null,
+  norm:()=>'',date:parseDate,num:value=>value?Number(String(value).replace(/\./g,'').replace(',','.')):null,
   windowsDocumentType:text=>/^\s*nota di credito/im.test(text)?'Nota credito':/^\s*fattura/im.test(text)?'Fattura':'',
   windowsProformaNumber:()=>'',windowsPartyBlocks:()=>({}),direction:()=>'',partyText:()=>({}),copy:value=>value
 };
@@ -377,4 +377,25 @@ assert.ok(!payableBeforeTotal.notes.some(n=>n.includes('Totale documento assente
 const totalBeforePayable=importText('Fattura 807 del 27/10/2026\nTotale documento € 122,00\nTotale da pagare € 102,00')[0];
 assert.equal(totalBeforePayable.total,122,'Ordine inverso: totale documento invariato');
 assert.ok(!totalBeforePayable.notes.some(n=>n.includes('Totale documento discordante tra due letture')),'Il netto diverso non e un conflitto');
+// Una data di contratto o riferimento che precede l'intestazione non e' data emissione.
+const earlierContractDate=importText([
+  'Contratto del 01/10/2026',
+  'Fattura 905 del 27/10/2026',
+  'Imponibile € 100,00',
+  'Totale IVA € 10,00',
+  'Totale documento € 110,00'
+].join('\n'))[0];
+assert.equal(earlierContractDate.date,'2026-10-01','Riprodurre la data sbagliata letta dal parser principale');
+assert.equal(earlierContractDate.number,'905','Numero documento invariato');
+assert.equal(earlierContractDate.total,110,'Importo originale invariato');
+assert.equal(earlierContractDate.type,'Da verificare','Non accettare una data emissione discordante');
+assert.ok(earlierContractDate.notes.some(n=>n.includes('Data documento discordante tra due letture')),'Avviso esplicito sulla data');
+const matchingIssueDate=importText([
+  'Fattura 906 del 27/10/2026',
+  'Contratto del 01/10/2026',
+  'Totale documento € 110,00'
+].join('\n'))[0];
+assert.equal(matchingIssueDate.date,'2026-10-27','La data corretta resta invariata');
+assert.ok(!matchingIssueDate.notes.some(n=>n.includes('Data documento discordante tra due letture')),'Nessun falso allarme sulla data corretta');
+
 console.log('Invoice import guard: OK (synthetic fixtures)');
