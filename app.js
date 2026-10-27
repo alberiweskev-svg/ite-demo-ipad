@@ -1308,8 +1308,33 @@ function textDocs(text){const d=blank();d.text=text.slice(0,250000);const match=
  if(base==='Proforma')d.notes.push('Proforma non fiscale: non incrementa il fatturato e non dimostra incassi o pagamenti.');
  if(!direction(d.seller,d.buyer)&&base)d.notes.push('Direzione da verificare: emittente e destinatario non identificati con certezza.');}
 
- if(d.type.startsWith('Di.Co.')){const at=text.search(/committente|proprietario/i);if(at>=0)d.party={...partyText(text.slice(at)),name:d.party.name};const technical={serial:match(/(?:matricola|numero\s+di\s+serie)\s*[:–-]\s*([^\n]+)/i),brand:match(/marca\s*[:–-]\s*([^\n]+)/i),model:match(/modello\s*[:–-]\s*([^\n]+)/i),installationAddress:match(/(?:impianto\s+(?:sito|ubicato)\s+in|ubicazione\s*[:–-])\s*([^\n]+)/i)};d.technical=technical;}d.notes.push('Testo estratto: controlla soggetti, numero, importi e collegamenti.');return [d]}
+ if(d.type.startsWith('Di.Co.')){const at=text.search(/committente|proprietario/i);if(at>=0)d.party={...partyText(text.slice(at)),name:d.party.name};const technical={serial:match(/(?:matricola|numero\s+di\s+serie)\s*[:–-]\s*([^\n]+)/i),brand:match(/marca\s*[:–-]\s*([^\n]+)/i),model:match(/modello\s*[:–-]\s*([^\n]+)/i),installationAddress:match(/(?:impianto\s+(?:sito|ubicato)\s+in|ubicazione\s*[:–-])\s*([^\n]+)/i)};d.technical=technical;}
+  // Controllo conservativo del parser TD04/fatture: non sovrascrive mai i dati letti.
+  // In caso di ambiguita' la scheda resta da verificare, con originale intatto.
+  if(window.ITEInvoiceText&&!d.type.startsWith('Di.Co.')){
+    if(text.length>1000000){
+      d.type='Da verificare';
+      d.notes.push('Controllo contabile non eseguito: testo oltre il limite di sicurezza.');
+    }else{
+      const check=window.ITEInvoiceText.extractInvoiceText(text);
+      if(check.tipo_documento){
+        const issues=check.anomalie.filter(x=>/discordanti|non coerente|data documento non valida/i.test(x));
+        if(check.numero_documento&&d.number&&check.numero_documento!==d.number)
+          issues.push('Numero documento discordante tra due letture: verificare originale');
+        for(const [key,field,label] of [['imponibile','net','imponibile'],['importo_iva','tax','IVA'],['totale_documento','total','totale']]){
+          if(check[key]!==null&&check[key]<0&&(d[field]===null||d[field]>=0))
+            issues.push('Segno negativo '+label+' non confermato dalla lettura principale: verificare originale');
+        }
+        if(issues.length){
+          d.type='Da verificare';
+          d.notes.push(...issues.map(x=>'Controllo contabile: '+x));
+        }
+      }
+    }
+  }
+  d.notes.push('Testo estratto: controlla soggetti, numero, importi e collegamenti.');return [d]}
 const libraries=new Map();function loadScript(url,global){if(window[global])return Promise.resolve(window[global]);if(libraries.has(url))return libraries.get(url);const p=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=url;script.onload=()=>resolve(window[global]);script.onerror=()=>{libraries.delete(url);script.remove();reject(Error('Motore di lettura non disponibile. Verifica la connessione e riprova.'))};document.head.append(script)});libraries.set(url,p);return p}
+async function checkedTextDocs(text){await loadScript('./src/invoice-text-parser.js','ITEInvoiceText');return textDocs(text)}
 async function ocr(image){if(!ocrWorker){const T=await loadScript('./vendor/tesseract.min.js','Tesseract');ocrWorker=await T.createWorker('ita',1,{workerPath:new URL('./vendor/ocr-worker.min.js',location.href).href,corePath:new URL('./vendor/tesseract-core-lstm.wasm.js',location.href).href,langPath:new URL('./vendor/tessdata/',location.href).href,gzip:true,logger:m=>{if(m.status==='recognizing text')say('Lettura scansione: '+Math.round(m.progress*100)+'%')}})}const r=await ocrWorker.recognize(image);return r.data.text}
 async function pdfText(bytes){let lib=window.ITEPdfLib;if(!lib){lib=await import('./vendor/pdf.mjs');lib.GlobalWorkerOptions.workerSrc='./vendor/pdf.worker.mjs';window.ITEPdfLib=lib}const pdf=await lib.getDocument({data:bytes.slice(),isEvalSupported:false,standardFontDataUrl:new URL('./vendor/pdf-fonts/',location.href).href}).promise;let result='';try{if(pdf.numPages>100)throw Error('PDF oltre 100 pagine: suddividilo prima di importare.');for(let i=1;i<=pdf.numPages;i++){say('Lettura PDF: pagina '+i+' di '+pdf.numPages);const page=await pdf.getPage(i),text=await page.getTextContent(),lines=new Map();for(const item of text.items){if(!item.str)continue;const y=Math.round(item.transform[5]/3)*3;if(!lines.has(y))lines.set(y,[]);lines.get(y).push(item)}let pageText=[...lines].sort((a,b)=>b[0]-a[0]).map(([,items])=>items.sort((a,b)=>a.transform[4]-b.transform[4]).map(x=>x.str).join(' ')).join('\n');if(pageText.replace(/\s/g,'').length<25){const view=page.getViewport({scale:Math.min(2,2200/page.getViewport({scale:1}).width)}),canvas=document.createElement('canvas');canvas.width=view.width;canvas.height=view.height;await page.render({canvasContext:canvas.getContext('2d'),viewport:view}).promise;pageText=await ocr(canvas);canvas.width=canvas.height=1}result+=pageText+'\n';page.cleanup()}}finally{await pdf.destroy()}return result}
 function inferLinks(d){if(['Anagrafiche','Articoli','Da verificare'].includes(d.type))return d;const core=ITE.snapshot(),match=entityMatch(d.party||{},core);if(match.row&&!match.conflict){d.subjectId=String(match.row.id);if(/vendita|DDT emesso|Di.Co./.test(d.type))d.clientId=d.subjectId}const evidence=norm([d.text||'',d.technical?.installationAddress||'',...d.lines.map(l=>l.description||'')].join(' '));if(d.clientId){const sites=core.immobili.filter(p=>same(p.client_id,d.clientId)&&norm(p.name).length>8&&evidence.includes(norm(p.name)));if(sites.length===1)d.propertyId=String(sites[0].id);const works=core.cantieri.filter(p=>same(p.client_id,d.clientId)&&norm(p.name).length>6&&evidence.includes(norm(p.name))&&(!d.propertyId||!p.immobile_id||same(p.immobile_id,d.propertyId)));if(works.length===1)d.siteId=String(works[0].id)}if(d.technical?.serial){const devices=core.apparecchiature.filter(a=>norm(a.serial)===norm(d.technical.serial));if(devices.length===1){const device=devices[0],plant=core.impianti.find(p=>same(p.id,device.impianto_id)),property=core.immobili.find(p=>same(p.id,plant?.immobile_id));if(property&&(!d.clientId||same(d.clientId,property.client_id))){d.deviceId=String(device.id);d.plantId=String(plant.id);d.propertyId=String(property.id);d.clientId=String(property.client_id)}}}return d}
@@ -1317,9 +1342,9 @@ async function fileRead(file){if(file.size>20*1024*1024)throw Error('File oltre 
  if(ext==='xml')docs=xmlDocs(new TextDecoder().decode(bytes));
  else if(['csv','tsv'].includes(ext))docs=analyzeMatrix(readDelimited(decodeTable(bytes)).matrix,file.name);
  else if(['xlsx','xls','ods'].includes(ext)){const X=await loadScript('./vendor/xlsx.full.min.js','XLSX'),book=X.read(bytes,{type:'array',cellDates:false,cellFormula:true,cellNF:true});docs=workbookDocs(book,X);}
- else if(ext==='pdf')docs=textDocs(await pdfText(bytes));
- else if(['png','jpg','jpeg','webp','bmp','tif','tiff'].includes(ext)){const url=URL.createObjectURL(file);try{docs=textDocs(await ocr(url))}finally{URL.revokeObjectURL(url)}}
- else if(['txt','json'].includes(ext)){const text=new TextDecoder().decode(bytes);if(ext==='json')throw Error('Per i backup JSON usa Backup e aggiornamenti; qui importa XML, PDF, immagini o tabelle.');docs=textDocs(text)}
+ else if(ext==='pdf')docs=await checkedTextDocs(await pdfText(bytes));
+ else if(['png','jpg','jpeg','webp','bmp','tif','tiff'].includes(ext)){const url=URL.createObjectURL(file);try{docs=await checkedTextDocs(await ocr(url))}finally{URL.revokeObjectURL(url)}}
+ else if(['txt','json'].includes(ext)){const text=new TextDecoder().decode(bytes);if(ext==='json')throw Error('Per i backup JSON usa Backup e aggiornamenti; qui importa XML, PDF, immagini o tabelle.');docs=await checkedTextDocs(text)}
  else{const d=blank();d.notes.push('Formato non letto automaticamente: originale conservabile in Da verificare.');docs=[d]}
  return Promise.all(docs.map(async(d,sourceIndex)=>{const item={...inferLinks(d),sourceIndex,fileId:stored.id,file:stored,sourceName:file.name,created:when()};detectTechnical(item);if(item.type==='Articoli')prepareWindowsCatalog(item,file.name);return attachLearning(item)}))}
 async function expandFiles(files){let total=0;const out=[];for(const file of files){if(/\.zip$/i.test(file.name)){const Z=await loadScript('./vendor/jszip.min.js','JSZip'),zip=await Z.loadAsync(await file.arrayBuffer());for(const entry of Object.values(zip.files)){if(entry.dir||entry.name.startsWith('__MACOSX/')||entry.name.split('/').some(x=>x.startsWith('.')))continue;if(/\.zip$/i.test(entry.name))throw Error('ZIP annidati non supportati.');const declared=entry._data?.uncompressedSize;if(declared>20*1024*1024||total+(declared||0)>100*1024*1024)throw Error('ZIP troppo grande: dividi il lotto.');const bytes=await entry.async('uint8array');total+=bytes.length;if(bytes.length>20*1024*1024||total>100*1024*1024)throw Error('ZIP troppo grande: dividi il lotto.');out.push(new File([bytes],entry.name,{type:''}));if(out.length>500)throw Error('Massimo 500 file per lotto.')}}else{total+=file.size;out.push(file)}if(total>100*1024*1024||out.length>500)throw Error('Lotto oltre 100 MB o 500 file: dividilo.')}return out}
