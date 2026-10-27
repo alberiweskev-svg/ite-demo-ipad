@@ -34,7 +34,9 @@ function extractInvoiceText(text){
   var credits=[], creditCandidate;
   while((creditCandidate=creditPattern.exec(t))!==null)credits.push(creditCandidate);
   var credit=credits[0]||null;
-  var isCredit=!!credit||/(?:^|\n)\s*(?:nota\s+(?:di\s+)?(?:credito|accredito)\b|TD04\b)|\btipo\s*documento\s*:?\s*TD04\b/im.test(t);
+  // Un riferimento a una TD04 in una fattura non rende la fattura una nota di credito.
+  // Il codice TD04 deve comparire come intestazione o nel campo tipo documento.
+  var isCredit=!!credit||/(?:^|\n)\s*(?:nota\s+(?:di\s+)?(?:credito|accredito)\b|TD04\b|tipo\s*documento\s*:?\s*TD04\b)/im.test(t);
   var documentMatch=credit||(isCredit?null:invoice);
   var issueDate=documentMatch?parseDate(documentMatch[2]):null;
   var number=documentMatch?documentMatch[1]:null;

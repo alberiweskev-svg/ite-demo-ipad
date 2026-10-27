@@ -300,6 +300,29 @@ assert.equal(multipartReference.numero_documento,null,'Un riferimento con numero
 const multipartConflict=extractInvoiceText('Fattura 125/2026/A del 27/10/2026\\nFattura 125/2026/B del 27/10/2026'.replace('\\n','\n'));
 assert.ok(multipartConflict.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Segnalare numeri composti differenti');
 
+
+// Regressione: TD04 richiamata in fattura non deve cambiare la classificazione.
+const invoiceRefersToTd04=extractInvoiceText([
+  'Fattura 901 del 27/10/2026',
+  'Destinatario: CLIENTE FITTIZIO SRL',
+  'Riferimento documento TD04 n. 44 del 01/10/2026',
+  'Imponibile € 100,00',
+  'Totale IVA € 22,00',
+  'Totale documento € 122,00'
+].join('\n'));
+assert.equal(invoiceRefersToTd04.tipo_documento,'fattura','Una TD04 citata non modifica il tipo documento');
+assert.equal(invoiceRefersToTd04.numero_documento,'901','Conservare il numero fattura');
+assert.equal(invoiceRefersToTd04.data_emissione,'2026-10-27','Conservare la data fattura');
+assert.equal(invoiceRefersToTd04.totale_documento,122,'Conservare il totale fattura');
+const invoiceWithTd04Description=extractInvoiceText('Descrizione: riferimento a TD04 precedente\nFattura 902 del 27/10/2026');
+assert.equal(invoiceWithTd04Description.tipo_documento,'fattura','Una descrizione TD04 non e una testata');
+assert.equal(invoiceWithTd04Description.numero_documento,'902');
+const genuineTd04Field=extractInvoiceText('Tipo documento: TD04\nRiferimento fattura 22 del 25/10/2026');
+assert.equal(genuineTd04Field.tipo_documento,'nota_credito','Il campo Tipo documento TD04 resta valido');
+assert.equal(genuineTd04Field.numero_documento,null,'Non usare il numero della fattura richiamata');
+const genuineTd04Header=extractInvoiceText('TD04\nRiferimento fattura 23 del 25/10/2026');
+assert.equal(genuineTd04Header.tipo_documento,'nota_credito','Intestazione TD04 autonoma valida');
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
 
 
