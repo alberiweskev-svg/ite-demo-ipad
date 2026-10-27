@@ -336,6 +336,28 @@ assert.ok(!ordinaryInvoice907.anomalie.some(x=>x.includes('Intestazioni document
 const ordinaryCredit907=extractInvoiceText('Nota di credito 907 del 27/10/2026');
 assert.ok(!ordinaryCredit907.anomalie.some(x=>x.includes('Intestazioni documento discordanti')));
 
+// Regressione: il tipo TD01 contraddice una nota di credito esplicita.
+const creditWithTd01=extractInvoiceText([
+  'Nota di credito 920 del 27/10/2026',
+  'Tipo documento: TD01',
+  'Destinatario: CLIENTE FITTIZIO GAMMA SRL',
+  'Imponibile € 100,00',
+  'Totale IVA € 22,00',
+  'Totale documento € 122,00'
+].join('\\n'.replace('\\n','\n')));
+assert.equal(creditWithTd01.tipo_documento,'nota_credito');
+assert.equal(creditWithTd01.numero_documento,'920');
+assert.equal(creditWithTd01.totale_documento,122,'Preservare il totale originale');
+assert.ok(creditWithTd01.anomalie.includes('Intestazioni documento discordanti: verificare originale'));
+const creditWithTd04=extractInvoiceText('Nota di credito 921 del 27/10/2026\nTipo documento: TD04');
+assert.ok(!creditWithTd04.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Nota e TD04 coerenti');
+const invoiceWithTd01=extractInvoiceText('Fattura 922 del 27/10/2026\nTipo documento: TD01');
+assert.ok(!invoiceWithTd01.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Fattura e TD01 coerenti');
+const twoDeclaredTypes=extractInvoiceText('Tipo documento: TD01\nTipo documento: TD04');
+assert.ok(twoDeclaredTypes.anomalie.includes('Intestazioni documento discordanti: verificare originale'),'Tipi dichiarati incompatibili');
+const repeatedDeclaredType=extractInvoiceText('Tipo documento: TD04\nTipo documento: TD04');
+assert.ok(!repeatedDeclaredType.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Duplicati identici non sono un conflitto');
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
 
 
