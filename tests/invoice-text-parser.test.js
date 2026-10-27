@@ -159,4 +159,24 @@ assert.equal(unicodeMinusCredit.totale_documento,-110,'Non perdere totale negati
 assert.deepEqual(unicodeMinusCredit.anomalie,[],'Nessuna anomalia fittizia per importi coerenti');
 assert.equal(extractInvoiceText('Fattura 27 del 27/10/2026\nTotale € 110,00').totale_documento,110,'Fattura positiva invariata');
 
+
+const invalidInvoiceDate=extractInvoiceText([
+  'Fattura 202 del 31/02/2026',
+  'Destinatario: CLIENTE DEMO SRL',
+  'Imponibile € 100,00',
+  'Totale IVA € 10,00',
+  'Totale € 110,00'
+].join('\n'));
+assert.equal(invalidInvoiceDate.numero_documento,'202','Conservare il numero del documento');
+assert.equal(invalidInvoiceDate.data_emissione,null,'Non accettare una data impossibile');
+assert.ok(invalidInvoiceDate.anomalie.includes('Data documento non valida: verificare originale'),'Segnalare esplicitamente la data impossibile');
+assert.equal(invalidInvoiceDate.totale_documento,110,'Non alterare gli importi');
+const leapDate=extractInvoiceText('Fattura 203 del 29/02/2024');
+assert.equal(leapDate.data_emissione,'2024-02-29','Accettare il 29 febbraio di anno bisestile');
+assert.ok(!leapDate.anomalie.some(x=>x.includes('Data documento non valida')),'Non segnalare date corrette');
+const invalidCreditDate=extractInvoiceText('Nota di credito 204 del 31/11/2026');
+assert.equal(invalidCreditDate.tipo_documento,'nota_credito');
+assert.equal(invalidCreditDate.data_emissione,null);
+assert.ok(invalidCreditDate.anomalie.some(x=>x.includes('Data documento non valida')),'Segnalare date impossibili anche nelle TD04');
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
