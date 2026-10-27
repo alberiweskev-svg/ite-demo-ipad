@@ -17,7 +17,17 @@ function extractInvoiceText(text){
   if(typeof text!=='string'||text.length>1000000)throw new Error('Testo non valido o troppo grande');
   var t=text.replace(/\r/g,'').normalize('NFKC');
   var lines=t.split('\n').map(function(x){return x.trim();}).filter(Boolean);
-  var invoice=t.match(/(?:copia\s+di\s+cortesia\s+)?fattura\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)?)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/i);
+  // Only accept an invoice heading, not a referenced invoice in a credit note or attachment.
+  // A courtesy-copy heading may appear after the recipient name on the same line.
+  var invoicePattern=/(?:copia[ \t]+di[ \t]+cortesia[ \t]+)?fattura[ \t]*(?:n(?:r|°|º|\.)*\.?[ \t]*)?(\d+(?:[\/-][a-z0-9]+)?)[ \t]*(?:del|data)[ \t]*(\d{2}[\/-]\d{2}[\/-]\d{4})/gi;
+  var invoice=null, invoiceCandidate;
+  while((invoiceCandidate=invoicePattern.exec(t))!==null){
+    var prefix=t.slice(t.lastIndexOf('\n',invoiceCandidate.index-1)+1,invoiceCandidate.index).trim();
+    if(!prefix||/^copia[ \t]+di[ \t]+cortesia\b/i.test(invoiceCandidate[0])){
+      invoice=invoiceCandidate;
+      break;
+    }
+  }
   var credit=t.match(/(?:^|\n)\s*(?:copia\s+di\s+cortesia\s+)?nota\s+(?:di\s+)?(?:credito|accredito)\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)?)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/im);
   var isCredit=!!credit||/(?:^|\n)\s*(?:nota\s+(?:di\s+)?(?:credito|accredito)\b|TD04\b)|\btipo\s*documento\s*:?\s*TD04\b/im.test(t);
   var documentMatch=credit||(isCredit?null:invoice);
