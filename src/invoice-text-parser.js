@@ -30,6 +30,16 @@ function extractInvoiceText(text){
     }
   }
   var invoice=invoices[0]||null;
+  // Le proforme possono avere una propria intestazione, senza suffisso /PR.
+  // Ignora i semplici riferimenti a proforme presenti nelle descrizioni.
+  var proformaPattern=/(?:copia[ \t]+di[ \t]+cortesia[ \t]+)?(?:fattura[ \t]+)?proforma[ \t]*(?:n(?:r|°|º|\.)*\.?[ \t]*)?(\d+(?:[\/-][a-z0-9]+)*)[ \t]*(?:del|data)[ \t]*(\d{2}[\/.-]\d{2}[\/.-]\d{4})/gi;
+  var proformas=[], proformaCandidate;
+  while((proformaCandidate=proformaPattern.exec(t))!==null){
+    var proformaPrefix=t.slice(t.lastIndexOf('\n',proformaCandidate.index-1)+1,proformaCandidate.index).trim();
+    if(!proformaPrefix||/^copia[ \t]+di[ \t]+cortesia\b/i.test(proformaCandidate[0]))
+      proformas.push(proformaCandidate);
+  }
+  var proformaHeading=proformas[0]||null;
   var creditPattern=/(?:^|\n)\s*(?:copia\s+di\s+cortesia\s+)?nota\s+(?:di\s+)?(?:credito|accredito)\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)*)\s*(?:del|data)\s*(\d{2}[\/.-]\d{2}[\/.-]\d{4})/gim;
   var credits=[], creditCandidate;
   while((creditCandidate=creditPattern.exec(t))!==null)credits.push(creditCandidate);
@@ -37,10 +47,10 @@ function extractInvoiceText(text){
   // Un riferimento a una TD04 in una fattura non rende la fattura una nota di credito.
   // Il codice TD04 deve comparire come intestazione o nel campo tipo documento.
   var isCredit=!!credit||/(?:^|\n)\s*(?:nota\s+(?:di\s+)?(?:credito|accredito)\b|TD04\b|tipo\s*documento\s*:?\s*TD04\b)/im.test(t);
-  var documentMatch=credit||(isCredit?null:invoice);
+  var documentMatch=credit||(isCredit?null:(invoice||proformaHeading));
   var issueDate=documentMatch?parseDate(documentMatch[2]):null;
   var number=documentMatch?documentMatch[1]:null;
-  var proforma=!isCredit&&!!(number&&/[\/-]PR$/i.test(number));
+  var proforma=!isCredit&&!!((proformaHeading&&!invoice)||(number&&/[\/-]PR$/i.test(number)));
   var amountConflicts=[];
   function amount(label,fieldName){
     // Preserve negative signs before or after the euro symbol in credit-note amounts.
@@ -85,12 +95,13 @@ function extractInvoiceText(text){
   // Repeated headings may be harmless copies; conflicting headings require manual review.
   // Never silently select a different document number or date.
   var headings=invoices.map(function(m){return 'fattura:'+m[1].toUpperCase()+':'+m[2].replace(/[\/.]/g,'-');})
+    .concat(proformas.map(function(m){return 'proforma:'+m[1].toUpperCase()+':'+m[2].replace(/[\/.]/g,'-');}))
     .concat(credits.map(function(m){return 'nota_credito:'+m[1].toUpperCase()+':'+m[2].replace(/[\/.]/g,'-');}));
   if(headings.length>1&&headings.some(function(value){return value!==headings[0];}))
     missing.push('Intestazioni documento discordanti: verificare originale');
   // Una fattura esplicita e un tipo TD04 non possono essere accettati insieme.
   // Senza intestazione della nota, non assumere che la fattura sia una TD04.
-  if(isCredit&&invoices.length&&credits.length===0)
+  if(isCredit&&(invoices.length||proformas.length)&&credits.length===0)
     missing.push('Intestazioni documento discordanti: verificare originale');
   // Un campo TD01 (fattura) e una testata nota di credito sono incompatibili.
   // Anche due campi Tipo documento discordanti richiedono verifica manuale.
@@ -113,8 +124,8 @@ function extractInvoiceText(text){
   if(taxable===null)missing.push('Imponibile non individuato');
   if(vat===null&&!reverse)missing.push('Importo IVA non individuato');
   if(total===null)missing.push('Totale non individuato');
-  return {tipo_documento:isCredit?'nota_credito':invoice?(proforma?'proforma':'fattura'):null,
-    direzione:(isCredit||invoice)?'da_verificare':null,numero_documento:number,
+  return {tipo_documento:isCredit?'nota_credito':documentMatch?(proforma?'proforma':'fattura'):null,
+    direzione:(isCredit||documentMatch)?'da_verificare':null,numero_documento:number,
     data_emissione:issueDate,
     cliente:client,cliente_stato:client?'Da verificare':'Cliente non individuato',
     imponibile:taxable,importo_iva:vat,
