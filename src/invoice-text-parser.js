@@ -88,6 +88,10 @@ function extractInvoiceText(text){
     .concat(credits.map(function(m){return 'nota_credito:'+m[1].toUpperCase()+':'+m[2].replace(/\//g,'-');}));
   if(headings.length>1&&headings.some(function(value){return value!==headings[0];}))
     missing.push('Intestazioni documento discordanti: verificare originale');
+  // Una fattura esplicita e un tipo TD04 non possono essere accettati insieme.
+  // Senza intestazione della nota, non assumere che la fattura sia una TD04.
+  if(isCredit&&invoices.length&&credits.length===0)
+    missing.push('Intestazioni documento discordanti: verificare originale');
   // Non correggere gli importi letti: segnala le differenze per verifica manuale.
   if(taxable!==null&&vat!==null&&total!==null){
     var deltaCents=Math.abs(Math.round((taxable+vat)*100)-Math.round(total*100));

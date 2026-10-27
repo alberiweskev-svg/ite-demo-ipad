@@ -323,6 +323,19 @@ assert.equal(genuineTd04Field.numero_documento,null,'Non usare il numero della f
 const genuineTd04Header=extractInvoiceText('TD04\nRiferimento fattura 23 del 25/10/2026');
 assert.equal(genuineTd04Header.tipo_documento,'nota_credito','Intestazione TD04 autonoma valida');
 
+// TD04 esplicita ma testata fattura: non classificare silenziosamente.
+const conflictingTd04Type=extractInvoiceText([
+  'Fattura 907 del 27/10/2026',
+  'Tipo documento: TD04',
+  'Totale documento € 110,00'
+].join('\\n'.replace('\\n','\n')));
+assert.equal(conflictingTd04Type.tipo_documento,'nota_credito');
+assert.ok(conflictingTd04Type.anomalie.includes('Intestazioni documento discordanti: verificare originale'));
+const ordinaryInvoice907=extractInvoiceText('Fattura 907 del 27/10/2026');
+assert.ok(!ordinaryInvoice907.anomalie.some(x=>x.includes('Intestazioni documento discordanti')));
+const ordinaryCredit907=extractInvoiceText('Nota di credito 907 del 27/10/2026');
+assert.ok(!ordinaryCredit907.anomalie.some(x=>x.includes('Intestazioni documento discordanti')));
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
 
 
@@ -397,5 +410,13 @@ const matchingIssueDate=importText([
 ].join('\n'))[0];
 assert.equal(matchingIssueDate.date,'2026-10-27','La data corretta resta invariata');
 assert.ok(!matchingIssueDate.notes.some(n=>n.includes('Data documento discordante tra due letture')),'Nessun falso allarme sulla data corretta');
+
+const conflictingTd04Import=importText([
+  'Fattura 907 del 27/10/2026',
+  'Tipo documento: TD04',
+  'Totale documento € 110,00'
+].join('\\n'.replace('\\n','\n')))[0];
+assert.equal(conflictingTd04Import.type,'Da verificare','Una fattura con TD04 contraddittorio resta da verificare');
+assert.ok(conflictingTd04Import.notes.some(n=>n.includes('Intestazioni documento discordanti')));
 
 console.log('Invoice import guard: OK (synthetic fixtures)');
