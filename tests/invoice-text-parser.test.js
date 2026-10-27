@@ -635,3 +635,29 @@ for (const [label, followingLine] of [
 const legitimateRecipient=extractInvoiceText('Fattura 1002 del 27/10/2026\nDestinatario: CLIENTE INVENTATO SRL');
 assert.equal(legitimateRecipient.cliente,'CLIENTE INVENTATO SRL','Un destinatario valido resta leggibile');
 console.log('Missing recipient metadata guard: OK (synthetic fixtures)');
+
+
+// Regressione privacy/anagrafiche: un destinatario vuoto non diventa
+// un indirizzo, un recapito o l'intestazione di un altro documento.
+for(const [label, followingLine] of [
+  ['indirizzo', 'Indirizzo: Via Fittizia 12'],
+  ['telefono', 'Telefono: 0510000000'],
+  ['email', 'Email: prova@example.invalid'],
+  ['IBAN', 'IBAN: IT00X0000000000000000000000'],
+  ['CAP', 'CAP: 40000'],
+  ['via con civico', 'Via Esempio 12'],
+  ['nota di credito', 'Nota di credito 1101 del 27/10/2026'],
+  ['proforma', 'Proforma 1102 del 27/10/2026'],
+  ['tipo documento', 'Tipo documento: TD04']
+]) {
+  const parsed=extractInvoiceText('Destinatario\n'+followingLine+'\nImponibile € 100,00');
+  assert.equal(parsed.cliente,null,'Non attribuire come cliente: '+label);
+  assert.ok(parsed.anomalie.includes('Cliente non individuato'),'Avviso cliente mancante: '+label);
+}
+const validRecipientAfterHeader=extractInvoiceText('Destinatario\nCLIENTE INVENTATO IMPIANTI SRL\nTotale documento € 110,00');
+assert.equal(validRecipientAfterHeader.cliente,'CLIENTE INVENTATO IMPIANTI SRL',
+  'Non perdere un destinatario reale sulla riga successiva');
+const validViaCompany=extractInvoiceText('Destinatario: Via Tecnica SRL');
+assert.equal(validViaCompany.cliente,'Via Tecnica SRL',
+  'Una ragione sociale con Via ma senza civico non e un indirizzo');
+console.log('Recipient address and metadata guard: OK (synthetic fixtures)');

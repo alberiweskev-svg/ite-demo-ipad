@@ -86,7 +86,11 @@ function extractInvoiceText(text){
     var candidate=header[1].trim()||lines[j+1]||'';
     candidate=candidate.split(/\s{3,}|\s+copia\s+di\s+cortesia/i)[0].trim();
     // Un destinatario vuoto non deve diventare una partita IVA o una voce contabile.
-    if(candidate&&!/^(?:p\.?\s*iva|partita\s+iva|c\.?\s*f\.?|codice\s+fiscale|pec|codice\s+destinatario|sdi|imponibile|totale|iva|scadenz[ae])(?=\s|:|=|$)/i.test(candidate)&&!/fattura|copia\s+di\s+cortesia|oscurat|omissis|redatt/i.test(candidate)&&!/^[-*xX#█•.\s]+$/.test(candidate))client=candidate;
+    // Le righe di indirizzo/contatto e le intestazioni del documento non sono nomi clienti.
+    // In particolare, dopo "Destinatario" vuoto non associare una via o un telefono.
+    var nonRecipientLine=/^(?:indirizzo|telefono|tel\.?|cellulare|e-?mail|iban|cap|citt[aà]|provincia|pdr|pod|tipo\s+documento|nota\s+(?:di\s+)?(?:credito|accredito)|proforma)(?=\s|:|=|$)/i.test(candidate)
+      || /^(?:via|viale|piazza|corso|largo|vicolo|strada)\s+.*\b\d+[a-z]?\b/i.test(candidate);
+    if(candidate&&!nonRecipientLine&&!/^(?:p\.?\s*iva|partita\s+iva|c\.?\s*f\.?|codice\s+fiscale|pec|codice\s+destinatario|sdi|imponibile|totale|iva|scadenz[ae])(?=\s|:|=|$)/i.test(candidate)&&!/fattura|copia\s+di\s+cortesia|oscurat|omissis|redatt/i.test(candidate)&&!/^[-*xX#█•.\s]+$/.test(candidate))client=candidate;
     break;
   }
   var due=null;
