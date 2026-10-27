@@ -46,7 +46,7 @@ function extractInvoiceText(text){
   var credit=credits[0]||null;
   // Un riferimento a una TD04 in una fattura non rende la fattura una nota di credito.
   // Il codice TD04 deve comparire come intestazione o nel campo tipo documento.
-  var isCredit=!!credit||/(?:^|\n)\s*(?:nota\s+(?:di\s+)?(?:credito|accredito)\b|TD04\b|tipo\s*documento\s*:?\s*TD04\b)/im.test(t);
+  var isCredit=!!credit||/(?:^|\n)\s*(?:nota\s+(?:di\s+)?(?:credito|accredito)\b|TD0[48]\b|tipo\s*documento\s*:?\s*TD0[48]\b)/im.test(t);
   var documentMatch=credit||(isCredit?null:(invoice||proformaHeading));
   var issueDate=documentMatch?parseDate(documentMatch[2]):null;
   var number=documentMatch?documentMatch[1]:null;
@@ -110,7 +110,9 @@ function extractInvoiceText(text){
     return m?m[1].toUpperCase():null;
   }).filter(Boolean);
   if((declaredTypes.some(function(value){return value!==declaredTypes[0];})||
-      (credits.length&&declaredTypes.indexOf('TD01')!==-1))&&
+      (credits.length&&declaredTypes.some(function(value){return value!=='TD04'&&value!=='TD08';}))||
+      (proformaHeading&&declaredTypes.length>0)||
+      ((invoices.length||proformas.length)&&declaredTypes.some(function(value){return value==='TD04'||value==='TD08';})))&&
       missing.indexOf('Intestazioni documento discordanti: verificare originale')===-1)
     missing.push('Intestazioni documento discordanti: verificare originale');
   // Non correggere gli importi letti: segnala le differenze per verifica manuale.
