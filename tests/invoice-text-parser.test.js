@@ -514,3 +514,27 @@ assert.ok(!integratedProforma.notes.some(n=>n.includes('Intestazioni documento d
   'Nessun falso conflitto nella lettura integrata');
 
 console.log('Explicit proforma headings: OK (synthetic fixtures)');
+
+
+// Regressione: TD08 (nota di credito semplificata) e tipi fiscali contraddittori.
+const fiscalTypeConflict='Intestazioni documento discordanti: verificare originale';
+const td08Only=extractInvoiceText('Tipo documento: TD08\nRiferimento fattura 12 del 27/10/2026');
+assert.equal(td08Only.tipo_documento,'nota_credito','TD08 identifica una nota di credito');
+assert.ok(td08Only.anomalie.includes('Numero nota di credito non individuato'),'TD08 senza numero resta da verificare');
+const td08Credit=extractInvoiceText('Nota di credito 303 del 27/10/2026\nTipo documento: TD08');
+assert.equal(td08Credit.tipo_documento,'nota_credito');
+assert.ok(!td08Credit.anomalie.includes(fiscalTypeConflict),'TD08 coerente non genera conflitto');
+const creditWithTd02=extractInvoiceText('Nota di credito 300 del 27/10/2026\nTipo documento: TD02');
+assert.ok(creditWithTd02.anomalie.includes(fiscalTypeConflict),'Nota di credito con TD02 richiede verifica');
+const proformaWithTd01=extractInvoiceText('Proforma 301 del 27/10/2026\nTipo documento: TD01');
+assert.ok(proformaWithTd01.anomalie.includes(fiscalTypeConflict),'Proforma con TD01 fiscale richiede verifica');
+const invoiceWithTd08=extractInvoiceText('Fattura 302 del 27/10/2026\nTipo documento: TD08');
+assert.equal(invoiceWithTd08.tipo_documento,'nota_credito');
+assert.ok(invoiceWithTd08.anomalie.includes(fiscalTypeConflict),'Fattura con TD08 richiede verifica');
+const ordinaryTd02=extractInvoiceText('Fattura 304 del 27/10/2026\nTipo documento: TD02');
+assert.equal(ordinaryTd02.tipo_documento,'fattura');
+assert.ok(!ordinaryTd02.anomalie.includes(fiscalTypeConflict),'TD02 con fattura non e un conflitto');
+const integratedFiscalConflict=importText('Proforma 305 del 27/10/2026\nTipo documento: TD01\nTotale documento € 110,00')[0];
+assert.equal(integratedFiscalConflict.type,'Da verificare');
+assert.ok(integratedFiscalConflict.notes.some(n=>n.includes('Intestazioni documento discordanti')),'Conflitto proforma-TD01 visibile nel gestionale');
+console.log('Fiscal type TD08 and contradictions: OK (synthetic fixtures)');
