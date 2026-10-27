@@ -50,6 +50,11 @@ function extractInvoiceText(text){
   var dueMatch=t.match(/(?:^|\n)\s*scadenze?\s*:?\s*\n?\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/im);
   if(dueMatch)due=parseDate(dueMatch[1]);
   var missing=[];
+  // Non correggere gli importi letti: segnala le differenze per verifica manuale.
+  if(taxable!==null&&vat!==null&&total!==null){
+    var deltaCents=Math.abs(Math.round((taxable+vat)*100)-Math.round(total*100));
+    if(deltaCents>2)missing.push('Totale non coerente con imponibile e IVA: verificare sconti, ritenute, bollo e arrotondamenti');
+  }
   if(isCredit&&!number)missing.push('Numero nota di credito non individuato');
   if(!client)missing.push('Cliente non individuato');
   if(taxable===null)missing.push('Imponibile non individuato');
