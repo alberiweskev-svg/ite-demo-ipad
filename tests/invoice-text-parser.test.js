@@ -538,3 +538,22 @@ const integratedFiscalConflict=importText('Proforma 305 del 27/10/2026\nTipo doc
 assert.equal(integratedFiscalConflict.type,'Da verificare');
 assert.ok(integratedFiscalConflict.notes.some(n=>n.includes('Intestazioni documento discordanti')),'Conflitto proforma-TD01 visibile nel gestionale');
 console.log('Fiscal type TD08 and contradictions: OK (synthetic fixtures)');
+
+
+// Regressione: un riferimento a fattura non e' il numero della nota TD04/TD08.
+// Il parser principale puo' leggere "12", ma il controllo deve segnalarlo senza
+// alterare il testo o sovrascrivere il valore originale prima della conferma.
+for(const fiscalCode of ['TD04','TD08']){
+  const syntheticCredit='Tipo documento: '+fiscalCode+'\nRiferimento fattura 12 del 27/10/2026\nTotale documento € 110,00';
+  const parsedCredit=extractInvoiceText(syntheticCredit);
+  assert.equal(parsedCredit.numero_documento,null,'Numero della nota assente: '+fiscalCode);
+  const importedCredit=importText(syntheticCredit)[0];
+  assert.equal(importedCredit.number,'12','Lettura originale conservata per revisione: '+fiscalCode);
+  assert.equal(importedCredit.type,'Da verificare','Nota senza numero non classificata automaticamente: '+fiscalCode);
+  assert.ok(importedCredit.notes.some(n=>n.includes('Numero nota di credito non individuato')),
+    'Avviso sul riferimento scambiato per numero nota: '+fiscalCode);
+}
+const numberedCredit=importText('Nota di credito 303 del 27/10/2026\nTipo documento: TD08\nTotale documento € 110,00')[0];
+assert.ok(!numberedCredit.notes.some(n=>n.includes('Numero nota di credito non individuato')),
+  'Nota numerata non deve generare falso avviso');
+console.log('Credit note missing number import guard: OK (synthetic fixtures)');
