@@ -82,6 +82,17 @@ assert.equal(invoiceReferringToCredit.numero_documento,'12');
 assert.equal(invoiceReferringToCredit.data_emissione,'2026-10-15');
 
 
+const referenceOnly=extractInvoiceText('Riferimento fattura n. 22 del 25/10/2026');
+assert.equal(referenceOnly.tipo_documento,null,'Il riferimento a una fattura non è una fattura autonoma');
+assert.equal(referenceOnly.numero_documento,null,'Non attribuire il numero della fattura richiamata');
+assert.equal(referenceOnly.data_emissione,null,'Non attribuire la data della fattura richiamata');
+const invoiceAfterReference=extractInvoiceText('Riferimento fattura n. 22 del 25/10/2026\nFattura 23 del 26/10/2026');
+assert.equal(invoiceAfterReference.numero_documento,'23','Usare la testata del documento, non il primo riferimento');
+assert.equal(invoiceAfterReference.data_emissione,'2026-10-26');
+const descriptiveReference=extractInvoiceText('Descrizione: storno fattura 24 del 26/10/2026');
+assert.equal(descriptiveReference.tipo_documento,null,'Non classificare una descrizione come documento');
+assert.equal(extractInvoiceText('CLIENTE FITTIZIO SRL   Copia di cortesia Fattura 25 del 27/10/2026').numero_documento,'25','Mantenere le copie di cortesia con intestazione sulla stessa riga');
+
 assert.equal(extractInvoiceText('documento sconosciuto').tipo_documento,null);
 assert.equal(extractInvoiceText('Fattura n° 7 del 07/01/2025').numero_documento,'7');
 assert.equal(extractInvoiceText('Fattura nr. 22 del 07/01/2025').numero_documento,'22');
