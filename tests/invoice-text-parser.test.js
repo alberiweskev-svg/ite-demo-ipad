@@ -285,3 +285,44 @@ const accountingInvoice=extractInvoiceText('Fattura 702 del 27/10/2026\nTotale �
 assert.equal(accountingInvoice.totale_documento,110,'Fatture positive invariate');
 
 console.log('Invoice text parser: OK (synthetic fixtures)');
+
+
+// Integrazione reale della funzione textDocs del gestionale, con fixture sintetiche.
+const fs=require('node:fs');
+const vm=require('node:vm');
+const appSource=fs.readFileSync(require('node:path').join(__dirname,'../app.js'),'utf8');
+const begin=appSource.indexOf('function textDocs(text){');
+const finish=appSource.indexOf('const libraries=new Map();',begin);
+assert.ok(begin>0&&finish>begin,'La funzione di importazione del gestionale deve essere presente');
+assert.match(appSource,/async function checkedTextDocs\(text\)\{await loadScript\('\.\/src\/invoice-text-parser\.js','ITEInvoiceText'\)/);
+assert.match(appSource,/docs=await checkedTextDocs\(await pdfText\(bytes\)\)/);
+assert.match(appSource,/docs=await checkedTextDocs\(await ocr\(url\)\)/);
+const sandbox={
+  window:{ITEInvoiceText:{extractInvoiceText}},
+  blank:()=>({type:'Da verificare',number:'',date:'',net:null,tax:null,total:null,party:{name:''},lines:[],notes:[]}),
+  norm:()=>'',date:()=>'',num:value=>value?Number(String(value).replace(/\./g,'').replace(',','.')):null,
+  windowsDocumentType:text=>/^\s*nota di credito/im.test(text)?'Nota credito':/^\s*fattura/im.test(text)?'Fattura':'',
+  windowsProformaNumber:()=>'',windowsPartyBlocks:()=>({}),direction:()=>'',partyText:()=>({}),copy:value=>value
+};
+const importText=vm.runInNewContext(appSource.slice(begin,finish)+'\ntextDocs',sandbox);
+const guardedCredit=importText([
+  'Nota di credito 800 del 27/10/2026',
+  'Imponibile € -100,00',
+  'Totale IVA € -10,00',
+  'Totale documento € -110,00'
+].join('\n'))[0];
+assert.equal(guardedCredit.type,'Da verificare','Una lettura che perde il segno negativo non puo essere classificata automaticamente');
+assert.ok(guardedCredit.notes.some(n=>n.includes('Segno negativo imponibile')),'Avviso imponibile negativo');
+assert.ok(guardedCredit.notes.some(n=>n.includes('Segno negativo IVA')),'Avviso IVA negativa');
+assert.ok(guardedCredit.notes.some(n=>n.includes('Segno negativo totale')),'Avviso totale negativo');
+const guardedHeadings=importText('Fattura 801 del 27/10/2026\nFattura 802 del 27/10/2026\nTotale documento € 110,00')[0];
+assert.equal(guardedHeadings.type,'Da verificare');
+assert.ok(guardedHeadings.notes.some(n=>n.includes('Intestazioni documento discordanti')),'Intestazioni discordanti evidenziate nel gestionale');
+const cleanInvoice=importText('Fattura 803 del 27/10/2026\nImponibile € 100,00\nTotale IVA € 10,00\nTotale documento € 110,00')[0];
+assert.equal(cleanInvoice.number,'803','Non cambiare il numero letto dal gestionale');
+assert.equal(cleanInvoice.total,110,'Non cambiare gli importi letti dal gestionale');
+assert.ok(!cleanInvoice.notes.some(n=>n.startsWith('Controllo contabile:')),'Non aggiungere falsi avvisi a una fattura coerente');
+sandbox.window.ITEInvoiceText=null;
+const legacy=importText('Fattura 804 del 27/10/2026\nTotale documento € 110,00')[0];
+assert.equal(legacy.total,110,'Il parser di confronto non modifica il comportamento della lettura principale');
+console.log('Invoice import guard: OK (synthetic fixtures)');
