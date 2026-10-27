@@ -31,6 +31,7 @@ function extractInvoiceText(text){
   var credit=t.match(/(?:^|\n)\s*(?:copia\s+di\s+cortesia\s+)?nota\s+(?:di\s+)?(?:credito|accredito)\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)?)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/im);
   var isCredit=!!credit||/(?:^|\n)\s*(?:nota\s+(?:di\s+)?(?:credito|accredito)\b|TD04\b)|\btipo\s*documento\s*:?\s*TD04\b/im.test(t);
   var documentMatch=credit||(isCredit?null:invoice);
+  var issueDate=documentMatch?parseDate(documentMatch[2]):null;
   var number=documentMatch?documentMatch[1]:null;
   var proforma=!isCredit&&!!(number&&/[\/-]PR$/i.test(number));
   function amount(label){
@@ -66,13 +67,14 @@ function extractInvoiceText(text){
     if(deltaCents>2)missing.push('Totale non coerente con imponibile e IVA: verificare sconti, ritenute, bollo e arrotondamenti');
   }
   if(isCredit&&!number)missing.push('Numero nota di credito non individuato');
+  if(documentMatch&&!issueDate)missing.push('Data documento non valida: verificare originale');
   if(!client)missing.push('Cliente non individuato');
   if(taxable===null)missing.push('Imponibile non individuato');
   if(vat===null&&!reverse)missing.push('Importo IVA non individuato');
   if(total===null)missing.push('Totale non individuato');
   return {tipo_documento:isCredit?'nota_credito':invoice?(proforma?'proforma':'fattura'):null,
     direzione:(isCredit||invoice)?'da_verificare':null,numero_documento:number,
-    data_emissione:documentMatch?parseDate(documentMatch[2]):null,
+    data_emissione:issueDate,
     cliente:client,cliente_stato:client?'Da verificare':'Cliente non individuato',
     imponibile:taxable,importo_iva:vat,
     aliquota_iva:rateMatch?Number(rateMatch[1].replace(',','.')):null,
