@@ -661,3 +661,34 @@ const validViaCompany=extractInvoiceText('Destinatario: Via Tecnica SRL');
 assert.equal(validViaCompany.cliente,'Via Tecnica SRL',
   'Una ragione sociale con Via ma senza civico non e un indirizzo');
 console.log('Recipient address and metadata guard: OK (synthetic fixtures)');
+
+
+// Regressione anagrafica: due intestazioni cliente differenti richiedono verifica
+// prima di qualsiasi associazione. Tutti i nominativi sono sintetici.
+const conflictingRecipients=extractInvoiceText([
+  'Fattura 1500 del 27/10/2026',
+  'Destinatario: CLIENTE FITTIZIO ALFA SRL',
+  'Cliente: CLIENTE FITTIZIO BETA SRL',
+  'Imponibile € 100,00',
+  'Totale IVA € 10,00',
+  'Totale documento € 110,00'
+].join('\n'));
+assert.equal(conflictingRecipients.cliente,'CLIENTE FITTIZIO ALFA SRL','Preservare il primo nominativo letto');
+assert.ok(conflictingRecipients.anomalie.includes('Destinatari discordanti: verificare originale'),
+  'Due clienti diversi non possono essere associati senza avviso');
+assert.equal(conflictingRecipients.totale_documento,110,'Non alterare gli importi');
+const repeatedRecipient=extractInvoiceText(
+  'Fattura 1501 del 27/10/2026\nDestinatario: CLIENTE FITTIZIO ALFA SRL\nCliente: cliente fittizio alfa srl'
+);
+assert.ok(!repeatedRecipient.anomalie.some(x=>x.includes('Destinatari discordanti')),
+  'Lo stesso nominativo con maiuscole diverse non e un conflitto');
+const singleRecipient=extractInvoiceText('Fattura 1502 del 27/10/2026\nDestinatario: CLIENTE FITTIZIO ALFA SRL');
+assert.ok(!singleRecipient.anomalie.some(x=>x.includes('Destinatari discordanti')),
+  'Una sola intestazione non e un conflitto');
+const integratedRecipientConflict=importText(
+  'Fattura 1503 del 27/10/2026\nDestinatario: CLIENTE FITTIZIO ALFA SRL\nCliente: CLIENTE FITTIZIO BETA SRL\nTotale documento € 110,00'
+)[0];
+assert.equal(integratedRecipientConflict.type,'Da verificare');
+assert.ok(integratedRecipientConflict.notes.some(x=>x.includes('Destinatari discordanti')),
+  'Il gestionale deve mostrare il conflitto fra destinatari');
+console.log('Conflicting recipient headers: OK (synthetic fixtures)');
