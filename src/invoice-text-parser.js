@@ -20,15 +20,18 @@ function extractInvoiceText(text){
   // Only accept an invoice heading, not a referenced invoice in a credit note or attachment.
   // A courtesy-copy heading may appear after the recipient name on the same line.
   var invoicePattern=/(?:copia[ \t]+di[ \t]+cortesia[ \t]+)?fattura[ \t]*(?:n(?:r|°|º|\.)*\.?[ \t]*)?(\d+(?:[\/-][a-z0-9]+)?)[ \t]*(?:del|data)[ \t]*(\d{2}[\/-]\d{2}[\/-]\d{4})/gi;
-  var invoice=null, invoiceCandidate;
+  var invoices=[], invoiceCandidate;
   while((invoiceCandidate=invoicePattern.exec(t))!==null){
     var prefix=t.slice(t.lastIndexOf('\n',invoiceCandidate.index-1)+1,invoiceCandidate.index).trim();
     if(!prefix||/^copia[ \t]+di[ \t]+cortesia\b/i.test(invoiceCandidate[0])){
-      invoice=invoiceCandidate;
-      break;
+      invoices.push(invoiceCandidate);
     }
   }
-  var credit=t.match(/(?:^|\n)\s*(?:copia\s+di\s+cortesia\s+)?nota\s+(?:di\s+)?(?:credito|accredito)\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)?)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/im);
+  var invoice=invoices[0]||null;
+  var creditPattern=/(?:^|\n)\s*(?:copia\s+di\s+cortesia\s+)?nota\s+(?:di\s+)?(?:credito|accredito)\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)?)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/gim;
+  var credits=[], creditCandidate;
+  while((creditCandidate=creditPattern.exec(t))!==null)credits.push(creditCandidate);
+  var credit=credits[0]||null;
   var isCredit=!!credit||/(?:^|\n)\s*(?:nota\s+(?:di\s+)?(?:credito|accredito)\b|TD04\b)|\btipo\s*documento\s*:?\s*TD04\b/im.test(t);
   var documentMatch=credit||(isCredit?null:invoice);
   var issueDate=documentMatch?parseDate(documentMatch[2]):null;
@@ -69,6 +72,12 @@ function extractInvoiceText(text){
   var dueMatch=t.match(/(?:^|\n)\s*scadenze?\s*:?\s*\n?\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/im);
   if(dueMatch)due=parseDate(dueMatch[1]);
   var missing=amountConflicts.slice();
+  // Repeated headings may be harmless copies; conflicting headings require manual review.
+  // Never silently select a different document number or date.
+  var headings=invoices.map(function(m){return 'fattura:'+m[1].toUpperCase()+':'+m[2].replace(/\//g,'-');})
+    .concat(credits.map(function(m){return 'nota_credito:'+m[1].toUpperCase()+':'+m[2].replace(/\//g,'-');}));
+  if(headings.length>1&&headings.some(function(value){return value!==headings[0];}))
+    missing.push('Intestazioni documento discordanti: verificare originale');
   // Non correggere gli importi letti: segnala le differenze per verifica manuale.
   if(taxable!==null&&vat!==null&&total!==null){
     var deltaCents=Math.abs(Math.round((taxable+vat)*100)-Math.round(total*100));

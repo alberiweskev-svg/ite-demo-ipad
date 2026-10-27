@@ -221,4 +221,25 @@ const conflictingCredit=extractInvoiceText([
 assert.equal(conflictingCredit.totale_documento,-110,'Non cambiare segno della nota di credito');
 assert.ok(conflictingCredit.anomalie.includes('Valori discordanti per totale: verificare originale'));
 
+
+const duplicateInvoiceHeadings=extractInvoiceText([
+  'Fattura 501 del 27/10/2026',
+  'Fattura 502 del 27/10/2026',
+  'Totale € 110,00'
+].join('\n'));
+assert.equal(duplicateInvoiceHeadings.numero_documento,'501','Non sovrascrivere il primo numero');
+assert.equal(duplicateInvoiceHeadings.totale_documento,110,'Non alterare importi');
+assert.ok(duplicateInvoiceHeadings.anomalie.includes('Intestazioni documento discordanti: verificare originale'));
+const repeatedSameHeading=extractInvoiceText('Fattura 503 del 27/10/2026\nFattura 503 del 27-10-2026');
+assert.ok(!repeatedSameHeading.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Copia identica non ambigua');
+const conflictingHeadingDates=extractInvoiceText('Fattura 504 del 27/10/2026\nFattura 504 del 26/10/2026');
+assert.ok(conflictingHeadingDates.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Segnalare date differenti');
+const conflictingCreditHeadings=extractInvoiceText('Nota di credito 505 del 27/10/2026\nNota di credito 506 del 27/10/2026');
+assert.equal(conflictingCreditHeadings.numero_documento,'505');
+assert.ok(conflictingCreditHeadings.anomalie.some(x=>x.includes('Intestazioni documento discordanti')));
+const referenceIsNotHeading=extractInvoiceText('Nota di credito 507 del 27/10/2026\nRiferimento fattura 20 del 20/10/2026');
+assert.ok(!referenceIsNotHeading.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Riferimento a fattura non equivale a intestazione');
+const mixedDocumentHeadings=extractInvoiceText('Fattura 508 del 27/10/2026\nNota di credito 509 del 27/10/2026');
+assert.ok(mixedDocumentHeadings.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Segnalare intestazioni di tipo diverso');
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
