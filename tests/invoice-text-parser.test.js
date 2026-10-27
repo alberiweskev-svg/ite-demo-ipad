@@ -589,3 +589,31 @@ assert.equal(integratedDeadlineConflict.type,'Da verificare');
 assert.ok(integratedDeadlineConflict.notes.some(x=>x.includes('Scadenze pagamento discordanti')),
   'Il controllo del gestionale deve mostrare il conflitto');
 console.log('Conflicting payment deadlines: OK (synthetic fixtures)');
+
+
+// Regressione: una scadenza impossibile non deve scomparire senza avviso.
+// Usare solo documenti e nominativi fittizi.
+const invalidDueDate=extractInvoiceText([
+  'Fattura 995 del 27/10/2026',
+  'Destinatario: CLIENTE FITTIZIO DATE SRL',
+  'Imponibile € 100,00',
+  'Totale IVA € 22,00',
+  'Totale documento € 122,00',
+  'Scadenza pagamento: 31/02/2026'
+].join('\n'));
+assert.equal(invalidDueDate.scadenza,null,'Non registrare una data di scadenza impossibile');
+assert.ok(invalidDueDate.anomalie.includes('Scadenza pagamento non valida: verificare originale'),
+  'Una scadenza impossibile richiede verifica manuale');
+const integratedInvalidDue=importText('Fattura 996 del 27/10/2026\nScadenza pagamento: 31/02/2026')[0];
+assert.equal(integratedInvalidDue.type,'Da verificare');
+assert.ok(integratedInvalidDue.notes.some(x=>x.includes('Scadenza pagamento non valida')),
+  'Il gestionale deve mostrare la scadenza non valida');
+const validLeapDue=extractInvoiceText('Fattura 997 del 27/10/2026\nScadenza pagamento: 29/02/2028');
+assert.equal(validLeapDue.scadenza,'2028-02-29');
+assert.ok(!validLeapDue.anomalie.some(x=>x.includes('Scadenza pagamento non valida')),
+  'Il 29 febbraio di un anno bisestile e valido');
+const mixedInvalidDue=extractInvoiceText('Fattura 998 del 27/10/2026\nScadenza pagamento: 31/02/2026\nScadenza pagamento: 30/11/2026');
+assert.equal(mixedInvalidDue.scadenza,null,'Non sostituire silenziosamente la prima scadenza non valida');
+assert.ok(mixedInvalidDue.anomalie.some(x=>x.includes('Scadenza pagamento non valida')));
+assert.ok(mixedInvalidDue.anomalie.some(x=>x.includes('Scadenze pagamento discordanti')));
+console.log('Invalid payment deadline guard: OK (synthetic fixtures)');

@@ -90,11 +90,17 @@ function extractInvoiceText(text){
   }
   var due=null;
   var dueDates=[];
+  var invalidDueDate=false;
   var duePattern=/(?:^|\n)\s*scadenz[ae](?:\s+pagamento)?\s*:?\s*\n?\s*(\d{2}[\/.-]\d{2}[\/.-]\d{4})/gim;
   var dueMatch;
-  while((dueMatch=duePattern.exec(t))!==null)dueDates.push(parseDate(dueMatch[1]));
+  while((dueMatch=duePattern.exec(t))!==null){
+    var parsedDue=parseDate(dueMatch[1]);
+    if(parsedDue===null)invalidDueDate=true;
+    dueDates.push(parsedDue);
+  }
   if(dueDates.length)due=dueDates[0];
   var missing=amountConflicts.slice();
+  if(invalidDueDate)missing.push('Scadenza pagamento non valida: verificare originale');
   // Multiple different payment deadlines must not be silently reduced to the first one.
   if(dueDates.length>1&&dueDates.some(function(value){return value!==dueDates[0];}))
     missing.push('Scadenze pagamento discordanti: verificare originale');
