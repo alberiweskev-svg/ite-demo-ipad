@@ -106,4 +106,30 @@ assert.equal(positiveCredit.totale_documento,110,'Non cambiare automaticamente s
 const positiveInvoice=extractInvoiceText('Fattura 17 del 26/10/2026\nTotale € 110,00');
 assert.equal(positiveInvoice.totale_documento,110,'Importo fattura positiva invariato');
 
+
+const inconsistentInvoice=extractInvoiceText([
+  'Destinatario: CLIENTE TEST ALFA SRL',
+  'Fattura 99 del 27/10/2026',
+  'Imponibile € 100,00',
+  'Totale IVA € 10,00',
+  'Totale € 115,00'
+].join('\n'));
+assert.equal(inconsistentInvoice.totale_documento,115,'Non modificare automaticamente il totale letto');
+assert.ok(inconsistentInvoice.anomalie.some(x=>x.includes('Totale non coerente')),'Segnalare differenze senza alterare gli importi');
+const inconsistentCredit=extractInvoiceText([
+  'Nota di credito 100 del 27/10/2026',
+  'Imponibile € -100,00',
+  'Totale IVA € -10,00',
+  'Totale € -115,00'
+].join('\n'));
+assert.equal(inconsistentCredit.totale_documento,-115);
+assert.ok(inconsistentCredit.anomalie.some(x=>x.includes('Totale non coerente')),'Controllare anche i segni negativi');
+const roundingInvoice=extractInvoiceText([
+  'Fattura 101 del 27/10/2026',
+  'Imponibile € 100,00',
+  'Totale IVA € 10,00',
+  'Totale € 110,02'
+].join('\n'));
+assert.ok(!roundingInvoice.anomalie.some(x=>x.includes('Totale non coerente')),'Tolleranza massima 2 centesimi');
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
