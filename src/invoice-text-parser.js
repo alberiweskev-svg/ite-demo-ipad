@@ -82,9 +82,9 @@ function extractInvoiceText(text){
   var client=null;
   var recipientCandidates=[];
   for(var j=0;j<lines.length;j++){
-    var header=lines[j].match(/^(?:destinatario|cliente|cessionario\s*\/\s*committente|intestatario)\s*:?\s*(.*)$/i);
+    var header=lines[j].match(/^(?:destinatario|cliente|cessionario\s*\/\s*committente|intestatario)(?:\s*:\s*(.*)|\s{2,}(.*)|\s*)$/i);
     if(!header)continue;
-    var candidate=header[1].trim()||lines[j+1]||'';
+    var candidate=(header[1]||header[2]||'').trim()||lines[j+1]||'';
     candidate=candidate.split(/\s{3,}|\s+copia\s+di\s+cortesia/i)[0].trim();
     // Un destinatario vuoto non deve diventare una partita IVA o una voce contabile.
     // Le righe di indirizzo/contatto e le intestazioni del documento non sono nomi clienti.
