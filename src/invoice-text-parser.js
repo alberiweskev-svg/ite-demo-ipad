@@ -2,7 +2,7 @@
 'use strict';
 function parseItalianMoney(value){
   if(typeof value!=='string')return null;
-  var s=value.replace(/[€\s]/g,'').trim();
+  var s=value.replace(/\u2212/g,'-').replace(/[€\s]/g,'').trim();
   if(!/^-?\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?$|^-?\d+(?:,\d{1,2})?$/.test(s))return null;
   var n=Number(s.replace(/\./g,'').replace(',','.'));
   return Number.isFinite(n)?n:null;
@@ -15,7 +15,7 @@ function parseDate(value){
 }
 function extractInvoiceText(text){
   if(typeof text!=='string'||text.length>1000000)throw new Error('Testo non valido o troppo grande');
-  var t=text.replace(/\r/g,'').normalize('NFKC');
+  var t=text.replace(/\r/g,'').normalize('NFKC').replace(/\u2212/g,'-');
   var lines=t.split('\n').map(function(x){return x.trim();}).filter(Boolean);
   // Only accept an invoice heading, not a referenced invoice in a credit note or attachment.
   // A courtesy-copy heading may appear after the recipient name on the same line.

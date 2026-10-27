@@ -143,4 +143,20 @@ const roundingInvoice=extractInvoiceText([
 ].join('\n'));
 assert.ok(!roundingInvoice.anomalie.some(x=>x.includes('Totale non coerente')),'Tolleranza massima 2 centesimi');
 
+
+const unicodeMinusCredit=extractInvoiceText([
+  'Destinatario: CLIENTE FITTIZIO BETA SRL',
+  'Nota di credito n. 26 del 27/10/2026',
+  'Imponibile € −100,00',
+  'Totale IVA −€ 10,00',
+  'Totale −110,00'
+].join('\n'));
+assert.equal(parseItalianMoney('−1.234,56'),-1234.56,'Preservare il segno meno matematico negli importi italiani');
+assert.equal(unicodeMinusCredit.tipo_documento,'nota_credito');
+assert.equal(unicodeMinusCredit.imponibile,-100,'Non perdere imponibile negativo con meno Unicode');
+assert.equal(unicodeMinusCredit.importo_iva,-10,'Non perdere IVA negativa con meno Unicode');
+assert.equal(unicodeMinusCredit.totale_documento,-110,'Non perdere totale negativo con meno Unicode');
+assert.deepEqual(unicodeMinusCredit.anomalie,[],'Nessuna anomalia fittizia per importi coerenti');
+assert.equal(extractInvoiceText('Fattura 27 del 27/10/2026\nTotale € 110,00').totale_documento,110,'Fattura positiva invariata');
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
