@@ -341,4 +341,15 @@ assert.ok(!cleanInvoice.notes.some(n=>n.startsWith('Controllo contabile:')),'Non
 sandbox.window.ITEInvoiceText=null;
 const legacy=importText('Fattura 804 del 27/10/2026\nTotale documento € 110,00')[0];
 assert.equal(legacy.total,110,'Il parser di confronto non modifica il comportamento della lettura principale');
+// Il netto da pagare non deve essere salvato come totale documento.
+const onlyPayableImport=importText('Fattura 805 del 27/10/2026\nTotale da pagare € 50,00')[0];
+assert.equal(onlyPayableImport.total,null,'Il solo netto da pagare non e un totale documento');
+assert.equal(onlyPayableImport.type,'Da verificare','Un totale documento assente richiede verifica');
+assert.ok(onlyPayableImport.notes.some(n=>n.includes('presente solo netto da pagare')),'Segnalare la distinzione contabile');
+const payableBeforeTotal=importText('Fattura 806 del 27/10/2026\nTotale da pagare € 102,00\nTotale documento € 122,00')[0];
+assert.equal(payableBeforeTotal.total,122,'Non prendere il primo netto da pagare come totale');
+assert.ok(!payableBeforeTotal.notes.some(n=>n.includes('Totale documento assente')),'Nessun falso avviso se il totale esiste');
+const totalBeforePayable=importText('Fattura 807 del 27/10/2026\nTotale documento € 122,00\nTotale da pagare € 102,00')[0];
+assert.equal(totalBeforePayable.total,122,'Ordine inverso: totale documento invariato');
+assert.ok(!totalBeforePayable.notes.some(n=>n.includes('Totale documento discordante tra due letture')),'Il netto diverso non e un conflitto');
 console.log('Invoice import guard: OK (synthetic fixtures)');
