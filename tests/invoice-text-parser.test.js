@@ -341,6 +341,8 @@ assert.ok(!cleanInvoice.notes.some(n=>n.startsWith('Controllo contabile:')),'Non
 sandbox.window.ITEInvoiceText=null;
 const legacy=importText('Fattura 804 del 27/10/2026\nTotale documento € 110,00')[0];
 assert.equal(legacy.total,110,'Il parser di confronto non modifica il comportamento della lettura principale');
+// Riattivare il parser per le prove del controllo integrato.
+sandbox.window.ITEInvoiceText={extractInvoiceText};
 // Il netto da pagare non deve essere salvato come totale documento.
 const onlyPayableImport=importText('Fattura 805 del 27/10/2026\nTotale da pagare € 50,00')[0];
 assert.equal(onlyPayableImport.total,null,'Il solo netto da pagare non e un totale documento');
