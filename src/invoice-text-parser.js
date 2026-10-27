@@ -10,7 +10,7 @@ function parseItalianMoney(value){
   return Number.isFinite(n)?n:null;
 }
 function parseDate(value){
-  var m=String(value||'').match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})$/);
+  var m=String(value||'').match(/^(\d{2})[\/.-](\d{2})[\/.-](\d{4})$/);
   if(!m)return null;
   var d=new Date(Date.UTC(+m[3],+m[2]-1,+m[1]));
   return d.getUTCFullYear()===+m[3]&&d.getUTCMonth()===+m[2]-1&&d.getUTCDate()===+m[1]?m[3]+'-'+m[2]+'-'+m[1]:null;
@@ -21,7 +21,7 @@ function extractInvoiceText(text){
   var lines=t.split('\n').map(function(x){return x.trim();}).filter(Boolean);
   // Only accept an invoice heading, not a referenced invoice in a credit note or attachment.
   // A courtesy-copy heading may appear after the recipient name on the same line.
-  var invoicePattern=/(?:copia[ \t]+di[ \t]+cortesia[ \t]+)?fattura[ \t]*(?:n(?:r|°|º|\.)*\.?[ \t]*)?(\d+(?:[\/-][a-z0-9]+)*)[ \t]*(?:del|data)[ \t]*(\d{2}[\/-]\d{2}[\/-]\d{4})/gi;
+  var invoicePattern=/(?:copia[ \t]+di[ \t]+cortesia[ \t]+)?fattura[ \t]*(?:n(?:r|°|º|\.)*\.?[ \t]*)?(\d+(?:[\/-][a-z0-9]+)*)[ \t]*(?:del|data)[ \t]*(\d{2}[\/.-]\d{2}[\/.-]\d{4})/gi;
   var invoices=[], invoiceCandidate;
   while((invoiceCandidate=invoicePattern.exec(t))!==null){
     var prefix=t.slice(t.lastIndexOf('\n',invoiceCandidate.index-1)+1,invoiceCandidate.index).trim();
@@ -30,7 +30,7 @@ function extractInvoiceText(text){
     }
   }
   var invoice=invoices[0]||null;
-  var creditPattern=/(?:^|\n)\s*(?:copia\s+di\s+cortesia\s+)?nota\s+(?:di\s+)?(?:credito|accredito)\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)*)\s*(?:del|data)\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/gim;
+  var creditPattern=/(?:^|\n)\s*(?:copia\s+di\s+cortesia\s+)?nota\s+(?:di\s+)?(?:credito|accredito)\s*(?:n(?:r|°|º|\.)*\.?\s*)?(\d+(?:[\/-][a-z0-9]+)*)\s*(?:del|data)\s*(\d{2}[\/.-]\d{2}[\/.-]\d{4})/gim;
   var credits=[], creditCandidate;
   while((creditCandidate=creditPattern.exec(t))!==null)credits.push(creditCandidate);
   var credit=credits[0]||null;
@@ -79,13 +79,13 @@ function extractInvoiceText(text){
     break;
   }
   var due=null;
-  var dueMatch=t.match(/(?:^|\n)\s*scadenze?\s*:?\s*\n?\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/im);
+  var dueMatch=t.match(/(?:^|\n)\s*scadenz[ae](?:\s+pagamento)?\s*:?\s*\n?\s*(\d{2}[\/.-]\d{2}[\/.-]\d{4})/im);
   if(dueMatch)due=parseDate(dueMatch[1]);
   var missing=amountConflicts.slice();
   // Repeated headings may be harmless copies; conflicting headings require manual review.
   // Never silently select a different document number or date.
-  var headings=invoices.map(function(m){return 'fattura:'+m[1].toUpperCase()+':'+m[2].replace(/\//g,'-');})
-    .concat(credits.map(function(m){return 'nota_credito:'+m[1].toUpperCase()+':'+m[2].replace(/\//g,'-');}));
+  var headings=invoices.map(function(m){return 'fattura:'+m[1].toUpperCase()+':'+m[2].replace(/[\/.]/g,'-');})
+    .concat(credits.map(function(m){return 'nota_credito:'+m[1].toUpperCase()+':'+m[2].replace(/[\/.]/g,'-');}));
   if(headings.length>1&&headings.some(function(value){return value!==headings[0];}))
     missing.push('Intestazioni documento discordanti: verificare originale');
   // Una fattura esplicita e un tipo TD04 non possono essere accettati insieme.

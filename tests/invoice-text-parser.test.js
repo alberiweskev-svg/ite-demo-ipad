@@ -358,6 +358,34 @@ assert.ok(twoDeclaredTypes.anomalie.includes('Intestazioni documento discordanti
 const repeatedDeclaredType=extractInvoiceText('Tipo documento: TD04\nTipo documento: TD04');
 assert.ok(!repeatedDeclaredType.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Duplicati identici non sono un conflitto');
 
+
+// Regressione: date italiane con punti, senza falsi conflitti tra copie dello stesso documento.
+assert.equal(parseDate('27.10.2026'),'2026-10-27');
+assert.equal(parseDate('31.02.2026'),null,'Rifiutare date impossibili con punti');
+const dottedInvoice=extractInvoiceText([
+  'Fattura 930 del 27.10.2026',
+  'Destinatario: CLIENTE FITTIZIO DATA SRL',
+  'Imponibile € 100,00',
+  'Totale IVA € 10,00',
+  'Totale documento € 110,00',
+  'Scadenza pagamento: 31.10.2026'
+].join('\n'));
+assert.equal(dottedInvoice.tipo_documento,'fattura');
+assert.equal(dottedInvoice.data_emissione,'2026-10-27');
+assert.equal(dottedInvoice.scadenza,'2026-10-31');
+assert.equal(dottedInvoice.totale_documento,110);
+assert.deepEqual(dottedInvoice.anomalie,[],'Date puntate valide non generano anomalie');
+const dottedCredit=extractInvoiceText('Nota di credito 931 del 27.10.2026');
+assert.equal(dottedCredit.tipo_documento,'nota_credito');
+assert.equal(dottedCredit.data_emissione,'2026-10-27');
+const equivalentDateHeadings=extractInvoiceText('Fattura 932 del 27.10.2026\nFattura 932 del 27/10/2026');
+assert.ok(!equivalentDateHeadings.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Date equivalenti non sono un conflitto');
+const differentDateHeadings=extractInvoiceText('Fattura 933 del 27.10.2026\nFattura 933 del 28/10/2026');
+assert.ok(differentDateHeadings.anomalie.some(x=>x.includes('Intestazioni documento discordanti')),'Date realmente discordanti vanno segnalate');
+const invalidDottedDate=extractInvoiceText('Fattura 934 del 31.02.2026');
+assert.equal(invalidDottedDate.data_emissione,null);
+assert.ok(invalidDottedDate.anomalie.some(x=>x.includes('Data documento non valida')));
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
 
 
