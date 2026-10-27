@@ -34,18 +34,26 @@ function extractInvoiceText(text){
   var issueDate=documentMatch?parseDate(documentMatch[2]):null;
   var number=documentMatch?documentMatch[1]:null;
   var proforma=!isCredit&&!!(number&&/[\/-]PR$/i.test(number));
-  function amount(label){
+  var amountConflicts=[];
+  function amount(label,fieldName){
     // Preserve negative signs before or after the euro symbol in credit-note amounts.
     var re=new RegExp('^(?:'+label+')[ \\t]*:?[ \\t]*(-?[ \\t]*€[ \\t]*-?|€[ \\t]*-?|-[ \\t]*|)([0-9][0-9.]*,[0-9]{2})(?=[ \\t€]|$)','i');
+    var found=[];
     for(var i=0;i<lines.length;i++){
       var m=lines[i].match(re);
-      if(m)return parseItalianMoney((m[1].indexOf('-')!==-1?'-':'')+m[2]);
+      if(m){
+        var value=parseItalianMoney((m[1].indexOf('-')!==-1?'-':'')+m[2]);
+        if(value!==null)found.push(value);
+      }
     }
-    return null;
+    if(found.length>1&&found.some(function(value){return Math.round(value*100)!==Math.round(found[0]*100);})){
+      amountConflicts.push('Valori discordanti per '+fieldName+': verificare originale');
+    }
+    return found.length?found[0]:null;
   }
-  var taxable=amount('imponibile|totale[ \\t]+imponibile|base[ \\t]+imponibile');
-  var vat=amount('totale[ \\t]+iva|importo[ \\t]+iva|iva[ \\t]+importo');
-  var total=amount('totale(?:[ \\t]+documento|[ \\t]+fattura|[ \\t]+da[ \\t]+pagare)?|importo[ \\t]+totale');
+  var taxable=amount('imponibile|totale[ \\t]+imponibile|base[ \\t]+imponibile','imponibile');
+  var vat=amount('totale[ \\t]+iva|importo[ \\t]+iva|iva[ \\t]+importo','IVA');
+  var total=amount('totale(?:[ \\t]+documento|[ \\t]+fattura|[ \\t]+da[ \\t]+pagare)?|importo[ \\t]+totale','totale');
   var rateMatch=t.match(/(?:aliquota(?:\s+iva)?|iva)\s*[:\s]*(\d{1,2}(?:[.,]\d+)?)\s*%/i);
   var reverse=/reverse\s*charge|inversione\s+contabile/i.test(t);
   var client=null;
@@ -60,7 +68,7 @@ function extractInvoiceText(text){
   var due=null;
   var dueMatch=t.match(/(?:^|\n)\s*scadenze?\s*:?\s*\n?\s*(\d{2}[\/-]\d{2}[\/-]\d{4})/im);
   if(dueMatch)due=parseDate(dueMatch[1]);
-  var missing=[];
+  var missing=amountConflicts.slice();
   // Non correggere gli importi letti: segnala le differenze per verifica manuale.
   if(taxable!==null&&vat!==null&&total!==null){
     var deltaCents=Math.abs(Math.round((taxable+vat)*100)-Math.round(total*100));

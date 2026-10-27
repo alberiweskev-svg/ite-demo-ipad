@@ -179,4 +179,46 @@ assert.equal(invalidCreditDate.tipo_documento,'nota_credito');
 assert.equal(invalidCreditDate.data_emissione,null);
 assert.ok(invalidCreditDate.anomalie.some(x=>x.includes('Data documento non valida')),'Segnalare date impossibili anche nelle TD04');
 
+
+const conflictingAmounts=extractInvoiceText([
+  'Fattura 300 del 27/10/2026',
+  'Destinatario: CLIENTE FITTIZIO DELTA SRL',
+  'Imponibile € 100,00',
+  'Totale IVA € 10,00',
+  'Totale documento € 110,00',
+  'Totale documento € 190,00'
+].join('\n'));
+assert.equal(conflictingAmounts.totale_documento,110,'Conservare il primo totale, senza sostituzioni automatiche');
+assert.ok(conflictingAmounts.anomalie.includes('Valori discordanti per totale: verificare originale'),'Segnalare totali discordanti');
+
+const repeatedAmounts=extractInvoiceText([
+  'Fattura 301 del 27/10/2026',
+  'Imponibile € 100,00',
+  'Totale IVA € 10,00',
+  'Totale € 110,00',
+  'Totale documento € 110,00'
+].join('\n'));
+assert.ok(!repeatedAmounts.anomalie.some(x=>x.includes('Valori discordanti')),'Totali identici ripetuti non sono anomali');
+
+const conflictingTaxAndVat=extractInvoiceText([
+  'Fattura 302 del 27/10/2026',
+  'Imponibile € 100,00',
+  'Imponibile € 150,00',
+  'Totale IVA € 10,00',
+  'Totale IVA € 15,00',
+  'Totale € 110,00'
+].join('\n'));
+assert.equal(conflictingTaxAndVat.imponibile,100,'Non sovrascrivere imponibile');
+assert.equal(conflictingTaxAndVat.importo_iva,10,'Non sovrascrivere IVA');
+assert.ok(conflictingTaxAndVat.anomalie.includes('Valori discordanti per imponibile: verificare originale'));
+assert.ok(conflictingTaxAndVat.anomalie.includes('Valori discordanti per IVA: verificare originale'));
+
+const conflictingCredit=extractInvoiceText([
+  'Nota di credito 303 del 27/10/2026',
+  'Totale € -110,00',
+  'Totale documento € 110,00'
+].join('\n'));
+assert.equal(conflictingCredit.totale_documento,-110,'Non cambiare segno della nota di credito');
+assert.ok(conflictingCredit.anomalie.includes('Valori discordanti per totale: verificare originale'));
+
 console.log('Invoice text parser: OK (synthetic fixtures)');
