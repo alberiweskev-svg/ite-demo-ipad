@@ -88,7 +88,8 @@ const server=http.createServer((req,res)=>{
   await page.waitForFunction(()=>/Password errata o archivio danneggiato|Password non valida/.test(document.getElementById('vault-message').textContent),{timeout:30000});
   assert.equal(await page.locator('#app-shell').isVisible(),false,'Wrong password unlocked archive');
   await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
-  await page.locator('#vault-submit').click();
+  // La riapertura puo' ricaricare la pagina: attendere lo stato visibile, non il navigation event.
+  await page.locator('#vault-submit').click({noWaitAfter:true});
   await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
   assert.equal(await page.evaluate(key=>window.ITEVault.storage.getItem(key),testKey),testValue,'Encrypted value not recovered after reload');
   await page.evaluate(key=>window.ITEVault.storage.removeItem(key),testKey);
