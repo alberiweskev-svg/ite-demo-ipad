@@ -8,6 +8,33 @@ const path=require('node:path');
 const {chromium}=require('playwright');
 const root=path.resolve(process.argv[2]||'.');
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json','.mjs':'text/javascript; charset=utf-8','.wasm':'application/wasm'};
+
+function makeSyntheticInvoicePdf(lines){
+  // PDF A4 minimo, generato interamente in memoria con testo e dati fittizi.
+  const escapePdf=s=>s.replace(/([\\\\()])/g,'\\\\$1');
+  const stream=['BT','/F1 12 Tf','50 780 Td',...lines.flatMap((line,i)=>[
+    ...(i?['0 -20 Td']:[]),`(${escapePdf(line)}) Tj`
+  ]),'ET'].join('\\n')+'\\n';
+  const objects=[
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+    `<< /Length ${Buffer.byteLength(stream,'latin1')} >>\\nstream\\n${stream}endstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+  ];
+  let pdf='%PDF-1.4\\n';
+  const offsets=[];
+  for(let i=0;i<objects.length;i++){
+    offsets.push(Buffer.byteLength(pdf,'latin1'));
+    pdf+=`${i+1} 0 obj\\n${objects[i]}\\nendobj\\n`;
+  }
+  const startxref=Buffer.byteLength(pdf,'latin1');
+  pdf+=`xref\\n0 ${objects.length+1}\\n0000000000 65535 f \\n`;
+  for(const offset of offsets)pdf+=`${String(offset).padStart(10,'0')} 00000 n \\n`;
+  pdf+=`trailer\\n<< /Size ${objects.length+1} /Root 1 0 R >>\\nstartxref\\n${startxref}\\n%%EOF\\n`;
+  return Buffer.from(pdf,'latin1');
+}
+
 const server=http.createServer((req,res)=>{
  try{
   const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
@@ -138,6 +165,58 @@ const server=http.createServer((req,res)=>{
   const xmlDownload=await xmlDownloadPromise;
   assert.equal(xmlDownload.suggestedFilename(),xmlName);
   assert.deepEqual(await fs.promises.readFile(await xmlDownload.path()),xmlBytes,'XML scaricato alterato');
+
+  // PDF testuale reale (non un .txt rinominato): lettura PDF.js e originali cifrati.
+  const pdfName='fattura-pdf-fittizia.pdf';
+  const pdfBytes=makeSyntheticInvoicePdf([
+    'Fattura n. 321 del 28/10/2026',
+    'Cliente: CLIENTE FITTIZIO PDF SRL',
+    'Imponibile: 100,00',
+    'Totale IVA: 22,00',
+    'Totale documento: 122,00',
+    'SOLO DATI FITTIZI'
+  ]);
+  await page.locator('#import-files').setInputFiles({name:pdfName,mimeType:'application/pdf',buffer:pdfBytes});
+  await page.waitForFunction(name=>window.ITECommerce.queue().some(d=>d.sourceName===name)&&document.getElementById('import-status').textContent.includes('Analisi completata'),pdfName,{timeout:60000});
+  const pdfPreview=await page.evaluate(name=>window.ITECommerce.queue().find(d=>d.sourceName===name),pdfName);
+  assert.equal(pdfPreview.number,'321','Numero PDF non estratto');
+  assert.equal(pdfPreview.date,'2026-10-28','Data PDF non estratta');
+  assert.equal(pdfPreview.net,100,'Imponibile PDF non estratto');
+  assert.equal(pdfPreview.tax,22,'IVA PDF non estratta');
+  assert.equal(pdfPreview.total,122,'Totale PDF non estratto');
+  assert.equal(pdfPreview.type,'Da verificare','PDF senza direzione fiscale certa classificato automaticamente');
+  assert.match(pdfPreview.text,/CLIENTE FITTIZIO PDF SRL/,'Testo PDF.js non estratto');
+  assert.deepEqual(Buffer.from(pdfPreview.file.base64,'base64'),pdfBytes,'PDF originale alterato in anteprima');
+  await page.locator('#import-apply').click();
+  await page.waitForFunction(name=>window.ITECommerce.snapshot().documents.some(d=>d.sourceName===name),pdfName,{timeout:60000});
+  const pdfSaved=await page.evaluate(name=>{
+    const state=window.ITECommerce.snapshot();
+    const doc=state.documents.find(d=>d.sourceName===name);
+    return {doc,file:state.files.find(f=>f.id===doc?.fileId)};
+  },pdfName);
+  assert.ok(pdfSaved.doc&&pdfSaved.file,'PDF fittizio non registrato');
+  assert.deepEqual(Buffer.from(pdfSaved.file.base64,'base64'),pdfBytes,'PDF originale alterato dopo salvataggio');
+  const pdfBackup=await page.evaluate(()=>window.ITEBackup.pack());
+  assert.ok(pdfBackup.commerce.documents.some(d=>d.id===pdfSaved.doc.id),'PDF assente nel backup');
+  assert.ok(pdfBackup.commerce.files.some(f=>f.id===pdfSaved.file.id),'Originale PDF assente nel backup');
+  await page.reload({waitUntil:'networkidle'});
+  await page.locator('#vault-password').fill(password);
+  await page.locator('#vault-submit').click({noWaitAfter:true});
+  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  const pdfReopened=await page.evaluate(id=>{
+    const state=window.ITECommerce.snapshot();
+    const doc=state.documents.find(d=>d.id===id);
+    return {doc,file:state.files.find(f=>f.id===doc?.fileId)};
+  },pdfSaved.doc.id);
+  assert.ok(pdfReopened.doc&&pdfReopened.file,'PDF non recuperato dopo riapertura cifrata');
+  assert.deepEqual(Buffer.from(pdfReopened.file.base64,'base64'),pdfBytes,'PDF alterato dopo riapertura');
+  const pdfDownloadPromise=page.waitForEvent('download',{timeout:30000});
+  await page.evaluate(id=>window.ITECommerce.openOriginal(id),pdfSaved.doc.id);
+  const pdfDownload=await pdfDownloadPromise;
+  assert.equal(pdfDownload.suggestedFilename(),pdfName);
+  assert.deepEqual(await fs.promises.readFile(await pdfDownload.path()),pdfBytes,'PDF scaricato alterato');
+  console.log('OK: PDF fittizio letto da PDF.js, registrato, incluso nel backup, riaperto e scaricato senza alterazioni');
+
   console.log('OK: FatturaPA XML fittizia estratta, registrata, inclusa nel backup, riaperta e scaricata senza alterazioni');
   assert.deepEqual(errors,[],'Errori browser: '+errors.join(' | '));
   console.log('OK: fattura fittizia importata, registrata, inclusa nel backup, riaperta e scaricata senza perdita di byte');
