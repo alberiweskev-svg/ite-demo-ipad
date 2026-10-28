@@ -110,6 +110,18 @@ const server=http.createServer((req,res)=>{
   const xmlBackup=await page.evaluate(()=>window.ITEBackup.pack());
   assert.ok(xmlBackup.commerce.documents.some(d=>d.id===xmlSaved.doc.id),'XML assente nel backup');
   assert.ok(xmlBackup.commerce.files.some(f=>f.id===xmlSaved.file.id),'Originale XML assente nel backup');
+  // Un XML con intestazione ma senza corpo non deve sparire senza spiegazione.
+  // Il parser lo segnala e l'originale rimane nella coda "Da verificare".
+  const incompleteName='fattura-xml-senza-corpo-fittizia.xml';
+  const incompleteBytes=Buffer.from('<?xml version="1.0"?><FatturaElettronica><FatturaElettronicaHeader/></FatturaElettronica>','utf8');
+  await page.locator('#import-files').setInputFiles({name:incompleteName,mimeType:'application/xml',buffer:incompleteBytes});
+  await page.waitForFunction(name=>window.ITECommerce.queue().some(d=>d.sourceName===name)&&document.getElementById('import-status').textContent.includes('Analisi completata'),incompleteName,{timeout:45000});
+  const incompletePreview=await page.evaluate(name=>window.ITECommerce.queue().find(d=>d.sourceName===name),incompleteName);
+  assert.equal(incompletePreview.type,'Da verificare','XML senza corpo non deve essere classificato come fattura');
+  assert.ok(incompletePreview.notes.some(note=>note.includes('senza corpo documento')),'Segnalazione del corpo XML mancante assente');
+  assert.deepEqual(Buffer.from(incompletePreview.file.base64,'base64'),incompleteBytes,'Originale XML non valido non conservato in anteprima');
+  assert.equal(await page.evaluate(name=>window.ITECommerce.snapshot().documents.some(d=>d.sourceName===name),incompleteName),false,'XML incompleto registrato senza conferma');
+
   await page.reload({waitUntil:'networkidle'});
   await page.locator('#vault-password').fill(password);
   await page.locator('#vault-submit').click({noWaitAfter:true});
