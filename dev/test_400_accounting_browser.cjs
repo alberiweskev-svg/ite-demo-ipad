@@ -11,27 +11,27 @@ const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=u
 
 function makeSyntheticInvoicePdf(lines){
   // PDF A4 minimo, generato interamente in memoria con testo e dati fittizi.
-  const escapePdf=s=>s.replace(/([\\\\()])/g,'\\\\$1');
+  const escapePdf=s=>s.replace(/([\\()])/g,'\\$1');
   const stream=['BT','/F1 12 Tf','50 780 Td',...lines.flatMap((line,i)=>[
     ...(i?['0 -20 Td']:[]),`(${escapePdf(line)}) Tj`
-  ]),'ET'].join('\\n')+'\\n';
+  ]),'ET'].join('\n')+'\n';
   const objects=[
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
     '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
-    `<< /Length ${Buffer.byteLength(stream,'latin1')} >>\\nstream\\n${stream}endstream`,
+    `<< /Length ${Buffer.byteLength(stream,'latin1')} >>\nstream\n${stream}endstream`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
   ];
-  let pdf='%PDF-1.4\\n';
+  let pdf='%PDF-1.4\n';
   const offsets=[];
   for(let i=0;i<objects.length;i++){
     offsets.push(Buffer.byteLength(pdf,'latin1'));
-    pdf+=`${i+1} 0 obj\\n${objects[i]}\\nendobj\\n`;
+    pdf+=`${i+1} 0 obj\n${objects[i]}\nendobj\n`;
   }
   const startxref=Buffer.byteLength(pdf,'latin1');
-  pdf+=`xref\\n0 ${objects.length+1}\\n0000000000 65535 f \\n`;
-  for(const offset of offsets)pdf+=`${String(offset).padStart(10,'0')} 00000 n \\n`;
-  pdf+=`trailer\\n<< /Size ${objects.length+1} /Root 1 0 R >>\\nstartxref\\n${startxref}\\n%%EOF\\n`;
+  pdf+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
+  for(const offset of offsets)pdf+=`${String(offset).padStart(10,'0')} 00000 n \n`;
+  pdf+=`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${startxref}\n%%EOF\n`;
   return Buffer.from(pdf,'latin1');
 }
 
