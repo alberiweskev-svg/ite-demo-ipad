@@ -304,7 +304,7 @@ const server=http.createServer((req,res)=>{
     }
     const checkpoint=await page.evaluate(async id=>(await window.ITEDocs.listDocs()).some(d=>d.id===id),photoBefore.id);
     assert.equal(checkpoint,true,'First synthetic photo missing after WebKit reload');
-    console.log('DIAGNOSTIC: WebKit first-photo reload and encrypted reopen passed');
+    console.log('DIAGNOSTIC: WebKit first-photo '+(closeReopen?'tab close/reopen':'reload')+' and encrypted reopen passed');
     await page.locator('#app-nav a[href="#documenti"]').first().evaluate(element=>element.click());
   }
   // Simulate the dedicated iPad camera input using synthetic image bytes (no real camera access).
@@ -342,7 +342,7 @@ const server=http.createServer((req,res)=>{
   assert.ok(cameraAfter,'Camera photo missing after encrypted vault reload');
   assert.equal(String(cameraAfter.parentId),String(equipmentJob.id));
   assert.deepEqual(Buffer.from(cameraAfter.bytes),cameraBytes);
-  console.log('OK: Dedicated camera photo survives encrypted vault reload with correct intervention link');
+  console.log('OK: Dedicated camera photo survives encrypted vault '+(process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='2'?'tab close/reopen':'reload')+' with correct intervention link');
   // Historical files must not be deleted after the intervention is closed.
   const retained=await page.evaluate(async id=>{
     await window.ITEDocs.remove(id);
