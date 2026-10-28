@@ -14,10 +14,10 @@ const bytes=Uint8Array.from([70,65,84,84,85,82,65,32,84,69,83,84]);
 const digest=createHash('sha256').update(bytes).digest('hex');
 async function scenario(overrides={},missing=false){
  const events={urls:0,clicks:0,downloads:[],revocations:0};
- const file={id:'file_demo',name:'fattura-fittizia.txt',type:'text/plain',size:bytes.length,base64:Buffer.from(bytes).toString('base64'),hash:digest,...overrides};
+ const file={id:'file_'+digest,name:'fattura-fittizia.txt',type:'text/plain',size:bytes.length,base64:Buffer.from(bytes).toString('base64'),hash:digest,...overrides};
  const ctx={
   ready:Promise.resolve(),
-  state:{documents:[{id:'doc_demo',fileId:'file_demo'}],files:missing?[]:[file]},
+  state:{documents:[{id:'doc_demo',fileId:file.id}],files:missing?[]:[file]},
   decode:s=>Uint8Array.from(Buffer.from(s,'base64')),
   crypto:webcrypto,Uint8Array,TextDecoder,Blob,Promise,Error,Number,
   URL:{createObjectURL:()=>{events.urls++;return 'blob:demo'},revokeObjectURL:()=>{events.revocations++}},
@@ -54,6 +54,10 @@ async function scenario(overrides={},missing=false){
  assert.equal(r.events.clicks,0);
  r=await scenario({hash:digest.toUpperCase()});
  assert.match(r.error?.message||'',/Impronta SHA-256/);
+ assert.equal(r.events.clicks,0);
+ r=await scenario({id:'file_non_corrispondente'});
+ assert.match(r.error?.message||'',/Impronta SHA-256/,'Identificativo non coerente con hash: download bloccato');
+ assert.equal(r.events.urls,0);
  assert.equal(r.events.clicks,0);
  r=await scenario({},true);
  assert.match(r.error?.message||'',/Originale non trovato/);
