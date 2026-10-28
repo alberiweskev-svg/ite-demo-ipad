@@ -58,6 +58,8 @@ jobs:
         run: node dev/test_400_document_retention.cjs
       - name: Test saved attachment metadata and bytes
         run: node dev/test_400_document_save_integrity.cjs
+      - name: Test accounting import file completeness and safe parser fallback
+        run: node dev/test_400_import_file_integrity.cjs
       - name: Test document preview integrity
         run: node dev/test_400_document_preview_integrity.cjs
       - name: Test backup download link lifecycle
