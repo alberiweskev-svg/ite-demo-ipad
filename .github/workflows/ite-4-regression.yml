@@ -42,6 +42,8 @@ jobs:
         run: node dev/test_400_posted_documents.cjs
       - name: Test warehouse stock and references
         run: node dev/test_400_warehouse.cjs
+      - name: Test itemized quotes and supply/install separation
+        run: node dev/test_400_quotes.cjs
       - name: Test worksite labor and financial summaries
         run: node dev/test_400_worksite.cjs
       - name: Test linked document and worksite view refresh
