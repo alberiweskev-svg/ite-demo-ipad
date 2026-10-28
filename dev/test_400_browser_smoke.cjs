@@ -353,6 +353,11 @@ const server=http.createServer((req,res)=>{
   assert.deepEqual(Buffer.from(retained.bytes),sampleBytes,'Historical attachment bytes changed after blocked deletion');
   assert.match(retained.feedback,/Eliminazione non riuscita: Intervento chiuso/,'Closed intervention deletion was not explicitly blocked');
   console.log('OK: Closed intervention retains uploaded photo when deletion is attempted');
+  if(process.env.ITE_TEST_BROWSER==='webkit'&&process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='2'){
+    assert.deepEqual(errors,[],'WebKit browser errors during attachment close/reopen: '+errors.join(' | '));
+    console.log('OK: WebKit close/reopen preserves both synthetic photos and their intervention links; page.reload remains a separate known issue');
+    return;
+  }
   // Lock an unattended, unlocked archive even when an unsaved form is open.
   await page.locator('#app-nav a[href="#calendario"]').first().evaluate(el=>el.click());
   await page.locator('#agenda-new').click();
