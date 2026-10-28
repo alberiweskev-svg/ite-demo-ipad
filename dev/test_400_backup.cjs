@@ -4,7 +4,9 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const source=fs.readFileSync('app.js','utf8');
 const start=source.indexOf('async function restore(input){'),end=source.indexOf('\nwindow.ITEBackup=',start);
 assert(start>=0&&end>start,'restore function not found');
-const restoreCode=source.slice(start,end);
+const helperStart=source.indexOf('async function verifyCommerceOriginals('),helperEnd=source.indexOf('\n// Resolve only the unambiguous owner of an attachment.',helperStart);
+assert(helperStart>=0&&helperEnd>helperStart,'Accounting original integrity helper not found');
+const restoreCode=source.slice(helperStart,helperEnd)+'\n'+source.slice(start,end);
 const dataFor=id=>({clienti:[{id,name:'Cliente prova '+id}],immobili:[],impianti:[],apparecchiature:[],interventi:[],cantieri:[]});
 async function check(failAt){
  const calls=[],original=dataFor(1),incoming=dataFor(2),commerce={documents:[],articles:[],movements:[]};
