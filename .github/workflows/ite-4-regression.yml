@@ -117,6 +117,10 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Chromium integrated technical draft browser flow with synthetic data
         run: node dev/test_400_technical_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit integrated technical draft save, backup, revision and print
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_technical_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Chromium smoke test of encrypted vault and tablet layout
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit smoke test of encrypted vault and tablet layout (Safari engine)
