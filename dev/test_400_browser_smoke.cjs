@@ -268,7 +268,10 @@ const server=http.createServer((req,res)=>{
   await page.locator('#docs-parent-type').selectOption('interventi');
   await page.locator('#docs-parent-id').selectOption(String(equipmentJob.id));
   await page.locator('#docs-note').fill('[TEST] Foto selettore');
-  const sampleBytes=Buffer.from([137,80,78,71,13,10,26,10]);
+  // A complete, decodable 2x2 PNG is essential for WebKit reload diagnostics:
+   // a PNG signature alone is not a valid image and can confound the crash investigation.
+   const sampleBytes=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNUTZnGwMDAxMDAwMDAAAANLQEjE3xxwgAAAABJRU5ErkJggg==','base64');
+   assert.ok(sampleBytes.length>40,'Synthetic photo fixture must be a complete PNG');
   await page.locator('#docs-file').setInputFiles({name:'test-upload.png',mimeType:'image/png',buffer:sampleBytes});
   await page.locator('#docs-form button[type="submit"]').click();
   await page.waitForFunction(()=>document.getElementById('docs-feedback').textContent.includes('salvati e verificati'),{timeout:30000});
