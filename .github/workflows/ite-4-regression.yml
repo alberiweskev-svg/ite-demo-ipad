@@ -16,6 +16,10 @@ jobs:
           node-version: '22'
       - name: Verify JavaScript syntax
         run: node --check app.js
+      - name: Verify vault JavaScript syntax
+        run: node --check vault.js
+      - name: Test encrypted vault migration without redundant IndexedDB writes
+        run: node dev/test_400_vault_migration.cjs
       - name: Test invoice text parser (synthetic data only)
         run: node tests/invoice-text-parser.test.js
       - name: Test backup
