@@ -1,0 +1,30 @@
+'use strict';
+// Synthetic lifecycle regression: closing a Safari tab must release live IndexedDB connections.
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('vault.js','utf8');
+const start=source.indexOf('const databaseCache=new WeakMap()');
+const end=source.indexOf('\nfunction openDatabase(',start);
+assert(start>=0&&end>start,'IndexedDB connection tracking code not found');
+assert(/addEventListener\('pagehide',\(\)=>\{closeActiveDatabases\(\);releaseLock\?\.\(\);\}\)/.test(source),
+ 'pagehide must close IndexedDB connections before releasing the exclusive session lock');
+const context={WeakMap,Set,Proxy,Reflect};
+vm.createContext(context);
+vm.runInContext(source.slice(start,end)+'\nthis.wrap=databaseProxy;this.closeAll=closeActiveDatabases;',context);
+let firstCloses=0,secondCloses=0,thirdCloses=0;
+const first={name:'ITE_DEMO_DOCUMENTI_312',close(){firstCloses++}};
+const second={name:'ITE_COMMERCIO_V1',close(){secondCloses++;throw Error('Simulated close failure')}};
+const third={name:'ITE_BACKUP_HISTORY_V1',close(){thirdCloses++}};
+const wrapped=context.wrap(first);
+assert.equal(context.wrap(first),wrapped,'Database proxy should be cached');
+wrapped.close();
+assert.equal(firstCloses,1,'Explicit close must reach the underlying database');
+context.wrap(second);
+context.wrap(third);
+assert.doesNotThrow(()=>context.closeAll(),'One failed close must not prevent other connections from closing');
+assert.equal(firstCloses,1,'Already-closed database must not be closed twice');
+assert.equal(secondCloses,1,'Failed close must be attempted once');
+assert.equal(thirdCloses,1,'Remaining database must close despite an earlier failure');
+context.closeAll();
+assert.equal(thirdCloses,1,'Repeated pagehide cleanup must be idempotent');
+console.log('OK: vault closes active IndexedDB connections before session release; explicit close and failure isolation verified');
