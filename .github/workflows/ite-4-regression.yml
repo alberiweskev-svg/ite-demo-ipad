@@ -118,6 +118,13 @@ jobs:
           ITE_TEST_BROWSER: webkit
           ITE_TEST_WEBKIT_CAMERA_FULL: '2'
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Diagnostic WebKit direct reload after intervention revision, before attachments
+        id: webkit_before_photos
+        continue-on-error: true
+        env:
+          ITE_TEST_BROWSER: webkit
+          ITE_TEST_WEBKIT_CAMERA_FULL: '4'
+        run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Diagnostic WebKit camera upload and encrypted reload (known crash, not a passing gate)
         id: webkit_reload
         continue-on-error: true
@@ -136,6 +143,7 @@ jobs:
         if: always()
         run: |
           echo "### WebKit photo navigation diagnostics (non-blocking)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Before attachments: ${{ steps.webkit_before_photos.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           echo "Direct reload: ${{ steps.webkit_reload.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           echo "Same-tab navigation: ${{ steps.webkit_same_tab.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           echo "These diagnostics are not passing gates; a successful regression does not mean they passed." >> "$GITHUB_STEP_SUMMARY"

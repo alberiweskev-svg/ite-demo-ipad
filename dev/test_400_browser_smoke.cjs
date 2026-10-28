@@ -266,6 +266,20 @@ const server=http.createServer((req,res)=>{
   assert.equal(afterSecondClosure.workflow_status,'Chiuso','Revision did not close');
   assert.ok(JSON.parse(afterSecondClosure.revision_audit).some(e=>e.action==='CHIUSURA_DOPO_REVISIONE'),'Second closure not audited');
   assert.equal(JSON.parse(afterSecondClosure.work_sessions).length,2,'Historical session lost after revision');
+  // Isolate whether WebKit navigation fails even BEFORE any document is saved.
+  // Diagnostic only: no synthetic attachments exist at this checkpoint.
+  if(process.env.ITE_TEST_BROWSER==='webkit'&&process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='4'){
+    console.log('DIAGNOSTIC: WebKit direct reload after intervention revision, before attachments');
+    await page.reload({waitUntil:'domcontentloaded',timeout:30000});
+    await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
+    await page.locator('#vault-submit').click({noWaitAfter:true});
+    await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+    const recovered=await page.evaluate(id=>window.ITE.snapshot().interventi.find(j=>j.id===id),equipmentJob.id);
+    assert.equal(recovered?.workflow_status,'Chiuso','Revision disappeared on pre-attachment WebKit reload');
+    assert.deepEqual(errors,[],'WebKit runtime errors before attachments: '+errors.join(' | '));
+    console.log('DIAGNOSTIC: WebKit pre-attachment reload and revision recovery passed');
+    return;
+  }
   // Attach a synthetic document to the intervention and ensure revisions never sever its link.
   // Both fixtures must contain complete PNG data. A four-byte PNG signature
   // is not a valid image and can obscure WebKit navigation crash diagnostics.
