@@ -9,4 +9,7 @@ assert.equal(ctx.quoteValidate(lines),true);assert.equal(ctx.quoteNet({lines}),2
 assert.equal(ctx.quoteNet({amount:123}),123);assert.equal(ctx.quoteVat({amount:123}),0);
 for(const invalid of [[],[{...lines[0],line_type:''}],[{...lines[0],qty:0}],[{...lines[0],price:-1}],[{...lines[0],discount:101}],[{...lines[0],vat:101}],[{...lines[0],description:''}]])assert.throws(()=>ctx.quoteValidate(invalid));
 for(const pattern of [/data-fin-quote-edit/,/data-fin-quote-print/,/data-field="line_type"/,/DA DISTINGUERE/,/signed_document_verified='no'/])assert.match(source,pattern);
+const approvalContext={};vm.createContext(approvalContext);vm.runInContext(extract('invalidateExtraApproval'),approvalContext);
+for(const status of ['Approvato','Parzialmente approvato']){const entry={status,approved_line_indices:[0,1],signed_document_verified:'yes',approval_source:'manuale'};approvalContext.invalidateExtraApproval(entry);assert.equal(entry.status,'Da approvare');assert.equal(entry.approved_line_indices.length,0);assert.equal(entry.signed_document_verified,'no');assert.equal(entry.approval_source,'da_rinnovare')}
+const pending={status:'Da approvare',approved_line_indices:[]};approvalContext.invalidateExtraApproval(pending);assert.equal(pending.status,'Da approvare');
 console.log('OK: itemized quotes, supply/install, VAT, legacy values, invalid inputs, approval reset, extra categories');
