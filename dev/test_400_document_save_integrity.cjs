@@ -18,6 +18,10 @@ async function verify(changes={},originalChanges={}){
 }
 (async()=>{
  assert.equal(await verify(),true,'Foto e metadati identici devono essere recuperabili');
+ const correctSha=require('node:crypto').createHash('sha256').update(Buffer.from(bytes)).digest('hex');
+ assert.equal(await verify({sha256:correctSha},{sha256:correctSha}),true,'Impronta corretta: documento recuperabile');
+ await assert.rejects(()=>verify({sha256:'0'.repeat(64)},{sha256:'0'.repeat(64)}),/Impronta SHA-256 del documento non valida/,'Impronta falsificata non deve superare la verifica anche se i due record coincidono');
+ await assert.rejects(()=>verify({sha256:'non-valida'},{sha256:'non-valida'}),/Impronta SHA-256 del documento non valida/,'Impronta malformata non deve essere accettata');
  for(const [field,value] of [['parentId','9'],['subjectId','3'],['siteId','4'],['type','Altro'],['mime','application/pdf'],['fileName','altra-foto.jpg']]){
   await assert.rejects(()=>verify({[field]:value}),/File o collegamento non recuperabile/,'Modifica non rilevata: '+field);
  }
