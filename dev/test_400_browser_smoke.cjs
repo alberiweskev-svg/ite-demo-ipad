@@ -277,6 +277,18 @@ const server=http.createServer((req,res)=>{
   assert.equal(String(photoBefore.parentId),String(equipmentJob.id));
   assert.deepEqual(Buffer.from(photoBefore.bytes),sampleBytes);
   console.log('OK: Synthetic photo saved through upload form with verified bytes');
+  // Diagnostic only: distinguish the first attachment reload from the later camera reload.
+  if(process.env.ITE_TEST_BROWSER==='webkit'&&process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='1'){
+    console.log('DIAGNOSTIC: WebKit reload after first synthetic photo, before camera input');
+    await page.reload({waitUntil:'networkidle',timeout:30000});
+    await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
+    await page.locator('#vault-submit').click({noWaitAfter:true});
+    await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+    const checkpoint=await page.evaluate(async id=>(await window.ITEDocs.listDocs()).some(d=>d.id===id),photoBefore.id);
+    assert.equal(checkpoint,true,'First synthetic photo missing after WebKit reload');
+    console.log('DIAGNOSTIC: WebKit first-photo reload and encrypted reopen passed');
+    await page.locator('#app-nav a[href="#documenti"]').first().evaluate(element=>element.click());
+  }
   // Simulate the dedicated iPad camera input using synthetic image bytes (no real camera access).
   await page.locator('#documenti button[onclick="ITEDocs.showForm()"]').click();
   await page.locator('#docs-parent-type').selectOption('interventi');
