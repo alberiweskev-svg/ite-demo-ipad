@@ -280,7 +280,7 @@ const server=http.createServer((req,res)=>{
   // Diagnostic only: distinguish the first attachment reload from the later camera reload.
   if(process.env.ITE_TEST_BROWSER==='webkit'&&process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='1'){
     console.log('DIAGNOSTIC: WebKit reload after first synthetic photo, before camera input');
-    await page.reload({waitUntil:'networkidle',timeout:30000});
+    await page.reload({waitUntil:'domcontentloaded',timeout:30000});
     await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
     await page.locator('#vault-submit').click({noWaitAfter:true});
     await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
@@ -307,7 +307,7 @@ const server=http.createServer((req,res)=>{
   console.log('OK: Dedicated camera input stores synthetic photo and restores form validation');
   const docsBefore=await page.evaluate(()=>window.ITEDocs.listDocs());
   assert.ok(docsBefore.some(d=>d.id===docId&&d.parentType==='interventi'&&d.parentId===String(equipmentJob.id)),'Synthetic document not linked to intervention');
-  await page.reload({waitUntil:'networkidle'});
+  await page.reload({waitUntil:process.env.ITE_TEST_BROWSER==='webkit'?'domcontentloaded':'networkidle',timeout:30000});
   await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
   await page.locator('#vault-submit').click();
   await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
