@@ -267,22 +267,22 @@ const server=http.createServer((req,res)=>{
   assert.ok(JSON.parse(afterSecondClosure.revision_audit).some(e=>e.action==='CHIUSURA_DOPO_REVISIONE'),'Second closure not audited');
   assert.equal(JSON.parse(afterSecondClosure.work_sessions).length,2,'Historical session lost after revision');
   // Attach a synthetic document to the intervention and ensure revisions never sever its link.
+  // Both fixtures must contain complete PNG data. A four-byte PNG signature
+  // is not a valid image and can obscure WebKit navigation crash diagnostics.
+  const sampleBytes=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNUTZnGwMDAxMDAwMDAAAANLQEjE3xxwgAAAABJRU5ErkJggg==','base64');
+  assert.ok(sampleBytes.length>40,'Synthetic photo fixture must be a complete PNG');
   const docId='test-revision-attachment';
-  await page.evaluate(async ({id,jobId})=>{
+  await page.evaluate(async ({id,jobId,bytes})=>{
     const docs=await window.ITEDocs.listDocs();
-    docs.push({id,type:'Fotografia tecnica',parentType:'interventi',parentId:String(jobId),subjectId:'1',siteId:'',date:'2026-11-16',expires:'',number:'',note:'[TEST] Allegato revisione',fileName:'test-revisione.png',size:4,mime:'image/png',created:Date.now(),fileBytes:new Uint8Array([137,80,78,71]).buffer});
+    docs.push({id,type:'Fotografia tecnica',parentType:'interventi',parentId:String(jobId),subjectId:'1',siteId:'',date:'2026-11-16',expires:'',number:'',note:'[TEST] Allegato revisione',fileName:'test-revisione.png',size:bytes.length,mime:'image/png',created:Date.now(),fileBytes:new Uint8Array(bytes).buffer});
     await window.ITEDocs.replaceDocs(docs);
-  },{id:docId,jobId:equipmentJob.id});
+  },{id:docId,jobId:equipmentJob.id,bytes:Array.from(sampleBytes)});
   // Simulate a photo selected through the real file input (synthetic bytes only).
   await page.locator('#app-nav a[href="#documenti"]').first().evaluate(element=>element.click());
   await page.locator('#documenti button[onclick="ITEDocs.showForm()"]').click();
   await page.locator('#docs-parent-type').selectOption('interventi');
   await page.locator('#docs-parent-id').selectOption(String(equipmentJob.id));
   await page.locator('#docs-note').fill('[TEST] Foto selettore');
-  // A complete, decodable 2x2 PNG is essential for WebKit reload diagnostics:
-   // a PNG signature alone is not a valid image and can confound the crash investigation.
-   const sampleBytes=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNUTZnGwMDAxMDAwMDAAAANLQEjE3xxwgAAAABJRU5ErkJggg==','base64');
-   assert.ok(sampleBytes.length>40,'Synthetic photo fixture must be a complete PNG');
   await page.locator('#docs-file').setInputFiles({name:'test-upload.png',mimeType:'image/png',buffer:sampleBytes});
   await page.locator('#docs-form button[type="submit"]').click();
   await page.waitForFunction(()=>document.getElementById('docs-feedback').textContent.includes('salvati e verificati'),{timeout:30000});
