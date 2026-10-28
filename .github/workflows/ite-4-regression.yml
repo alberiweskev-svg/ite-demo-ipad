@@ -119,17 +119,26 @@ jobs:
           ITE_TEST_WEBKIT_CAMERA_FULL: '2'
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Diagnostic WebKit camera upload and encrypted reload (known crash, not a passing gate)
+        id: webkit_reload
         continue-on-error: true
         env:
           ITE_TEST_BROWSER: webkit
           ITE_TEST_WEBKIT_CAMERA_FULL: '1'
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Diagnostic WebKit same-tab navigation after photos (compare with reload crash)
+        id: webkit_same_tab
         continue-on-error: true
         env:
           ITE_TEST_BROWSER: webkit
           ITE_TEST_WEBKIT_CAMERA_FULL: '3'
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Report WebKit diagnostic outcomes separately from required tests
+        if: always()
+        run: |
+          echo "### WebKit photo navigation diagnostics (non-blocking)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Direct reload: \${{ steps.webkit_reload.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Same-tab navigation: \${{ steps.webkit_same_tab.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "These diagnostics are not passing gates; a successful regression does not mean they passed." >> "$GITHUB_STEP_SUMMARY"
       - name: Browser accounting import, backup and encrypted reopen (synthetic invoice)
         run: node dev/test_400_accounting_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Upload tested development preview
