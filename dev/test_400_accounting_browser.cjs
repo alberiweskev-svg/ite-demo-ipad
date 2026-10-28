@@ -73,6 +73,60 @@ const server=http.createServer((req,res)=>{
   const download=await downloadPromise;
   assert.equal(download.suggestedFilename(),name);
   assert.deepEqual(await fs.promises.readFile(await download.path()),bytes,'Originale scaricato alterato');
+  // FatturaPA XML interamente fittizia: verifica estrazione strutturata e originali.
+  const xmlName='fattura-elettronica-fittizia.xml';
+  const xmlText=[
+   '<?xml version="1.0" encoding="UTF-8"?>',
+   '<FatturaElettronica versione="FPR12">',
+   '<FatturaElettronicaHeader>',
+   '<CedentePrestatore><DatiAnagrafici><IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>00000000000</IdCodice></IdFiscaleIVA><Anagrafica><Denominazione>FORNITORE FITTIZIO SRL</Denominazione></Anagrafica></DatiAnagrafici></CedentePrestatore>',
+   '<CessionarioCommittente><DatiAnagrafici><IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>11111111111</IdCodice></IdFiscaleIVA><Anagrafica><Denominazione>CLIENTE FITTIZIO SRL</Denominazione></Anagrafica></DatiAnagrafici></CessionarioCommittente>',
+   '</FatturaElettronicaHeader>',
+   '<FatturaElettronicaBody><DatiGenerali><DatiGeneraliDocumento><TipoDocumento>TD01</TipoDocumento><Divisa>EUR</Divisa><Data>2026-10-28</Data><Numero>XML-DEMO-001</Numero><ImportoTotaleDocumento>122.00</ImportoTotaleDocumento></DatiGeneraliDocumento></DatiGenerali>',
+   '<DatiBeniServizi><DettaglioLinee><NumeroLinea>1</NumeroLinea><Descrizione>Materiale di prova non reale</Descrizione><Quantita>1.00</Quantita><PrezzoUnitario>100.00</PrezzoUnitario><PrezzoTotale>100.00</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee><DatiRiepilogo><AliquotaIVA>22.00</AliquotaIVA><ImponibileImporto>100.00</ImponibileImporto><Imposta>22.00</Imposta></DatiRiepilogo></DatiBeniServizi>',
+   '</FatturaElettronicaBody></FatturaElettronica>'
+  ].join('');
+  const xmlBytes=Buffer.from(xmlText,'utf8');
+  await page.locator('#import-files').setInputFiles({name:xmlName,mimeType:'application/xml',buffer:xmlBytes});
+  await page.waitForFunction(name=>window.ITECommerce.queue().some(d=>d.sourceName===name)&&document.getElementById('import-status').textContent.includes('Analisi completata'),xmlName,{timeout:45000});
+  const xmlPreview=await page.evaluate(name=>window.ITECommerce.queue().find(d=>d.sourceName===name),xmlName);
+  assert.equal(xmlPreview.number,'XML-DEMO-001','Numero XML non estratto');
+  assert.equal(xmlPreview.date,'2026-10-28','Data XML non estratta');
+  assert.equal(xmlPreview.net,100,'Imponibile XML non estratto');
+  assert.equal(xmlPreview.tax,22,'IVA XML non estratta');
+  assert.equal(xmlPreview.total,122,'Totale XML non estratto');
+  assert.equal(xmlPreview.lines.length,1,'Riga XML non estratta');
+  assert.equal(xmlPreview.type,'Da verificare','Non classificare come acquisto/vendita senza identità aziendale fittizia impostata');
+  assert.deepEqual(Buffer.from(xmlPreview.file.base64,'base64'),xmlBytes,'XML originale alterato in anteprima');
+  await page.locator('#import-apply').click();
+  await page.waitForFunction(name=>window.ITECommerce.snapshot().documents.some(d=>d.sourceName===name),xmlName,{timeout:60000});
+  const xmlSaved=await page.evaluate(name=>{
+   const state=window.ITECommerce.snapshot();
+   const doc=state.documents.find(d=>d.sourceName===name);
+   return {doc,file:state.files.find(f=>f.id===doc?.fileId)};
+  },xmlName);
+  assert.ok(xmlSaved.doc&&xmlSaved.file,'Fattura XML fittizia non registrata');
+  assert.deepEqual(Buffer.from(xmlSaved.file.base64,'base64'),xmlBytes,'XML alterato dopo registrazione');
+  const xmlBackup=await page.evaluate(()=>window.ITEBackup.pack());
+  assert.ok(xmlBackup.commerce.documents.some(d=>d.id===xmlSaved.doc.id),'XML assente nel backup');
+  assert.ok(xmlBackup.commerce.files.some(f=>f.id===xmlSaved.file.id),'Originale XML assente nel backup');
+  await page.reload({waitUntil:'networkidle'});
+  await page.locator('#vault-password').fill(password);
+  await page.locator('#vault-submit').click({noWaitAfter:true});
+  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  const xmlReopened=await page.evaluate(id=>{
+   const state=window.ITECommerce.snapshot();
+   const doc=state.documents.find(d=>d.id===id);
+   return {doc,file:state.files.find(f=>f.id===doc?.fileId)};
+  },xmlSaved.doc.id);
+  assert.ok(xmlReopened.doc&&xmlReopened.file,'Fattura XML non recuperata dopo riapertura');
+  assert.deepEqual(Buffer.from(xmlReopened.file.base64,'base64'),xmlBytes,'XML alterato dopo riapertura');
+  const xmlDownloadPromise=page.waitForEvent('download',{timeout:30000});
+  await page.evaluate(id=>window.ITECommerce.openOriginal(id),xmlSaved.doc.id);
+  const xmlDownload=await xmlDownloadPromise;
+  assert.equal(xmlDownload.suggestedFilename(),xmlName);
+  assert.deepEqual(await fs.promises.readFile(await xmlDownload.path()),xmlBytes,'XML scaricato alterato');
+  console.log('OK: FatturaPA XML fittizia estratta, registrata, inclusa nel backup, riaperta e scaricata senza alterazioni');
   assert.deepEqual(errors,[],'Errori browser: '+errors.join(' | '));
   console.log('OK: fattura fittizia importata, registrata, inclusa nel backup, riaperta e scaricata senza perdita di byte');
  }finally{await browser.close()}
