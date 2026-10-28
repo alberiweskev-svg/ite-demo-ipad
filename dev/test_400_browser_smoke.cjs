@@ -270,6 +270,7 @@ const server=http.createServer((req,res)=>{
   // Diagnostic only: no synthetic attachments exist at this checkpoint.
   if(process.env.ITE_TEST_BROWSER==='webkit'&&process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='4'){
     console.log('DIAGNOSTIC: WebKit direct reload after intervention revision, before attachments');
+    console.log('DIAGNOSTIC: WebKit pre-reload state '+JSON.stringify(await page.evaluate(()=>({commerceBusy:window.ITECommerce?.busy?.(),warehouseEditorHidden:document.getElementById('warehouse-editor')?.hidden,docsSaving:window.ITEDocs?.isSaving?.(),backupBusy:window.ITEBackup?.busy?.()}))));
     await page.reload({waitUntil:'domcontentloaded',timeout:30000});
     await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
     await page.locator('#vault-submit').click({noWaitAfter:true});

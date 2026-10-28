@@ -7,19 +7,19 @@ const start=source.indexOf('async function migrateDatabase(name){');
 const end=source.indexOf('\nasync function migrate(){',start);
 assert(start>=0&&end>start,'Vault database migration not found');
 const migration=source.slice(start,end)+'\nthis.runMigration=migrateDatabase;';
-function scenario(rows){
+function scenario(rows,stores=['docs']){
  const state={reads:0,writes:[],transactions:[],closed:0,stored:[]};
  const database={
-  objectStoreNames:['docs'],
+  objectStoreNames:stores,
   close(){state.closed++},
   transaction(_names,mode){
    state.transactions.push(mode);
    const tx={
     abort(){tx.onabort?.()},
-    objectStore(){
+    objectStore(store){
      return {
       getAll(){
-       const request={result:rows.slice()};
+       const request={result:(Array.isArray(rows)?rows:(rows[store]||[])).slice()};
        queueMicrotask(()=>tx.oncomplete?.());
        return request;
       },
@@ -70,6 +70,12 @@ function scenario(rows){
  assert.equal(mixed.state.stored[0].value.fileBytes,binary,'Legacy file bytes must be retained');
  assert.equal(Object.hasOwn(mixed.state.stored[0].value,'file'),false,'Legacy file field should be normalized');
  assert.equal(mixed.state.closed,1);
+
+ const multiple=scenario({docs:[{id:'legacy-doc'}],meta:[{id:'legacy-meta'}]},['docs','meta']);
+ await multiple.run();
+ assert.deepEqual(multiple.state.transactions,['readonly','readonly','readwrite'],'Read each store in sequence, then migrate in one write transaction');
+ assert.deepEqual(multiple.state.writes.map(row=>row.id),['legacy-doc','legacy-meta'],'Migration must preserve all stores');
+ assert.equal(multiple.state.closed,1);
 
  const corrupt=scenario([{id:'bad',__iteVault:{valid:false}}]);
  await assert.rejects(corrupt.run(),/Encrypted record corrupted/,'Damaged encrypted records must stop migration');
