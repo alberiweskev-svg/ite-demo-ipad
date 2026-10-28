@@ -48,6 +48,8 @@ jobs:
         run: node dev/test_400_operator_links.cjs
       - name: Test operator hours
         run: node dev/test_400_operator_hours.cjs
+      - name: Test intervention closure, revision and audited time correction
+        run: node dev/test_400_interventions.cjs
       - name: Test revision hours
         run: node dev/test_400_revision_hours.cjs
       - name: Test revision audit
