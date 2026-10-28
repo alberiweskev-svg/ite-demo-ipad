@@ -1,7 +1,8 @@
 'use strict';
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {chromium,webkit}=require('playwright');
-const browserType=process.env.ITE_TEST_BROWSER==='webkit'?webkit:chromium;
+const browserName=process.env.ITE_TEST_BROWSER==='webkit'?'WebKit':'Chromium';
+const browserType=browserName==='WebKit'?webkit:chromium;
 const root=path.resolve(process.argv[2]||'.');
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.wasm':'application/wasm'};
 const server=http.createServer((req,res)=>{
@@ -39,7 +40,7 @@ const server=http.createServer((req,res)=>{
   }
   console.log('OK: Locked archive remains visually hidden on iPad portrait, landscape and desktop');
   assert.deepEqual(errors,[],'Browser runtime errors: '+errors.join(' | '));
-  console.log('OK: Chromium loads encrypted entry screen and keeps app locked');
+  console.log('OK: '+browserName+' loads encrypted entry screen and keeps app locked');
   // Use only synthetic credentials and a fresh, isolated browser profile.
   await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
   await page.locator('#vault-confirm').fill('ITE-4-Test-Only-2026!');
@@ -47,7 +48,7 @@ const server=http.createServer((req,res)=>{
   await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
   assert.equal(await page.locator('#vault-gate').isVisible(),false,'Vault gate remains visible after unlock');
   assert.deepEqual(errors,[],'Runtime errors after unlock: '+errors.join(' | '));
-  console.log('OK: Chromium creates a test vault and opens the application shell');
+  console.log('OK: '+browserName+' creates a test vault and opens the application shell');
   // A second tab in the same browser profile must never unlock the same
   // encrypted archive concurrently: it could otherwise overwrite newer work.
   const concurrentTab=await context.newPage();
@@ -106,7 +107,7 @@ const server=http.createServer((req,res)=>{
     assert.equal(await page.locator('#app-shell').isVisible(),true,'App disappeared on '+route);
     assert.deepEqual(errors,[],'Browser errors on '+route+': '+errors.join(' | '));
   }
-  console.log('OK: Chromium navigates clients, calendar, worksites, warehouse, and imports');
+  console.log('OK: '+browserName+' navigates clients, calendar, worksites, warehouse, and imports');
   // Tablet/mobile navigation must open and close using the visible menu controls.
   await page.setViewportSize({width:768,height:1024});
   await page.locator('#menu-toggle').click();
