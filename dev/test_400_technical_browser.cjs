@@ -26,7 +26,9 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(await page.locator('[data-tech-section]').count(),4);
  await page.locator('[data-tech-detail="committente"]').fill('Committente TEST fittizio');
  await page.locator('[data-tech-detail="indirizzoImpianto"]').fill('Via Prova 10, Bologna');
+ await page.locator('[data-tech-section]').nth(1).locator('summary').click();
  await page.locator('[data-tech-detail="impresaEsecutrice"]').fill('Impresa TEST sintetica');
+ await page.locator('[data-tech-section]').nth(2).locator('summary').click();
  await page.locator('[data-tech-detail="descrizioneImpianto"]').fill('Circuiti elettrici fittizi');
  await page.locator('[data-tech-check]').first().selectOption('Documentato');
  await page.locator('[data-tech-evidence]').first().fill('Schema sintetico fittizio TEST-001');
@@ -54,6 +56,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.locator('#tech-form [name="reference"]').fill('POS-TEST-001');
  await page.locator('[data-tech-detail="cantiere"]').fill('Cantiere sintetico Bologna');
  await page.locator('[data-tech-detail="inizioLavori"]').fill('2026-10-29');
+ await page.locator('[data-tech-section]').nth(7).locator('summary').click();
  await page.locator('[data-tech-detail="rischi"]').fill('Rischi fittizi da verificare');
  await page.locator('#tech-form button[type="submit"]').click();
  await page.waitForFunction(()=>ITECommerce.snapshot().settings.technicalDrafts?.length===2,{timeout:30000});
