@@ -24,8 +24,18 @@ jobs:
         run: node dev/test_400_attachment_backup_integrity.cjs
       - name: Test record deletion with attached documents
         run: node dev/test_400_core_delete_attachments.cjs
+      - name: Test core-only import safety (synthetic backups)
+        run: node dev/test_400_core_import.cjs
       - name: Test persistence
         run: node dev/test_400_persist.cjs
+      - name: Test posted accounting documents remain immutable
+        run: node dev/test_400_posted_documents.cjs
+      - name: Test warehouse stock and references
+        run: node dev/test_400_warehouse.cjs
+      - name: Test worksite labor and financial summaries
+        run: node dev/test_400_worksite.cjs
+      - name: Test linked document and worksite view refresh
+        run: node dev/test_400_linked_views.cjs
       - name: Test archive recovery
         run: node dev/test_400_archive_recovery.cjs
       - name: Test concurrent tabs archive freshness
