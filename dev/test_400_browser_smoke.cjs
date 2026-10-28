@@ -22,9 +22,19 @@ const server=http.createServer((req,res)=>{
  const browser=await browserType.launch({headless:true});
  try{
   const context=await browser.newContext();
-  const page=await context.newPage();
+  let page=await context.newPage();
   const errors=[];
   page.on('pageerror',e=>errors.push(e.message));
+  // Separate Safari-engine tab close/reopen from the currently failing reload path.
+  async function reopenTab(){
+    await page.close();
+    page=await context.newPage();
+    page.on('pageerror',e=>errors.push(e.message));
+    await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
+    await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
+    await page.locator('#vault-submit').click({noWaitAfter:true});
+    await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  }
   const response=await page.goto(url,{waitUntil:'networkidle',timeout:30000});
   assert.equal(response.status(),200);
   assert.equal(await page.locator('#vault-gate').count(),1,'Missing encrypted entry screen');
@@ -281,12 +291,16 @@ const server=http.createServer((req,res)=>{
   assert.deepEqual(Buffer.from(photoBefore.bytes),sampleBytes);
   console.log('OK: Synthetic photo saved through upload form with verified bytes');
   // Diagnostic only: distinguish the first attachment reload from the later camera reload.
-  if(process.env.ITE_TEST_BROWSER==='webkit'&&process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='1'){
-    console.log('DIAGNOSTIC: WebKit reload after first synthetic photo, before camera input');
-    await page.reload({waitUntil:'domcontentloaded',timeout:30000});
-    await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
-    await page.locator('#vault-submit').click({noWaitAfter:true});
-    await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  if(process.env.ITE_TEST_BROWSER==='webkit'&&['1','2'].includes(process.env.ITE_TEST_WEBKIT_CAMERA_FULL)){
+    const closeReopen=process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='2';
+    console.log('DIAGNOSTIC: WebKit '+(closeReopen?'close/reopen':'reload')+' after first synthetic photo, before camera input');
+    if(closeReopen)await reopenTab();
+    else {
+      await page.reload({waitUntil:'domcontentloaded',timeout:30000});
+      await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
+      await page.locator('#vault-submit').click({noWaitAfter:true});
+      await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+    }
     const checkpoint=await page.evaluate(async id=>(await window.ITEDocs.listDocs()).some(d=>d.id===id),photoBefore.id);
     assert.equal(checkpoint,true,'First synthetic photo missing after WebKit reload');
     console.log('DIAGNOSTIC: WebKit first-photo reload and encrypted reopen passed');
@@ -310,10 +324,13 @@ const server=http.createServer((req,res)=>{
   console.log('OK: Dedicated camera input stores synthetic photo and restores form validation');
   const docsBefore=await page.evaluate(()=>window.ITEDocs.listDocs());
   assert.ok(docsBefore.some(d=>d.id===docId&&d.parentType==='interventi'&&d.parentId===String(equipmentJob.id)),'Synthetic document not linked to intervention');
-  await page.reload({waitUntil:process.env.ITE_TEST_BROWSER==='webkit'?'domcontentloaded':'networkidle',timeout:30000});
-  await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
-  await page.locator('#vault-submit').click();
-  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  if(process.env.ITE_TEST_BROWSER==='webkit'&&process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='2')await reopenTab();
+  else {
+    await page.reload({waitUntil:process.env.ITE_TEST_BROWSER==='webkit'?'domcontentloaded':'networkidle',timeout:30000});
+    await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
+    await page.locator('#vault-submit').click();
+    await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  }
   const docsAfter=await page.evaluate(()=>window.ITEDocs.listDocs());
   assert.ok(docsAfter.some(d=>d.id===docId&&d.parentId===String(equipmentJob.id)&&d.note==='[TEST] Allegato revisione'),'Document disappeared or lost intervention link after encrypted reload');
   const photoAfter=await page.evaluate(async id=>{const doc=(await window.ITEDocs.listDocs()).find(d=>d.id===id);return doc?{parentId:doc.parentId,bytes:Array.from(new Uint8Array(doc.fileBytes))}:null},photoBefore.id);
