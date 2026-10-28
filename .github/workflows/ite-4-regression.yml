@@ -20,6 +20,8 @@ jobs:
         run: node --check vault.js
       - name: Test encrypted vault migration without redundant IndexedDB writes
         run: node dev/test_400_vault_migration.cjs
+      - name: Test exclusive vault session lock and fail-closed unsupported browsers
+        run: node dev/test_400_vault_session_lock.cjs
       - name: Test invoice text parser (synthetic data only)
         run: node tests/invoice-text-parser.test.js
       - name: Test backup
