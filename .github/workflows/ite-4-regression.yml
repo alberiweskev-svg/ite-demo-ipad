@@ -124,6 +124,12 @@ jobs:
           ITE_TEST_BROWSER: webkit
           ITE_TEST_WEBKIT_CAMERA_FULL: '1'
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Diagnostic WebKit same-tab navigation after photos (compare with reload crash)
+        continue-on-error: true
+        env:
+          ITE_TEST_BROWSER: webkit
+          ITE_TEST_WEBKIT_CAMERA_FULL: '3'
+        run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Browser accounting import, backup and encrypted reopen (synthetic invoice)
         run: node dev/test_400_accounting_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Upload tested development preview
