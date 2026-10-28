@@ -1225,7 +1225,7 @@ function validate(value,core=ITE.snapshot()){if(!value||value.schema!==1||!Numbe
  for(const a of value.articles)if(!a.description||a.price!==null&&(!Number.isFinite(a.price)||a.price<0)||!['Materiale','Servizio','Da verificare'].includes(a.kind))throw Error('Articolo non valido');
  for(const m of value.movements){if(!articleIds.has(m.articleId)||!Number.isFinite(m.quantity)||m.quantity===0||!ITEDocs.validDate(m.date)||!m.date||(m.documentId&&!docIds.has(m.documentId)))throw Error('Movimento magazzino non valido');if(m.siteId&&!core.cantieri.some(s=>same(s.id,m.siteId)))throw Error('Cantiere del movimento mancante')}
  for(const d of value.documents){if(!types.includes(d.type)||!fileIds.has(d.fileId)||!Array.isArray(d.lines))throw Error('Documento importato non valido');for(const [key,collection] of [['subjectId','clienti'],['clientId','clienti'],['propertyId','immobili'],['siteId','cantieri'],['plantId','impianti'],['deviceId','apparecchiature'],['jobId','interventi']])if(d[key]&&!core[collection]?.some(r=>same(r.id,d[key])))throw Error('Collegamento mancante: '+key);if(d.siteId&&d.clientId&&!core.cantieri.some(s=>same(s.id,d.siteId)&&same(s.client_id,d.clientId)))throw Error('Cantiere e cliente non corrispondono');if(d.propertyId&&d.clientId&&!core.immobili.some(s=>same(s.id,d.propertyId)&&same(s.client_id,d.clientId)))throw Error('Sede e cliente non corrispondono')}
- for(const d of value.documents)for(const sid of d.subjectIds||[])if(!core.clienti.some(c=>same(c.id,sid)))throw Error('Soggetto importato mancante');for(const f of value.files)if(typeof f.base64!=='string'||decode(f.base64).length!==f.size||typeof f.hash!=='string')throw Error('File originale incompleto');return true}
+ for(const d of value.documents)for(const sid of d.subjectIds||[])if(!core.clienti.some(c=>same(c.id,sid)))throw Error('Soggetto importato mancante');for(const f of value.files)if(typeof f.base64!=='string'||decode(f.base64).length!==f.size||typeof f.hash!=='string')throw Error('File originale incompleto');if(typeof window!=='undefined'&&window.ITETechnicalDrafts)window.ITETechnicalDrafts.validate(value,core);return true}
 async function recover(){const journal=await readStore('journal','pending');if(!journal)return;if(journal.owner&&journal.owner!==tabId&&Date.now()-(journal.started||0)<60000)throw Error('Importazione attiva in un’altra scheda. Attendi la fine o chiudi quella scheda e riprova tra un minuto.');const live=JSON.stringify(ITE.snapshot());if(live===journal.afterCore){validate(journal.next);await transaction(tx=>{tx.objectStore('state').put(journal.next);tx.objectStore('journal').delete('pending')})}else if(live===journal.beforeCore){await transaction(tx=>tx.objectStore('journal').delete('pending'))}else throw Error('Importazione interrotta con dati modificati: operazioni bloccate; conserva il backup per la verifica. Nessun dato è stato sovrascritto.')}
 async function refresh(){await recover();state=await readStore('state','state')||empty();validate(state);return copy(state)}
 async function exportState(){await ready;if(locked||await readStore('journal','pending'))throw Error('Importazione in corso: attendi prima del backup.');await refresh();return copy(state)}
@@ -1508,6 +1508,123 @@ const ready=(async()=>{try{await refresh();for(const [k,v] of Object.entries(sta
 window.addEventListener('beforeunload',event=>{if(processing||locked||queue.length||!$('warehouse-editor').hidden){event.preventDefault();event.returnValue=''}});
 window.ITECommerce={documentLayoutKey,folderLevels,processFor,selectProcess,processes,nonFinancial,windowsHeaderMap,windowsDetectHeader,windowsPrice,windowsClassify,catalogKey,prepareWindowsCatalog,workbookDocs,excelCell,analyzeMatrix,codeKey,busy:()=>processing||locked||queue.length>0,ready,exportState,replaceState,validate,mutate,choose,applyQueue,tableDocs,xmlDocs,textDocs,csv,num,date,balance,stockDocument,articleEdit,stockEdit,openOriginal,editDocument,summaryForSite,snapshot:()=>copy(state),queue:()=>queue,render};
 })();
+
+
+/* ITE_TECHNICAL_DRAFTS_BEGIN */
+;(()=>{'use strict';
+const CHECKLIST={
+ 'Di.Co. elettrica':['Schema impianto','Materiali','Progetto se richiesto','Requisiti tecnico-professionali','Prove e verifiche'],
+ 'Di.Co. idrica / termica':['Schema impianto','Materiali','Progetto se richiesto','Requisiti tecnico-professionali','Prove e verifiche'],
+ 'Di.Ri.':['Rilievo impianto','Verifiche','Requisiti del professionista','Allegati richiesti'],
+ 'Allegato gas H40':['PDR','Documentazione impianto','H40','Firme'],
+ 'Allegato gas I40':['PDR','Documentazione impianto','I40','Firme'],
+ 'Allegato gas A12':['PDR','Documentazione impianto','A12','Firme'],
+ 'Allegato gas B12':['PDR','Documentazione impianto','B12','Firme'],
+ 'POS':['Cantiere','Personale e mansioni','Rischi','DPI e attrezzature','Emergenze','Firme']
+};
+const FIELD_NAMES=['reference','scope','materials','checks','pdr','risks','ppe','notes'];
+const $=id=>document.getElementById(id),same=(a,b)=>String(a||'')===String(b||''),copy=v=>JSON.parse(JSON.stringify(v));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const core=()=>ITE.snapshot(),commerce=()=>ITECommerce.snapshot(),all=()=>commerce().settings.technicalDrafts||[];
+const isTechnical=d=>/^(Di\.Co\.|Di\.Ri\.|Allegato gas |POS$|PSC$|DVR$|DURC$|CCIAA$|Formazione sicurezza$|Scheda sicurezza SDS$|Documento aziendale$)/.test(d.type);
+const validDate=v=>!v||/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T12:00:00Z'))&&new Date(v+'T12:00:00Z').toISOString().slice(0,10)===v;
+function validateDrafts(data,base){
+ const rows=data?.settings?.technicalDrafts;if(rows===undefined)return true;
+ if(!Array.isArray(rows)||rows.length>2000)throw Error('Archivio pratiche tecniche non valido');
+ const ids=new Set(),docs=new Map((data.documents||[]).map(d=>[d.id,d]));
+ const find=(key,id)=>(base[key]||[]).find(r=>same(r.id,id));
+ for(const r of rows){
+  if(!r||typeof r.id!=='string'||!/^td_[a-f0-9-]{36}$/.test(r.id)||ids.has(r.id)||!Object.hasOwn(CHECKLIST,r.type)||!['Bozza','Da verificare','Annullata'].includes(r.status))throw Error('Tipo, stato o identificativo pratica non valido');
+  ids.add(r.id);
+  if(!Number.isSafeInteger(r.revision)||r.revision<1||!Array.isArray(r.history)||r.history.length>500||r.history.some(h=>!h||!['REVISIONE','ANNULLAMENTO'].includes(h.action)||!h.at||!h.before||typeof h.before!=='object'))throw Error('Revisioni pratica non valide');
+  if(!r.clientId||!find('clienti',r.clientId)||!validDate(r.date)||!r.propertyId&&!r.siteId)throw Error('Cliente, sede o data pratica non validi');
+  const p=r.propertyId?find('immobili',r.propertyId):null,s=r.siteId?find('cantieri',r.siteId):null,i=r.plantId?find('impianti',r.plantId):null,a=r.deviceId?find('apparecchiature',r.deviceId):null;
+  if(r.propertyId&&(!p||!same(p.client_id,r.clientId))||r.siteId&&(!s||!same(s.client_id,r.clientId))||r.plantId&&(!i||!p||!same(i.immobile_id,p.id))||r.deviceId&&(!a||!i||!same(a.impianto_id,i.id))||p&&s&&s.immobile_id&&!same(s.immobile_id,p.id))throw Error('Collegamento cliente/sede/impianto/apparecchiatura incoerente');
+  if(!r.fields||typeof r.fields!=='object'||Array.isArray(r.fields)||Object.keys(r.fields).some(k=>!FIELD_NAMES.includes(k))||FIELD_NAMES.some(k=>typeof(r.fields[k]??'')!=='string'||String(r.fields[k]||'').length>4000))throw Error('Campi tecnici non validi');
+  if(!Array.isArray(r.linkedDocIds)||r.linkedDocIds.length>30||new Set(r.linkedDocIds).size!==r.linkedDocIds.length)throw Error('Originali duplicati o non validi');
+  for(const id of r.linkedDocIds){const d=docs.get(id);if(!d||!isTechnical(d)||!same(d.clientId||d.subjectId,r.clientId)||d.siteId&&!same(d.siteId,r.siteId)||d.propertyId&&!same(d.propertyId,r.propertyId))throw Error('Originale tecnico non coerente con la pratica');}
+ }
+ return true;
+}
+function missing(r){
+ const out=[];if(!r.clientId)out.push('Cliente');if(!r.propertyId&&r.type!=='POS')out.push('Sede');if(!r.plantId&&r.type!=='POS')out.push('Impianto');if(r.type==='POS'&&!r.siteId)out.push('Cantiere');if(r.type.startsWith('Allegato gas')&&!r.fields.pdr)out.push('PDR');
+ if(!r.fields.scope)out.push('Descrizione lavori');if(r.type.startsWith('Di.Co.')&&!r.fields.materials)out.push('Materiali');if(!r.fields.checks)out.push('Verifiche da documentare');if(!r.linkedDocIds.length)out.push('Originali da acquisire');return out;
+}
+const panel=document.createElement('div');panel.id='technical-drafts-panel';panel.className='panel';
+panel.innerHTML='<h2>Pratiche tecniche — bozze integrate</h2><p class="hint">Di.Co., Di.Ri., GAS e POS. Dati condivisi con anagrafiche, impianti e originali importati. Nessuna firma o prova viene inventata: le bozze non sono documenti ufficiali.</p><div class="actions"><button id="tech-new" type="button">+ Nuova pratica</button><button id="tech-refresh" class="secondary" type="button">Aggiorna</button></div><p id="tech-status" role="status"></p><div id="tech-list"></div><div id="tech-editor" class="panel" hidden></div>';
+$('importazioni').insertBefore(panel,$('importazioni').firstChild);
+const say=s=>$('tech-status').textContent=s;
+const name=(k,id)=>{const r=(core()[k]||[]).find(x=>same(x.id,id));return r?.name||[r?.brand,r?.model,r?.serial].filter(Boolean).join(' ')||''};
+const opts=(items,value,empty)=>'<option value="">'+esc(empty)+'</option>'+items.map(r=>'<option value="'+esc(r.id)+'" '+(same(r.id,value)?'selected':'')+'>'+esc(r.name||[r.brand,r.model,r.serial].filter(Boolean).join(' ')||'ID '+r.id)+'</option>').join('');
+function render(){
+ $('tech-list').innerHTML=all().map(r=>'<div class="item"><strong>'+esc(r.type)+' · '+esc(r.fields.reference||'Senza numero')+'</strong><small>'+esc(r.status)+' · revisione '+r.revision+' · '+esc(name('clienti',r.clientId))+'</small><p>'+r.linkedDocIds.length+' originali collegati; '+missing(r).length+' punti da verificare</p><button data-tech-edit="'+esc(r.id)+'">Apri / revisiona</button><button class="secondary" data-tech-print="'+esc(r.id)+'">Scarica bozza</button>'+(r.status==='Annullata'?'':'<button class="secondary" data-tech-cancel="'+esc(r.id)+'">Annulla pratica</button>')+'</div>').join('')||'<p class="hint">Nessuna pratica. Crea una bozza collegata a un cliente e a una sede o cantiere.</p>';
+}
+function cascade(){
+ const form=$('tech-form');if(!form)return;const val=k=>form.elements[k].value,db=core();
+ const fill=(k,items,empty)=>{const old=val(k);form.elements[k].innerHTML=opts(items,old,empty);if(!items.some(r=>same(r.id,old)))form.elements[k].value=''};
+ const c=val('clientId');fill('propertyId',db.immobili.filter(r=>same(r.client_id,c)),'— Sede —');
+ const p=val('propertyId');fill('plantId',db.impianti.filter(r=>same(r.immobile_id,p)),'— Impianto —');
+ const i=val('plantId');fill('deviceId',db.apparecchiature.filter(r=>same(r.impianto_id,i)),'— Apparecchiatura —');
+ fill('siteId',(db.cantieri||[]).filter(r=>same(r.client_id,c)&&(!p||!r.immobile_id||same(r.immobile_id,p))),'— Cantiere —');
+ const checked=[...form.querySelectorAll('[data-tech-doc]:checked')].map(x=>x.value);
+ const docs=commerce().documents.filter(d=>isTechnical(d)&&same(d.clientId||d.subjectId,c)&&(!d.siteId||same(d.siteId,val('siteId')))&&(!d.propertyId||same(d.propertyId,p)));
+ $('tech-docs').innerHTML=docs.map(d=>'<label class="item"><input type="checkbox" data-tech-doc value="'+esc(d.id)+'" '+(checked.includes(d.id)?'checked':'')+'> '+esc(d.type)+' · '+esc(d.number||d.sourceName||d.id)+'</label>').join('')||'<p class="hint">Nessun originale tecnico compatibile: importa prima il documento.</p>';
+ $('tech-checklist').innerHTML=CHECKLIST[val('type')].map(x=>'<li>'+esc(x)+'</li>').join('');
+}
+function editor(row=null,context={}){
+ const db=core(),r=row||{type:'Di.Co. elettrica',status:'Bozza',clientId:context.clientId||'',propertyId:context.propertyId||'',plantId:'',deviceId:'',siteId:context.siteId||'',date:'',fields:{},linkedDocIds:[]},f=r.fields||{},host=$('tech-editor');
+ host.hidden=false;host.dataset.id=row?.id||'';
+ const fields=[['reference','Riferimento / numero','input'],['scope','Descrizione lavori','textarea'],['materials','Materiali','textarea'],['checks','Verifiche e prove (da documentare)','textarea'],['pdr','PDR (non dedotto)','input'],['risks','Rischi / misure','textarea'],['ppe','DPI / attrezzature','textarea'],['notes','Note','textarea']];
+ host.innerHTML='<h3>'+esc(row?'Revisione pratica':'Nuova pratica')+'</h3><p class="hint">Compila solo informazioni verificate. Non sostituisce il modulo ufficiale.</p><form id="tech-form"><div class="grid"><label>Tipo<select name="type">'+Object.keys(CHECKLIST).map(t=>'<option '+(t===r.type?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select></label><label>Stato<select name="status"><option>Bozza</option><option>Da verificare</option></select></label><label>Cliente<select name="clientId" required>'+opts(db.clienti,r.clientId,'— Cliente —')+'</select></label><label>Sede<select name="propertyId"></select></label><label>Impianto<select name="plantId"></select></label><label>Apparecchiatura<select name="deviceId"></select></label><label>Cantiere<select name="siteId"></select></label><label>Data<input name="date" type="date" value="'+esc(r.date||'')+'"></label></div>'+fields.map(([k,label,type])=>'<label>'+esc(label)+(type==='input'?'<input name="'+k+'" maxlength="4000" value="'+esc(f[k]||'')+'">':'<textarea name="'+k+'" rows="3" maxlength="4000">'+esc(f[k]||'')+'</textarea>')+'</label>').join('')+'<h4>Allegati e controlli previsti</h4><ul id="tech-checklist"></ul><h4>Originali tecnici già importati</h4><div id="tech-docs"></div><div class="actions"><button type="submit">Salva con backup e storico</button><button type="button" id="tech-close" class="secondary">Chiudi senza salvare</button></div></form>';
+ const form=$('tech-form');form.elements.status.value=r.status==='Annullata'?'Bozza':r.status;form.elements.clientId.value=String(r.clientId||'');cascade();
+ for(const k of ['propertyId','plantId','deviceId','siteId']){form.elements[k].value=String(r[k]||'');cascade();}
+ for(const id of r.linkedDocIds){const b=[...form.querySelectorAll('[data-tech-doc]')].find(x=>x.value===id);if(b)b.checked=true;}
+ form.addEventListener('change',e=>{if(['type','clientId','propertyId','plantId','siteId'].includes(e.target.name))cascade()});
+ form.onsubmit=e=>{e.preventDefault();save().catch(err=>say('Pratica non salvata: '+err.message))};
+ $('tech-close').onclick=()=>{host.hidden=true;host.replaceChildren()};host.scrollIntoView({block:'start'});
+}
+function collect(){
+ const form=$('tech-form'),f=new FormData(form),id=$('tech-editor').dataset.id;
+ return {id:id||'td_'+crypto.randomUUID(),type:String(f.get('type')||''),status:String(f.get('status')||'Bozza'),clientId:String(f.get('clientId')||''),propertyId:String(f.get('propertyId')||''),plantId:String(f.get('plantId')||''),deviceId:String(f.get('deviceId')||''),siteId:String(f.get('siteId')||''),date:String(f.get('date')||''),fields:Object.fromEntries(FIELD_NAMES.map(k=>[k,String(f.get(k)||'').trim()])),linkedDocIds:[...form.querySelectorAll('[data-tech-doc]:checked')].map(x=>x.value)};
+}
+async function save(){
+ const r=collect(),before=all().find(x=>x.id===r.id);if(before?.status==='Annullata')throw Error('Pratica annullata: crea nuova bozza');
+ if(!r.clientId||!r.propertyId&&!r.siteId)throw Error('Seleziona cliente e sede o cantiere');
+ if(!window.ITEHistory?.create)throw Error('Backup non disponibile: salvataggio bloccato');
+ await ITEHistory.create('Prima revisione pratica tecnica');
+ await ITECommerce.mutate(next=>{
+  const list=next.settings.technicalDrafts||[],previous=list.find(x=>x.id===r.id);
+  if(Boolean(previous)!==Boolean(before)||previous&&previous.revision!==before.revision)throw Error('Pratica modificata: riapri prima di salvare');
+  const at=new Date().toISOString(),history=previous?[...previous.history,{at,action:'REVISIONE',before:copy({...previous,history:undefined})}]:[];
+  const entry={...r,revision:(previous?.revision||0)+1,history,created:previous?.created||at,updated:at};
+  if(previous)list[list.findIndex(x=>x.id===r.id)]=entry;else list.push(entry);
+  next.settings.technicalDrafts=list;next.audit.push({id:'audit_'+crypto.randomUUID(),at,action:'SALVA_PRATICA_TECNICA',detail:{id:r.id,revision:entry.revision,type:r.type}});
+ });
+ $('tech-editor').hidden=true;$('tech-editor').replaceChildren();render();say('Bozza salvata con backup precedente. Nessuna firma o dichiarazione inviata.');
+}
+async function cancel(id){
+ const before=all().find(x=>x.id===id);if(!before||before.status==='Annullata')return;
+ if(!confirm('Annullare la pratica conservando originali e storico?'))return;
+ if(!window.ITEHistory?.create)throw Error('Backup non disponibile');
+ await ITEHistory.create('Prima annullamento pratica tecnica');
+ await ITECommerce.mutate(next=>{const r=(next.settings.technicalDrafts||[]).find(x=>x.id===id);if(!r||r.revision!==before.revision)throw Error('Pratica modificata: riapri');const at=new Date().toISOString();r.history.push({at,action:'ANNULLAMENTO',before:copy({...r,history:undefined})});r.revision++;r.status='Annullata';r.updated=at;next.audit.push({id:'audit_'+crypto.randomUUID(),at,action:'ANNULLA_PRATICA_TECNICA',detail:{id}})});
+ render();say('Pratica annullata senza cancellare lo storico.');
+}
+function printDraft(id){
+ const r=all().find(x=>x.id===id);if(!r)return;
+ const fields=FIELD_NAMES.map(k=>'<p><b>'+esc(k)+'</b>: '+esc(r.fields[k]||'Da compilare')+'</p>').join('');
+ const html='<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>BOZZA I.T.E.</title><style>body{font:14px Arial,sans-serif;max-width:850px;margin:25px auto;line-height:1.5;color:#21313b}h1{color:#008c45}header{border-bottom:3px solid #008c45}article{white-space:pre-wrap;overflow-wrap:anywhere}.warning{border:2px solid #b44;padding:12px;color:#8a2424}@media print{body{margin:16mm}}</style></head><body><header><h1>I.T.E. — '+esc(r.type)+'</h1><b>BOZZA DI LAVORO · NON VALIDA · NON FIRMATA</b></header><article><p>Cliente: '+esc(name('clienti',r.clientId))+'</p><p>Sede: '+esc(name('immobili',r.propertyId))+'</p><p>Impianto: '+esc(name('impianti',r.plantId))+'</p><p>Apparecchiatura: '+esc(name('apparecchiature',r.deviceId))+'</p><p>Cantiere: '+esc(name('cantieri',r.siteId))+'</p><p>Data: '+esc(r.date||'Da indicare')+' · Revisione '+r.revision+'</p>'+fields+'<h3>Allegati da verificare</h3><ul>'+CHECKLIST[r.type].map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><p>Originali collegati: '+r.linkedDocIds.length+'</p><div class="warning">Da verificare: '+esc(missing(r).join(' · ')||'Prove, allegati, qualifiche e firme')+'</div></article><p>Documento interno di preparazione: non sostituisce i modelli ufficiali e non certifica esiti di prova o sottoscrizioni.</p></body></html>';
+ const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='ITE_BOZZA_'+r.type.replace(/[^a-z0-9]+/gi,'_')+'_'+r.id+'.html';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+function openFor(context={}){ITERouter.show('importazioni','push');editor(null,context)}
+panel.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.techEdit||b.dataset.techPrint||b.dataset.techCancel;if(b.id==='tech-new')editor();else if(b.id==='tech-refresh')render();else if(b.dataset.techEdit)editor(all().find(x=>x.id===id));else if(b.dataset.techPrint)printDraft(id);else if(b.dataset.techCancel)cancel(id).catch(err=>say(err.message))});
+function siteButton(){const host=$('worksite-detail');if(!host||ITERouter.current()!=='scheda-cantiere'||host.querySelector('[data-tech-site]'))return;const id=host.querySelector('[data-work-edit]')?.dataset.workEdit,site=core().cantieri.find(x=>same(x.id,id));if(!site)return;const b=document.createElement('button');b.className='secondary';b.type='button';b.dataset.techSite=id;b.textContent='+ Pratica tecnica per questo cantiere';b.onclick=()=>openFor({clientId:site.client_id,propertyId:site.immobile_id||'',siteId:id});host.append(b)}
+new MutationObserver(()=>siteButton()).observe($('worksite-detail'),{childList:true});
+window.addEventListener('ite-pagechange',()=>{if(ITERouter.current()==='importazioni')render();if(ITERouter.current()==='scheda-cantiere')siteButton()});
+const previousRemove=ITE.remove;ITE.remove=(k,id)=>{const keys={clienti:'clientId',immobili:'propertyId',impianti:'plantId',apparecchiature:'deviceId',cantieri:'siteId'};if(keys[k]&&all().some(r=>same(r[keys[k]],id)))return alert('Scheda collegata a pratiche tecniche: cancellazione bloccata.');return previousRemove(k,id)};
+window.ITETechnicalDrafts={validate:validateDrafts,missing,openFor,render};render();
+})();
+/* ITE_TECHNICAL_DRAFTS_END */
 
 ;
 (()=>{'use strict';
