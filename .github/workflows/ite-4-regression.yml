@@ -22,6 +22,8 @@ jobs:
         run: node dev/test_400_backup.cjs
       - name: Test complete backup attachment integrity
         run: node dev/test_400_attachment_backup_integrity.cjs
+      - name: Test accounting original SHA-256 before full backup and restore
+        run: node dev/test_400_commerce_backup_originals.cjs
       - name: Test record deletion with attached documents
         run: node dev/test_400_core_delete_attachments.cjs
       - name: Test core-only import safety (synthetic backups)
