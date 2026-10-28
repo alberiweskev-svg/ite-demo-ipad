@@ -109,6 +109,12 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Diagnostic WebKit camera upload and encrypted reload (known crash, not a passing gate)
+        continue-on-error: true
+        env:
+          ITE_TEST_BROWSER: webkit
+          ITE_TEST_WEBKIT_CAMERA_FULL: '1'
+        run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Browser accounting import, backup and encrypted reopen (synthetic invoice)
         run: node dev/test_400_accounting_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Upload tested development preview
