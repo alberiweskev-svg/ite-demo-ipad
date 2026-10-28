@@ -64,6 +64,8 @@ jobs:
         run: node dev/test_400_import_file_integrity.cjs
       - name: Test accounting original integrity before reopening
         run: node dev/test_400_import_original_integrity.cjs
+      - name: Test accounting import queue original integrity before persistence
+        run: node dev/test_400_import_queue_integrity.cjs
       - name: Test ZIP input completeness before decompression
         run: node dev/test_400_zip_import_integrity.cjs
       - name: Test document preview integrity
