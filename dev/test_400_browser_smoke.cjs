@@ -1,6 +1,7 @@
 'use strict';
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const {chromium}=require('playwright');
+const {chromium,webkit}=require('playwright');
+const browserType=process.env.ITE_TEST_BROWSER==='webkit'?webkit:chromium;
 const root=path.resolve(process.argv[2]||'.');
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.wasm':'application/wasm'};
 const server=http.createServer((req,res)=>{
@@ -17,7 +18,7 @@ const server=http.createServer((req,res)=>{
 (async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const url='http://127.0.0.1:'+server.address().port+'/';
- const browser=await chromium.launch({headless:true});
+ const browser=await browserType.launch({headless:true});
  try{
   const context=await browser.newContext();
   const page=await context.newPage();
