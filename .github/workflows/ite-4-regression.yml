@@ -113,8 +113,7 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
-      - name: Diagnostic WebKit tab close/reopen after attachment (separate from reload)
-        continue-on-error: true
+      - name: WebKit attachment and camera persistence after tab close/reopen (required)
         env:
           ITE_TEST_BROWSER: webkit
           ITE_TEST_WEBKIT_CAMERA_FULL: '2'
