@@ -125,7 +125,7 @@ const server=http.createServer((req,res)=>{
   // Its full attachment/reload E2E currently crashes the WebKit test page after
   // a synthetic camera upload. Keep that scenario under Chromium regression
   // until the WebKit crash is investigated; do not report it as WebKit-tested.
-  if(process.env.ITE_TEST_BROWSER==='webkit'){
+  if(process.env.ITE_TEST_BROWSER==='webkit'&&!process.env.ITE_TEST_WEBKIT_CAMERA_FULL){
     console.log('OK: WebKit vault, encryption, concurrent-tab lock and tablet navigation (attachment reload NOT tested)');
     return;
   }
@@ -281,13 +281,14 @@ const server=http.createServer((req,res)=>{
   await page.locator('#documenti button[onclick="ITEDocs.showForm()"]').click();
   await page.locator('#docs-parent-type').selectOption('interventi');
   await page.locator('#docs-parent-id').selectOption(String(equipmentJob.id));
-  const cameraBytes=Buffer.from([255,216,255,217]);
-  await page.locator('#docs-camera').setInputFiles({name:'camera-test.jpg',mimeType:'image/jpeg',buffer:cameraBytes});
+  // Use a valid 1x1 PNG: a four-byte JPEG marker is not a decodable camera image.
+  const cameraBytes=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2dWW0AAAAASUVORK5CYII=','base64');
+  await page.locator('#docs-camera').setInputFiles({name:'camera-test.png',mimeType:'image/png',buffer:cameraBytes});
   assert.equal(await page.locator('#docs-file').evaluate(el=>el.required),false,'Camera selection should allow form submission without picker file');
   await page.locator('#docs-form button[type="submit"]').click();
   await page.locator('#docs-form').waitFor({state:'hidden',timeout:30000});
   assert.equal(await page.locator('#docs-file').evaluate(el=>el.required),true,'Picker required state must reset after saving');
-  const cameraBefore=await page.evaluate(async()=>{const doc=(await window.ITEDocs.listDocs()).find(d=>d.fileName==='camera-test.jpg');return doc?{id:doc.id,parentId:doc.parentId,bytes:Array.from(new Uint8Array(doc.fileBytes))}:null});
+  const cameraBefore=await page.evaluate(async()=>{const doc=(await window.ITEDocs.listDocs()).find(d=>d.fileName==='camera-test.png');return doc?{id:doc.id,parentId:doc.parentId,bytes:Array.from(new Uint8Array(doc.fileBytes))}:null});
   assert.ok(cameraBefore,'Synthetic camera photo was not saved');
   assert.equal(String(cameraBefore.parentId),String(equipmentJob.id));
   assert.deepEqual(Buffer.from(cameraBefore.bytes),cameraBytes);
