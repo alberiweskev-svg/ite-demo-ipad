@@ -35,7 +35,7 @@ const server=http.createServer((req,res)=>{
   await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
   await page.locator('#app-nav a[href="#importazioni"]').first().evaluate(el=>el.click());
   const name='fattura-fittizia-e2e.txt';
-  const bytes=Buffer.from('FATTURA FITTIZIA - SOLO TEST\\nNumero: DEMO-2026-001\\nData: 2026-10-28\\nTotale: 123,45 EUR\\nNESSUN DATO REALE\\n','utf8');
+  const bytes=Buffer.from('FATTURA FITTIZIA - SOLO TEST\nNumero: DEMO-2026-001\nData: 2026-10-28\nTotale: 123,45 EUR\nNESSUN DATO REALE\n','utf8');
   await page.locator('#import-files').setInputFiles({name,mimeType:'text/plain',buffer:bytes});
   await page.waitForFunction(()=>window.ITECommerce.queue().length>0&&document.getElementById('import-status').textContent.includes('Analisi completata'),null,{timeout:45000});
   const preview=await page.evaluate(()=>window.ITECommerce.queue()[0]);
