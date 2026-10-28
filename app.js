@@ -1087,7 +1087,7 @@ window.ITEAgenda={newAppointment,cancel,open,start,finish,revision,validateDatab
 ;
 
 (()=>{'use strict';
-const current='3.0.73',endpoint='./version.json';
+const current='4.0.0',endpoint='./version.json';
 let checking=false;
 function busy(){return window.ITECommerce?.busy?.()||['editor','docs-form','appointment-form','warehouse-editor'].some(id=>{const e=document.getElementById(id);return e&&!e.hidden})}
 function banner(text,canReload){
