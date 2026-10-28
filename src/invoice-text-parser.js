@@ -84,12 +84,17 @@ function extractInvoiceText(text){
   for(var j=0;j<lines.length;j++){
     var header=lines[j].match(/^(?:destinatario|cliente|cessionario\s*\/\s*committente|intestatario)(?:\s*:\s*(.*)|\s{2,}(.*)|\s*)$/i);
     if(!header)continue;
-    var candidate=(header[1]||header[2]||'').trim()||lines[j+1]||'';
+    var inlineRecipient=(header[1]||header[2]||'').trim();
+    var candidate=inlineRecipient||lines[j+1]||'';
+    // Se la riga successiva e' un'altra intestazione destinatario, la si
+    // esamina nel suo turno: non includere "Cliente:" nel nominativo.
+    if(!inlineRecipient&&/^(?:destinatario|cliente|cessionario\s*\/\s*committente|intestatario)(?:\s*:|\s*$)/i.test(candidate))continue;
     candidate=candidate.split(/\s{3,}|\s+copia\s+di\s+cortesia/i)[0].trim();
     // Un destinatario vuoto non deve diventare una partita IVA o una voce contabile.
     // Le righe di indirizzo/contatto e le intestazioni del documento non sono nomi clienti.
     // In particolare, dopo "Destinatario" vuoto non associare una via o un telefono.
     var nonRecipientLine=/^(?:indirizzo|telefono|tel\.?|cellulare|e-?mail|iban|cap|citt[aà]|provincia|pdr|pod|tipo\s+documento|nota\s+(?:di\s+)?(?:credito|accredito)|proforma)(?=\s|:|=|$)/i.test(candidate)
+      || /^(?:fornitore|cedente\s*\/\s*prestatore|emittente|banca|modalit[aà]\s+pagamento|pagamento)(?:\s*:|\s*$)/i.test(candidate)
       || /^(?:via|viale|piazza|corso|largo|vicolo|strada)\s+.*\b\d+[a-z]?\b/i.test(candidate);
     if(candidate&&!nonRecipientLine&&!/^(?:p\.?\s*iva|partita\s+iva|c\.?\s*f\.?|codice\s+fiscale|pec|codice\s+destinatario|sdi|imponibile|totale|iva|scadenz[ae])(?=\s|:|=|$)/i.test(candidate)&&!/fattura|copia\s+di\s+cortesia|oscurat|omissis|redatt/i.test(candidate)&&!/^[-*xX#█•.\s]+$/.test(candidate)){
       if(client===null)client=candidate;
