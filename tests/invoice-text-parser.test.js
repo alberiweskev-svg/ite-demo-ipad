@@ -692,3 +692,45 @@ assert.equal(integratedRecipientConflict.type,'Da verificare');
 assert.ok(integratedRecipientConflict.notes.some(x=>x.includes('Destinatari discordanti')),
   'Il gestionale deve mostrare il conflitto fra destinatari');
 console.log('Conflicting recipient headers: OK (synthetic fixtures)');
+
+
+// Regressione: intestazioni consecutive non devono diventare nomi cliente
+// ne' produrre un falso conflitto; dati interamente fittizi.
+const nestedClient=extractInvoiceText([
+  'Fattura 1600 del 28/10/2026',
+  'Destinatario',
+  'Cliente: CLIENTE INVENTATO GAMMA SRL',
+  'Imponibile € 100,00',
+  'Totale IVA € 10,00',
+  'Totale documento € 110,00'
+].join('\n'));
+assert.equal(nestedClient.cliente,'CLIENTE INVENTATO GAMMA SRL');
+assert.ok(!nestedClient.anomalie.some(x=>x.includes('Destinatari discordanti')),
+  'Due etichette consecutive non sono due destinatari discordanti');
+assert.equal(nestedClient.totale_documento,110,'Importi originali invariati');
+
+const nestedCessionario=extractInvoiceText(
+  'Destinatario\nCessionario / committente: CLIENTE INVENTATO DELTA SRL'
+);
+assert.equal(nestedCessionario.cliente,'CLIENTE INVENTATO DELTA SRL');
+assert.ok(!nestedCessionario.anomalie.some(x=>x.includes('Destinatari discordanti')));
+
+for(const issuerLine of [
+  'Fornitore: EMITTENTE FITTIZIO SRL',
+  'Cedente / prestatore: EMITTENTE FITTIZIO SRL',
+  'Emittente: EMITTENTE FITTIZIO SRL',
+  'Banca: ISTITUTO FITTIZIO',
+  'Pagamento: bonifico'
+]){
+  const parsed=extractInvoiceText('Destinatario\n'+issuerLine+'\nTotale documento € 110,00');
+  assert.equal(parsed.cliente,null,'Non usare come cliente la voce: '+issuerLine);
+  assert.ok(parsed.anomalie.includes('Cliente non individuato'));
+}
+assert.equal(extractInvoiceText('Destinatario: Fornitore Immaginario SRL').cliente,
+  'Fornitore Immaginario SRL','Una ragione sociale autentica non deve essere esclusa');
+const integratedNested=importText(
+  'Fattura 1601 del 28/10/2026\nDestinatario\nCliente: CLIENTE INVENTATO GAMMA SRL\nTotale documento € 110,00'
+)[0];
+assert.ok(!integratedNested.notes.some(x=>x.includes('Destinatari discordanti')),
+  'Nessun falso conflitto nell’importazione integrata');
+console.log('Consecutive recipient headings: OK (synthetic fixtures)');
