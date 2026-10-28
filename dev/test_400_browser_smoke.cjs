@@ -30,6 +30,7 @@ const server=http.createServer((req,res)=>{
     await page.close();
     page=await context.newPage();
     page.on('pageerror',e=>errors.push(e.message));
+    page.on('dialog',dialog=>dialog.accept());
     await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
     await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
     await page.locator('#vault-submit').click({noWaitAfter:true});
