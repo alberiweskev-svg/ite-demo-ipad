@@ -292,19 +292,22 @@ const server=http.createServer((req,res)=>{
   assert.deepEqual(Buffer.from(photoBefore.bytes),sampleBytes);
   console.log('OK: Synthetic photo saved through upload form with verified bytes');
   // Diagnostic only: distinguish the first attachment reload from the later camera reload.
-  if(process.env.ITE_TEST_BROWSER==='webkit'&&['1','2'].includes(process.env.ITE_TEST_WEBKIT_CAMERA_FULL)){
+  if(process.env.ITE_TEST_BROWSER==='webkit'&&['1','2','3'].includes(process.env.ITE_TEST_WEBKIT_CAMERA_FULL)){
     const closeReopen=process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='2';
-    console.log('DIAGNOSTIC: WebKit '+(closeReopen?'close/reopen':'reload')+' after first synthetic photo, before camera input');
+    const sameTabNavigation=process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='3';
+    const navigationLabel=closeReopen?'tab close/reopen':sameTabNavigation?'same-tab goto':'reload';
+    console.log('DIAGNOSTIC: WebKit '+navigationLabel+' after first synthetic photo, before camera input');
     if(closeReopen)await reopenTab();
     else {
-      await page.reload({waitUntil:'domcontentloaded',timeout:30000});
+      if(sameTabNavigation)await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
+      else await page.reload({waitUntil:'domcontentloaded',timeout:30000});
       await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
       await page.locator('#vault-submit').click({noWaitAfter:true});
       await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
     }
     const checkpoint=await page.evaluate(async id=>(await window.ITEDocs.listDocs()).some(d=>d.id===id),photoBefore.id);
     assert.equal(checkpoint,true,'First synthetic photo missing after WebKit reload');
-    console.log('DIAGNOSTIC: WebKit first-photo '+(closeReopen?'tab close/reopen':'reload')+' and encrypted reopen passed');
+    console.log('DIAGNOSTIC: WebKit first-photo '+navigationLabel+' and encrypted reopen passed');
     await page.locator('#app-nav a[href="#documenti"]').first().evaluate(element=>element.click());
   }
   // Simulate the dedicated iPad camera input using synthetic image bytes (no real camera access).
@@ -327,7 +330,8 @@ const server=http.createServer((req,res)=>{
   assert.ok(docsBefore.some(d=>d.id===docId&&d.parentType==='interventi'&&d.parentId===String(equipmentJob.id)),'Synthetic document not linked to intervention');
   if(process.env.ITE_TEST_BROWSER==='webkit'&&process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='2')await reopenTab();
   else {
-    await page.reload({waitUntil:process.env.ITE_TEST_BROWSER==='webkit'?'domcontentloaded':'networkidle',timeout:30000});
+    if(process.env.ITE_TEST_BROWSER==='webkit'&&process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='3')await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
+    else await page.reload({waitUntil:process.env.ITE_TEST_BROWSER==='webkit'?'domcontentloaded':'networkidle',timeout:30000});
     await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
     await page.locator('#vault-submit').click();
     await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
@@ -342,7 +346,7 @@ const server=http.createServer((req,res)=>{
   assert.ok(cameraAfter,'Camera photo missing after encrypted vault reload');
   assert.equal(String(cameraAfter.parentId),String(equipmentJob.id));
   assert.deepEqual(Buffer.from(cameraAfter.bytes),cameraBytes);
-  console.log('OK: Dedicated camera photo survives encrypted vault '+(process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='2'?'tab close/reopen':'reload')+' with correct intervention link');
+  console.log('OK: Dedicated camera photo survives encrypted vault '+(process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='2'?'tab close/reopen':process.env.ITE_TEST_WEBKIT_CAMERA_FULL==='3'?'same-tab goto':'reload')+' with correct intervention link');
   // Historical files must not be deleted after the intervention is closed.
   const retained=await page.evaluate(async id=>{
     await window.ITEDocs.remove(id);
