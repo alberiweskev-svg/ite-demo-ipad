@@ -19,4 +19,6 @@ assert.throws(()=>context.validateDrafts({settings:{technicalDrafts:[row,row]},d
 assert.equal(context.validateDrafts({settings:{},documents:[]},base),true);
 assert.match(s,/ITEHistory\.create\('Prima revisione pratica tecnica'\)/);assert.match(s,/ITECommerce\.mutate/);
 assert.match(s,/BOZZA DI LAVORO · NON VALIDA · NON FIRMATA/);assert.match(app,/ITETechnicalDrafts\.validate\(value,core\)/);
+assert.match(app,/technicalSnapshot:\(\)=>/);
+assert.match(app,/validateDrafts\(commerce\(\),core\(\)\)/);
 console.log('OK: technical drafts, links, originals, revisions, validation and non-official print');

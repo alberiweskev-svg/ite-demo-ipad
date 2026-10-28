@@ -1506,7 +1506,7 @@ $('import-queue').addEventListener('change',e=>{readQueue();if(e.target.dataset.
 build();
 const ready=(async()=>{try{await refresh();for(const [k,v] of Object.entries(state.settings))if($('import-settings').elements[k])$('import-settings').elements[k].value=v;render()}catch(e){unavailable=e.message;say('Archivio magazzino non disponibile: '+e.message);throw e}})();ready.catch(()=>{});
 window.addEventListener('beforeunload',event=>{if(processing||locked||queue.length||!$('warehouse-editor').hidden){event.preventDefault();event.returnValue=''}});
-window.ITECommerce={documentLayoutKey,folderLevels,processFor,selectProcess,processes,nonFinancial,windowsHeaderMap,windowsDetectHeader,windowsPrice,windowsClassify,catalogKey,prepareWindowsCatalog,workbookDocs,excelCell,analyzeMatrix,codeKey,busy:()=>processing||locked||queue.length>0,ready,exportState,replaceState,validate,mutate,choose,applyQueue,tableDocs,xmlDocs,textDocs,csv,num,date,balance,stockDocument,articleEdit,stockEdit,openOriginal,editDocument,summaryForSite,snapshot:()=>copy(state),queue:()=>queue,render};
+window.ITECommerce={documentLayoutKey,folderLevels,processFor,selectProcess,processes,nonFinancial,windowsHeaderMap,windowsDetectHeader,windowsPrice,windowsClassify,catalogKey,prepareWindowsCatalog,workbookDocs,excelCell,analyzeMatrix,codeKey,busy:()=>processing||locked||queue.length>0,ready,exportState,replaceState,validate,mutate,choose,applyQueue,tableDocs,xmlDocs,textDocs,csv,num,date,balance,stockDocument,articleEdit,stockEdit,openOriginal,editDocument,summaryForSite,technicalSnapshot:()=>({settings:{technicalDrafts:copy(state.settings.technicalDrafts||[])},documents:state.documents.filter(nonFinancial).map(d=>({id:d.id,type:d.type,clientId:d.clientId,subjectId:d.subjectId,propertyId:d.propertyId,siteId:d.siteId,number:d.number,sourceName:d.sourceName}))}),snapshot:()=>copy(state),queue:()=>queue,render};
 })();
 
 
@@ -1525,7 +1525,7 @@ const CHECKLIST={
 const FIELD_NAMES=['reference','scope','materials','checks','pdr','risks','ppe','notes'];
 const $=id=>document.getElementById(id),same=(a,b)=>String(a||'')===String(b||''),copy=v=>JSON.parse(JSON.stringify(v));
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const core=()=>ITE.snapshot(),commerce=()=>ITECommerce.snapshot(),all=()=>commerce().settings.technicalDrafts||[];
+const core=()=>ITE.snapshot(),commerce=()=>ITECommerce.technicalSnapshot(),all=()=>commerce().settings.technicalDrafts||[];
 const isTechnical=d=>/^(Di\.Co\.|Di\.Ri\.|Allegato gas |POS$|PSC$|DVR$|DURC$|CCIAA$|Formazione sicurezza$|Scheda sicurezza SDS$|Documento aziendale$)/.test(d.type);
 const validDate=v=>!v||/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T12:00:00Z'))&&new Date(v+'T12:00:00Z').toISOString().slice(0,10)===v;
 function validateDrafts(data,base){
@@ -1622,7 +1622,7 @@ function siteButton(){const host=$('worksite-detail');if(!host||ITERouter.curren
 new MutationObserver(()=>siteButton()).observe($('worksite-detail'),{childList:true});
 window.addEventListener('ite-pagechange',()=>{if(ITERouter.current()==='importazioni')render();if(ITERouter.current()==='scheda-cantiere')siteButton()});
 const previousRemove=ITE.remove;ITE.remove=(k,id)=>{const keys={clienti:'clientId',immobili:'propertyId',impianti:'plantId',apparecchiature:'deviceId',cantieri:'siteId'};if(keys[k]&&all().some(r=>same(r[keys[k]],id)))return alert('Scheda collegata a pratiche tecniche: cancellazione bloccata.');return previousRemove(k,id)};
-window.ITETechnicalDrafts={validate:validateDrafts,missing,openFor,render};render();
+window.ITETechnicalDrafts={validate:validateDrafts,missing,openFor,render};try{validateDrafts(commerce(),core());render()}catch(e){say('Archivio pratiche non valido: '+e.message+'. Conserva il backup; modifiche bloccate.');$('tech-new').disabled=true;$('tech-refresh').disabled=true;}
 })();
 /* ITE_TECHNICAL_DRAFTS_END */
 
