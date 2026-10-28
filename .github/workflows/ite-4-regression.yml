@@ -136,8 +136,8 @@ jobs:
         if: always()
         run: |
           echo "### WebKit photo navigation diagnostics (non-blocking)" >> "$GITHUB_STEP_SUMMARY"
-          echo "Direct reload: \${{ steps.webkit_reload.outcome }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Same-tab navigation: \${{ steps.webkit_same_tab.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Direct reload: ${{ steps.webkit_reload.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Same-tab navigation: ${{ steps.webkit_same_tab.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           echo "These diagnostics are not passing gates; a successful regression does not mean they passed." >> "$GITHUB_STEP_SUMMARY"
       - name: Browser accounting import, backup and encrypted reopen (synthetic invoice)
         run: node dev/test_400_accounting_browser.cjs "$RUNNER_TEMP/ite-4-preview"
