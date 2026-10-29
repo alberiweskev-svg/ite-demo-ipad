@@ -13,6 +13,8 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
  await page.evaluate(()=>ITERouter.show('importazioni','push'));
  assert.equal(await page.locator('#technical-drafts-panel').isVisible(),true);
+ await page.evaluate(()=>ITECommerce.ready);
+ await page.waitForFunction(()=>!ITECommerce.busy(),{timeout:30000});
  await page.evaluate(async()=>{
   const raw=new TextEncoder().encode('ORIGINALE TECNICO FITTIZIO: NESSUNA FIRMA O PROVA');
   const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',raw))].map(x=>x.toString(16).padStart(2,'0')).join('');
