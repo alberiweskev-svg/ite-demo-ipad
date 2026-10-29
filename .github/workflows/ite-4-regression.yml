@@ -72,6 +72,7 @@ jobs:
         run: |
           node --check technical-acroform.js
           node dev/test_400_acroform.cjs
+          node dev/test_400_acroform_pdfjs.mjs
       - name: Test structured A4 technical dossiers, provenance and annex isolation
         run: |
           node --check technical-structured-docs.js
