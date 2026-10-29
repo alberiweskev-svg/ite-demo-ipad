@@ -1,0 +1,58 @@
+'use strict';
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {chromium,webkit}=require('playwright'),root=path.resolve(process.argv[2]||'.');
+const engine=process.env.ITE_TEST_BROWSER==='webkit'?webkit:chromium;
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json','.wasm':'application/wasm'};
+const server=http.createServer((req,res)=>{try{
+ const target=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));
+ if(target!==root&&!target.startsWith(root+path.sep))throw Error('outside root');
+ const file=fs.statSync(target).isDirectory()?path.join(target,'index.html'):target;
+ res.setHeader('Content-Type',mime[path.extname(file)]||'application/octet-stream');
+ fs.createReadStream(file).on('error',()=>{if(!res.headersSent)res.writeHead(404);res.end()}).pipe(res);
+}catch{res.writeHead(404);res.end('Not found')}});
+(async()=>{
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const browser=await engine.launch({headless:true});
+ try{
+  const page=await browser.newPage({acceptDownloads:true}),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'domcontentloaded'});
+  await page.locator('#vault-password').fill('ITE-STRUCTURED-TEST-ONLY-2026!');
+  await page.locator('#vault-confirm').fill('ITE-STRUCTURED-TEST-ONLY-2026!');
+  await page.locator('#vault-submit').click();
+  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  await page.waitForFunction(()=>!!window.ITEStructuredDocuments&&!!window.ITETechnicalDrafts&&!ITECommerce.busy(),{timeout:30000});
+  await page.evaluate(()=>ITERouter.show('importazioni','push'));
+  await page.locator('#tech-new').click();
+  await page.locator('#tech-form [name="type"]').selectOption('Di.Co. idrica / termica');
+  await page.locator('#tech-form [name="clientId"]').selectOption('1');
+  await page.locator('#tech-form [name="propertyId"]').selectOption('1');
+  await page.locator('#tech-form [name="plantId"]').selectOption('1');
+  await page.locator('#tech-form [name="reference"]').fill('STRUCT-TEST-001');
+  await page.locator('#tech-form [name="scope"]').fill('Impianto idrico sintetico per collaudo');
+  await page.locator('[data-tech-detail="committente"]').fill('Cliente sintetico TEST');
+  await page.locator('#tech-form button[type="submit"]').click();
+  await page.waitForFunction(()=>ITECommerce.snapshot().settings.technicalDrafts?.some(p=>p.fields.reference==='STRUCT-TEST-001'),{timeout:30000});
+  await page.locator('[data-tech-structured]').first().waitFor({state:'visible'});
+  const before=await page.evaluate(()=>JSON.stringify(ITECommerce.snapshot().settings.technicalDrafts));
+  const download=page.waitForEvent('download');
+  await page.locator('[data-tech-structured]').first().click();
+  const single=await download,html=fs.readFileSync(await single.path(),'utf8');
+  assert.match(single.suggestedFilename(),/^ITE_SCHEDE_TECNICHE_BOZZA_.*\.html$/);
+  assert.match(html,/STRUCT-TEST-001/);
+  assert.match(html,/Impianto idrico sintetico/);
+  assert.match(html,/BOZZA NON VALIDA/);
+  assert.match(html,/size:A4/);
+  assert.match(await page.locator('#tech-status').innerText(),/non cifrato/);
+  await page.locator('#tech-dossier-structured').click();
+  assert.match(await page.locator('#tech-status').innerText(),/Seleziona un cliente/);
+  await page.locator('#tech-filter-client').selectOption('1');
+  const dossierDownload=page.waitForEvent('download');
+  await page.locator('#tech-dossier-structured').click();
+  const dossier=await dossierDownload,dossierHtml=fs.readFileSync(await dossier.path(),'utf8');
+  assert.match(dossierHtml,/STRUCT-TEST-001/);
+  assert.equal(await page.evaluate(()=>JSON.stringify(ITECommerce.snapshot().settings.technicalDrafts)),before);
+  assert.deepEqual(errors,[]);
+  console.log('OK: '+engine.name()+' structured A4 document and filtered dossier, vault guard, no archive mutation');
+ }finally{await browser.close();server.close()}
+})().catch(e=>{console.error(e);server.close();process.exitCode=1});
