@@ -1,6 +1,7 @@
 'use strict';
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {chromium,webkit}=require('playwright'),root=path.resolve(process.argv[2]||'.');
+const {pathToFileURL}=require('node:url');
 const browserType=process.env.ITE_TEST_BROWSER==='webkit'?webkit:chromium;
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json','.wasm':'application/wasm'};
 const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(target!==root&&!target.startsWith(root+path.sep))throw Error('outside root');const file=fs.statSync(target).isDirectory()?path.join(target,'index.html'):target;res.setHeader('Content-Type',mime[path.extname(file)]||'application/octet-stream');fs.createReadStream(file).on('error',()=>{if(!res.headersSent)res.writeHead(404);res.end()}).pipe(res)}catch{res.writeHead(404);res.end('Not found')}});
@@ -25,6 +26,19 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  const singlePromise=page.waitForEvent('download');await page.locator('[data-tech-pdf]').first().click();
  const single=await singlePromise;assert.match(single.suggestedFilename(),/^ITE_PRATICA_BOZZA_.*\.pdf$/);
  const pdf=fs.readFileSync(await single.path());assert.equal(pdf.subarray(0,8).toString(),'%PDF-1.4');assert(pdf.includes(Buffer.from('DICO-PDF-TEST-001')));assert(pdf.includes(Buffer.from('INDICE OPERATIVO')));assert(pdf.includes(Buffer.from('Verificato da:')));
+ await page.locator('[data-tech-fillable]').first().waitFor();
+ const fillablePromise=page.waitForEvent('download');
+ await page.locator('[data-tech-fillable]').first().click();
+ const fillable=await fillablePromise;
+ assert.match(fillable.suggestedFilename(),/^ITE_COMPILABILE_BOZZA_.*\.pdf$/);
+ const formBytes=fs.readFileSync(await fillable.path());
+ assert(formBytes.includes(Buffer.from('/AcroForm 5 0 R')));
+ const pdfjs=await import(pathToFileURL(path.join(root,'vendor/pdf.mjs')).href);
+ const formTask=pdfjs.getDocument({data:new Uint8Array(formBytes),disableFontFace:true,useSystemFonts:true});
+ const formDoc=await formTask.promise,formFields=await formDoc.getFieldObjects();
+ assert.equal(formFields['general.reference'][0].value,'DICO-PDF-TEST-001');
+ assert(formFields['detail.committente'],'Editable technical fields must be present');
+ await formTask.destroy();
  await page.locator('#tech-dossier-pdf').click();
  assert.match(await page.locator('#tech-status').innerText(),/Seleziona un cliente/);
  await page.locator('#tech-filter-client').selectOption('1');
@@ -33,5 +47,5 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert(fs.readFileSync(await dossier.path()).includes(Buffer.from('DICO-PDF-TEST-001')));
  assert.equal((await page.evaluate(()=>ITECommerce.snapshot().settings.technicalDrafts)).length,1,'PDF export changed stored drafts');
  assert.deepEqual(errors,[],'Browser errors: '+errors.join(' | '));
- console.log('OK: '+browserType.name()+' technical PDF and filtered dossier, client guard, no archive mutation');
+ console.log('OK: '+browserType.name()+' technical PDF, editable AcroForm and filtered dossier, client guard, no archive mutation');
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
