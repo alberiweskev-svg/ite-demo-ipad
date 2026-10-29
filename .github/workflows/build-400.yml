@@ -15,6 +15,9 @@ on:
       - 'app.js'
       - 'ite-cad.js'
       - 'ite-cad-workflow.js'
+      - 'technical-structured-docs.js'
+      - 'dev/test_400_structured_docs.cjs'
+      - 'dev/test_400_structured_docs_browser.cjs'
       - 'dev/test_400_cad_workflow.cjs'
       - 'dev/test_400_cad_workflow_browser.cjs'
       - 'dev/test_400_technical_sources.cjs'
@@ -64,6 +67,10 @@ jobs:
           node dev/test_400_cad_workflow.cjs
       - name: Technical crosscheck of CAD and interventions
         run: node dev/test_400_technical_sources.cjs
+      - name: Structured technical dossier unit and syntax tests
+        run: |
+          node --check technical-structured-docs.js
+          node dev/test_400_structured_docs.cjs
       - name: Verify generated script integrity without pushing
         run: |
           node dev/sync_sri.cjs --write
