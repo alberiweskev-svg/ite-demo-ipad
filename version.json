@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-29",
-  "notes": "Anteprima I.T.E. 4.0 isolata: Di.Co./Di.Ri./GAS, POS 12 sezioni con 5 registri operativi multi-riga e collegamento anagrafiche. PDF soltanto bozze non firmate. Non e una release operativa ne un modello ufficiale. La 3.0.74 su main resta invariata."
+  "notes": "Anteprima I.T.E. 4.0 isolata: pratiche Di.Co./Di.Ri./GAS e POS, fascicoli PDF di bozza, nuovo Disegno CAD vettoriale con revisioni, backup e collegamenti anagrafici. Quote grafiche non certificate; non e un porting completo CAD 2.7.5. La 3.0.74 su main resta invariata."
 }
