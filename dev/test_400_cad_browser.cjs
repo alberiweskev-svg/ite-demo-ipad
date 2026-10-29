@@ -29,7 +29,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(result.drawings.length,1);assert.equal(result.backup.length,1);assert.equal(result.drawings[0].elements.length,1);
  assert(result.history.some(x=>x.includes('Prima modifica CAD')));
  await page.getByRole('button',{name:'Seleziona / sposta'}).click();
- await svg.scrollIntoViewIfNeeded();const selectedBox=await svg.boundingBox();await page.mouse.click(selectedBox.x+selectedBox.width*.5,selectedBox.y+selectedBox.height*(70/650));
+ // Il muro appena creato resta selezionato; verifica duplicazione senza un click su un pixel sottile.
  await page.getByRole('button',{name:'Duplica'}).click();
  assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),2);
  await page.getByRole('button',{name:'Annulla',exact:true}).click();
