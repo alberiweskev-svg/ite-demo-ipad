@@ -56,7 +56,7 @@ const server=http.createServer((req,res)=>{try{
   assert.equal(result.movements,before,'No stock movement from quote');
   assert(result.backup.some(x=>x.includes('Prima preventivo CAD')));
   await page.getByRole('button',{name:'Crea preventivo CAD con fornitura e posa'}).click();
-  await page.waitForFunction(()=>document.querySelector('#cad-workflow [role=status]')?.textContent.includes('già un preventivo'));
+  await page.waitForFunction(()=>document.querySelector('#cad-workflow [aria-live=polite]')?.textContent.includes('già un preventivo'));
   assert.equal(await page.evaluate(id=>JSON.parse(ITE.snapshot().cantieri.find(x=>x.id===id).ite_quotes).length,fixture.siteId),1);
   assert.deepEqual(errors,[]);
   console.log('OK: '+(process.env.ITE_TEST_BROWSER||'chromium')+' CAD quote, separated supply/installation, backup, duplicate guard, stock unchanged');
