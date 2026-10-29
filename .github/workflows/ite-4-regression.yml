@@ -129,6 +129,8 @@ jobs:
           git ls-files -z | tar --null -T - -cf - | tar -xf - -C "$RUNNER_TEMP/ite-4-preview"
           cp vault.js index.html "$RUNNER_TEMP/ite-4-preview/"
           rm -rf "$RUNNER_TEMP/ite-4-preview/.github" "$RUNNER_TEMP/ite-4-preview/dev"
+      - name: Verify Windows PDF.js module MIME for local preview
+        run: node dev/test_400_preview_mime.cjs
       - name: Check preview HTML and essential files
         run: |
           test -s "$RUNNER_TEMP/ite-4-preview/index.html"

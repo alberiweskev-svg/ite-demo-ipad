@@ -21,4 +21,29 @@ const page=await doc.getPage(1);
 const text=await page.getTextContent();
 assert(text.items.some(x=>x.str.includes('BOZZA NON UFFICIALE')),'Visible non-official warning required');
 await loading.destroy();
-console.log('OK: PDF.js reads AcroForm fields, values, page text and draft warning');
+// Real PDF.js round-trip for all eight technical document types, including empty fields.
+const allTypes=['Di.Co. elettrica','Di.Co. idrica / termica','Di.Ri.','Allegato gas H40','Allegato gas I40','Allegato gas A12','Allegato gas B12','POS'];
+for(const type of allTypes){
+ const sample={...row,id:'pdfjs-'+type.replace(/[^a-z0-9]/gi,'_'),type,revision:1,date:'2026-10-29',
+  fields:{reference:'TEST-'+type,scope:'Prova sintetica',notes:''},
+  structured:{committente:'Cliente TEST',noteTecniche:''}};
+ const typeGroups={[type]:groups['Di.Co. elettrica']};
+ const bytes=sandbox.ITETechnicalAcroform.build(sample,'1',[],base,{groups:typeGroups});
+ const task=getDocument({data:bytes,disableFontFace:true,useSystemFonts:true});
+ try{
+  const document=await task.promise;
+  const objects=await document.getFieldObjects();
+  const values=sandbox.ITETechnicalAcroform.fieldObjectsToValues(objects);
+  assert.equal(values['system.practiceId'],sample.id,type+' identity');
+  assert.equal(values['system.revision'],'1',type+' revision');
+  assert.equal(values['general.notes'],'',type+' blank field');
+  assert.deepEqual(Array.from(sandbox.ITETechnicalAcroform.previewImport(sample,values,typeGroups)),[],type+' unchanged');
+  values['general.notes']='Nota di prova '+type;
+  const changes=sandbox.ITETechnicalAcroform.previewImport(sample,values,typeGroups);
+  assert.equal(changes.length,1,type+' changed');
+  const merged=sandbox.ITETechnicalAcroform.applyImport(sample,changes,['general.notes']);
+  assert.equal(merged.fields.notes,'Nota di prova '+type);
+  assert.equal(sample.fields.notes,'',type+' source remains immutable');
+ }finally{await task.destroy();}
+}
+console.log('OK: PDF.js AcroForm round-trip for all eight practice types, empty fields, protected metadata, selective merge');
