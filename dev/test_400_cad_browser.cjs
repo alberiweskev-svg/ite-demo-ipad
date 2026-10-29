@@ -61,6 +61,25 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(advanced.scaleCmPerUnit,2);
  assert.equal(advanced.history.length,2);
  assert(advanced.elements.some(e=>e.kind==='symbol'&&e.text==='presa'));
+ // Milestone 14: catalogo reale (solo fixture sintetica), link persistente e tavola A4.
+ await page.evaluate(async()=>{await ITECommerce.mutate(next=>{next.articles.push({id:'art_12345678',code:'TEST-PRESA',description:'Presa sintetica da test',unit:'pz',price:12.5,kind:'Materiale',priceRole:'cost'});});});
+ await page.getByRole('button',{name:'Aggiorna catalogo materiali'}).click();
+ await page.locator('#ite-cad label').filter({hasText:'Articolo di magazzino associato'}).locator('select').selectOption('art_12345678');
+ await page.getByRole('button',{name:'Associa articolo al simbolo'}).click();
+ await page.getByRole('button',{name:'Salva con backup e revisione'}).click();
+ await page.waitForFunction(()=>ITECommerce.snapshot().settings.cadDrawings?.[0]?.revision===4,{timeout:60000});
+ const linked=await page.evaluate(()=>ITECommerce.snapshot().settings.cadDrawings[0]);
+ assert(linked.elements.some(e=>e.kind==='symbol'&&e.articleId==='art_12345678'));
+ const stockBefore=await page.evaluate(()=>ITECommerce.snapshot().movements.length);
+ const catalogDownload=page.waitForEvent('download');
+ await page.getByRole('button',{name:'Esporta distinta catalogo CSV (bozza)'}).click();
+ const catalogFile=await catalogDownload;const catalogText=fs.readFileSync(await catalogFile.path(),'utf8');
+ assert.match(catalogText,/TEST-PRESA/);assert.match(catalogText,/DA QUANTIFICARE SEPARATAMENTE/);
+ const sheetDownload=page.waitForEvent('download');
+ await page.getByRole('button',{name:'Esporta tavola A4 HTML (bozza)'}).click();
+ const sheetFile=await sheetDownload;const sheet=fs.readFileSync(await sheetFile.path(),'utf8');
+ assert.match(sheet,/A4 landscape/);assert.match(sheet,/BOZZA NON CERTIFICATA/);assert.match(sheet,/TEST-PRESA/);
+ assert.equal(await page.evaluate(()=>ITECommerce.snapshot().movements.length),stockBefore,'CAD must not change warehouse stock');
  const csvDownload=page.waitForEvent('download');
  await page.getByRole('button',{name:'Esporta distinta CSV (indicativa)'}).click();
  const csvFile=await csvDownload;assert.match(csvFile.suggestedFilename(),/ITE-CAD-distinta-bozza.csv/);
