@@ -52,4 +52,32 @@ const manyGroups={POS:[{title:'Blocco operativo',fields:many}]};
 const longPdf=toLatin(api.build(pos,'1',[],base,{groups:manyGroups}));
 assert((longPdf.match(/\/Type \/Page \/Parent/g)||[]).length>3,'POS must paginate');
 assert((longPdf.match(/\/Subtype \/Widget/g)||[]).length===41,'All fields must remain editable');
-console.log('OK: 8 practice types, editable AcroForm, multiline, pagination, XRef, escaping, client/site isolation, no mutation.');
+
+const roundTripRow={...row,id:'td_00000000-0000-4000-8000-000000000001',revision:3,
+ date:'2026-10-29',fields:{...row.fields,notes:''}};
+const exported=api.fieldsFor(roundTripRow,groups);
+const formValues=Object.fromEntries(exported.map(f=>[f.name,f.value]));
+assert.equal(formValues['system.practiceId'],roundTripRow.id);
+assert.equal(formValues['system.revision'],'3');
+assert.equal(formValues['system.clientId'],'1');
+assert(toLatin(api.build(roundTripRow,'1',[],base,{groups})).includes('/Ff 1 /Rect'),'System fields must be read-only');
+formValues['general.notes']='Nota importata dal PDF';
+formValues['detail.committente']='Committente aggiornato';
+const differences=api.previewImport(roundTripRow,formValues,groups);
+assert.equal(differences.length,2);
+assert(differences.find(x=>x.name==='general.notes').suggested);
+assert(differences.find(x=>x.name==='detail.committente').overwrite);
+const merged=api.applyImport(roundTripRow,differences,['general.notes']);
+assert.equal(merged.fields.notes,'Nota importata dal PDF');
+assert.equal(merged.structured.committente,'Mario TEST');
+assert.equal(roundTripRow.fields.notes,'','Import must not mutate source');
+assert.throws(()=>api.applyImport(roundTripRow,differences,['system.clientId']),/Selezione/);
+assert.throws(()=>api.previewImport(roundTripRow,{...formValues,'system.clientId':'2'},groups),/altra pratica|non corrispondenti/);
+assert.throws(()=>api.previewImport(roundTripRow,{...formValues,'system.revision':'2'},groups),/revisione superata/);
+assert.throws(()=>api.previewImport(roundTripRow,{...formValues,'system.practiceId':'td_other'},groups),/altra pratica/);
+assert.throws(()=>api.previewImport(roundTripRow,{...formValues,'detail.unknown':'x'},groups),/non riconosciuto/);
+assert.throws(()=>api.previewImport({...roundTripRow,status:'Annullata'},formValues,groups),/annullata/);
+assert.throws(()=>api.fieldObjectsToValues({'general.notes':[{value:'a'},{value:'b'}]}),/ambiguo/);
+assert.equal(api.fieldObjectsToValues({'general.notes':[{value:'ok'}]})['general.notes'],'ok');
+
+console.log('OK: 8 practice types, editable AcroForm, multiline, pagination, XRef, escaping, client/site isolation, no mutation, protected PDF round-trip preview and selective merge.');
