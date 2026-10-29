@@ -66,6 +66,29 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(pos.draft.structured.rischi,'Rischi fittizi da verificare');
  assert.equal(pos.backup,2,'Full backup lost one of the technical drafts');
 
+
+ // Collegamento da intervento fittizio: cliente, sede, impianto, apparecchio e dati suggeriti.
+ await page.evaluate(()=>{
+  ITE.commit(db=>{
+   db.immobili[0].pdr='PDR-FITTIZIO-001';
+   db.interventi.push({id:901,apparecchiatura_id:'1',client_id:'1',immobile_id:'1',date:'2026-10-29',kind:'Installazione',description:'Posa sintetica verificabile',outcome:'Completato'});
+  });
+  ITETechnicalDrafts.openFor({clientId:'1',propertyId:'1',plantId:'1',deviceId:'1',interventionId:'901'});
+ });
+ assert.equal(await page.locator('#tech-form [name="interventionId"]').inputValue(),'901');
+ assert.equal(await page.locator('#tech-form [name="plantId"]').inputValue(),'1');
+ assert.equal(await page.locator('[data-tech-detail="committente"]').inputValue(),'Cliente dimostrativo');
+ assert.match(await page.locator('[data-tech-detail="indirizzoImpianto"]').inputValue(),/Via Esempio 10/);
+ assert.equal(await page.locator('#tech-form [name="pdr"]').inputValue(),'PDR-FITTIZIO-001');
+ assert.equal(await page.locator('#tech-form [name="scope"]').inputValue(),'Posa sintetica verificabile');
+ await page.locator('#tech-form [name="reference"]').fill('DICO-LINK-TEST-001');
+ await page.locator('#tech-form button[type="submit"]').click();
+ await page.waitForFunction(()=>ITECommerce.snapshot().settings.technicalDrafts?.length===3,{timeout:30000});
+ const linked=await page.evaluate(()=>ITECommerce.snapshot().settings.technicalDrafts.find(x=>x.fields.reference==='DICO-LINK-TEST-001'));
+ assert.equal(linked.interventionId,'901');
+ assert.equal(linked.structured.committente,'Cliente dimostrativo');
+ assert.equal(linked.structured.pdrVerificato,undefined);
+
  assert.deepEqual(errors,[],'Browser errors: '+errors.join(' | '));
  console.log('OK: technical Di.Co. structured fields, POS 12 sections, encrypted persistence, backup, revision history and non-official printable draft');
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());

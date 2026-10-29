@@ -6,7 +6,7 @@ const s=app.slice(start,end);
 function declaration(prefix){const i=s.indexOf(prefix);assert(i>=0,prefix);const j=s.indexOf(';\n',i);return s.slice(i,j+1)}
 function extract(name){const i=s.indexOf('function '+name+'(');assert(i>=0,name);const b=s.indexOf('{',i);let n=0,q='',esc=false;for(let p=b;p<s.length;p++){const c=s[p];if(q){if(esc){esc=false;continue}if(c==='\\'){esc=true;continue}if(c===q)q='';continue}if(c==="'"||c==='"'||c===String.fromCharCode(96)){q=c;continue}if(c==='{')n++;else if(c==='}'&&!--n)return s.slice(i,p+1)}throw Error('Unclosed '+name)}
 const context={Date,Array,Set,Map,String,Number,Error,Object};vm.createContext(context);
-vm.runInContext([declaration('const CHECKLIST='),declaration('const FIELD_NAMES='),declaration('const CHECK_STATES='),declaration('const STRUCTURED_GROUPS='),declaration('const $='),declaration('const isTechnical='),declaration('const validDate='),extract('validateDrafts'),extract('structuredMissing'),extract('missing'),'this.validateDrafts=validateDrafts;this.missing=missing;this.structuredGroups=STRUCTURED_GROUPS;'].join('\n'),context);
+vm.runInContext([declaration('const CHECKLIST='),declaration('const FIELD_NAMES='),declaration('const CHECK_STATES='),declaration('const STRUCTURED_GROUPS='),declaration('const $='),declaration('const isTechnical='),declaration('const validDate='),extract('record'),extract('contextForIntervention'),extract('compatibleInterventions'),extract('suggestions'),extract('validateDrafts'),extract('structuredMissing'),extract('missing'),'this.validateDrafts=validateDrafts;this.missing=missing;this.structuredGroups=STRUCTURED_GROUPS;'].join('\n'),context);
 const base={clienti:[{id:1,name:'Cliente TEST'},{id:2,name:'Altro TEST'}],immobili:[{id:3,client_id:'1'},{id:4,client_id:'2'}],impianti:[{id:5,immobile_id:'3'}],apparecchiature:[{id:6,impianto_id:'5'}],cantieri:[{id:7,client_id:'1',immobile_id:'3'}]};
 const doc={id:'doc_TEST',type:'Di.Co. elettrica',clientId:'1',propertyId:'3',siteId:'7'};
 const row={id:'td_00000000-0000-4000-8000-000000000001',type:'Di.Co. elettrica',status:'Bozza',revision:1,history:[],clientId:'1',propertyId:'3',plantId:'5',deviceId:'6',siteId:'7',date:'2026-10-28',fields:{scope:'TEST',materials:'TEST',checks:''},linkedDocIds:['doc_TEST']};
@@ -60,4 +60,29 @@ assert.match(s,/ITEHistory\.create\('Prima revisione pratica tecnica'\)/);assert
 assert.match(s,/BOZZA DI LAVORO · NON VALIDA · NON FIRMATA/);assert.match(app,/ITETechnicalDrafts\.validate\(value,core\)/);
 assert.match(app,/technicalSnapshot:\(\)=>/);
 assert.match(app,/validateDrafts\(commerce\(\),core\(\)\)/);
+
+/* Collegamento interventi e precompilazione: dati sintetici, mai firme o esiti presunti. */
+base.interventi=[{id:8,apparecchiatura_id:'6',client_id:'1',immobile_id:'3',cantiere_id:'7',date:'2026-10-29',kind:'Installazione',description:'Installazione sintetica',outcome:'Completato'}];
+base.immobili[0].name='Via Fittizia 10';base.immobili[0].city='Bologna';base.immobili[0].pdr='PDR-FITTIZIO';
+const ctx=context.contextForIntervention(base.interventi[0],base);
+assert.equal(JSON.stringify(ctx),JSON.stringify({clientId:'1',propertyId:'3',plantId:'5',deviceId:'6',siteId:'7',interventionId:'8'}));
+assert.equal(context.validateDrafts({settings:{technicalDrafts:[{...row,interventionId:'8'}]},documents:[doc]},base),true);
+for(const interventionId of ['9','abc','8x'])assert.throws(()=>context.validateDrafts({settings:{technicalDrafts:[{...row,interventionId}]},documents:[doc]},base));
+assert.throws(()=>context.validateDrafts({settings:{technicalDrafts:[{...row,interventionId:'8',siteId:''}]},documents:[doc]},base));
+assert.throws(()=>context.validateDrafts({settings:{technicalDrafts:[{...row,interventionId:'8',plantId:''}]},documents:[doc]},base));
+const suggestion=context.suggestions(base,ctx,base.interventi[0]);
+assert.equal(suggestion.structured.committente,'Cliente TEST');
+assert.match(suggestion.structured.indirizzoImpianto,/Via Fittizia 10/);
+assert.equal(suggestion.fields.pdr,'PDR-FITTIZIO');
+assert.equal(suggestion.fields.scope,'Installazione sintetica');
+assert.equal(suggestion.structured.pdrVerificato,undefined,'PDR must not be marked verified automatically');
+const pending=context.suggestions(base,ctx,{...base.interventi[0],appointment:'1',workflow_status:'Programmato'});
+assert.equal(pending.fields.scope,'','Scheduled work must not be represented as completed');
+assert.equal(pending.date,'','Scheduled work date must not be attested');
+assert.equal(context.compatibleInterventions(base,{clientId:'2'}).length,0);
+assert.equal(context.compatibleInterventions(base,{clientId:'1',propertyId:'3'}).length,1);
+assert.match(s,/data-tech-intervention/);
+assert.match(s,/data-tech-autofill|id="tech-autofill"/);
+assert.match(s,/interventi:'interventionId'/);
+
 console.log('OK: technical drafts, 8 structured types, POS 12 sections, legacy compatibility, checklist, originals, revisions, validation and non-official print');

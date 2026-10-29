@@ -44,7 +44,7 @@ jobs:
         run: node dev/test_400_warehouse.cjs
       - name: Test itemized quotes and supply/install separation
         run: node dev/test_400_quotes.cjs
-      - name: Test integrated Di.Co. Di.Ri. GAS POS technical drafts
+      - name: Test integrated Di.Co. Di.Ri. GAS POS technical drafts and intervention prefill
         run: node dev/test_400_technical_drafts.cjs
       - name: Test worksite labor and financial summaries
         run: node dev/test_400_worksite.cjs

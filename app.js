@@ -1080,7 +1080,7 @@ ITE.render=()=>{originalRender();renderCalendar();if(ITERouter.current()==='sche
 document.addEventListener('click',event=>{const tab=event.target.closest('[data-settings-tab]');if(!tab)return;document.querySelectorAll('[data-settings-panel]').forEach(el=>el.hidden=el.dataset.settingsPanel!==tab.dataset.settingsTab);document.querySelectorAll('[data-settings-tab]').forEach(el=>el.classList.toggle('secondary',el!==tab));});document.addEventListener('change',event=>{if(event.target.matches('[data-agenda-color]')){const id=event.target.dataset.agendaColor,value=event.target.value;ITE.commit(next=>{const p=next.clienti.find(x=>same(x.id,id));if(!p||!ITEOperators.eligible(p))throw Error('Tecnico non trovato');p.agenda_color=value;validateDatabase(next)});renderCalendar();return;}if(event.target.id==='agenda-detail-actor'){$('agenda-actor').value=event.target.value;sessionStorage.setItem('ite_active_operator',actor());detail();}});
 document.addEventListener('click',event=>{const b=event.target.closest('button');if(!b)return;const x=b.dataset;if(x.agendaSlot){const rect=b.getBoundingClientRect(),minutes=Math.max(0,Math.min(12*60,Math.floor((event.clientY-rect.top)/81)*60)),hour=String(8+Math.floor(minutes/60)).padStart(2,'0');newAppointment();$('appointment-start').value=x.agendaSlot+'T'+hour+':00';if(x.agendaOperator)$('appointment-primary').value=x.agendaOperator;plannedEnd();return;}if(x.agendaOpen)open(x.agendaOpen);if(x.agendaStart)start(x.agendaStart);if(x.agendaFinish)finish(x.agendaFinish);if(x.agendaCorrect)correctSession(x.agendaCorrect,x.sessionId);if(x.agendaRevise)revision(x.agendaRevise);if(x.agendaEdit){const job=db().interventi.find(r=>r.id===Number(x.agendaEdit));newAppointment(job.target_type,job.target_id,job);}if(x.agendaClient)newAppointment('clienti',x.agendaClient);if(x.agendaDoc){const job=db().interventi.find(r=>String(r.id)===String(x.agendaDoc));if(!job||!assignments(job).some(a=>a.operator_id===actor())){alert('Solo un tecnico assegnato può caricare documenti per questo intervento.');return;}ITERouter.show('documenti','push');$('docs-parent-type').value='interventi';ITEDocs.refreshParents();$('docs-parent-id').value=String(job.id);ITEDocs.showForm();$('docs-parent-id').value=String(job.id);ITEDocs.refreshSelectedParent();$('docs-subject').value=String(job.client_id);$('docs-site').value=String(job.cantiere_id||'');$('docs-date').value=localDate();document.getElementById('docs-subject').disabled=true;document.getElementById('docs-parent-id').disabled=true;document.getElementById('docs-parent-type').disabled=true;}});
 $('agenda-date').value=localDate();$('agenda-report-from').value=localDate().slice(0,8)+'01';$('agenda-report-to').value=localDate();$('agenda-actor').addEventListener('change',()=>{sessionStorage.setItem('ite_active_operator',actor());if(ITERouter.current()==='scheda-intervento')detail();});$('agenda-date').onchange=renderCalendar;$('agenda-view').onchange=renderCalendar;$('agenda-filter-operator').onchange=renderCalendar;$('agenda-filter-status').onchange=renderCalendar;$('agenda-new').onclick=()=>newAppointment();$('agenda-print').onclick=agendaPrintDay;$('agenda-prev').onclick=()=>{$('agenda-date').value=dateAdd($('agenda-date').value,$('agenda-view').value==='month'?-new Date(Number($('agenda-date').value.slice(0,4)),Number($('agenda-date').value.slice(5,7)),0).getDate():$('agenda-view').value==='week'?-7:-1);renderCalendar()};$('agenda-next').onclick=()=>{$('agenda-date').value=dateAdd($('agenda-date').value,$('agenda-view').value==='month'?new Date(Number($('agenda-date').value.slice(0,4)),Number($('agenda-date').value.slice(5,7)),0).getDate():$('agenda-view').value==='week'?7:1);renderCalendar()};$('agenda-today').onclick=()=>{$('agenda-date').value=localDate();renderCalendar()};$('appointment-client').onchange=sites;$('appointment-site').onchange=categories;$('appointment-category').onchange=devices;$('appointment-device').onchange=guidedAppointment;$('appointment-primary').onchange=()=>supports([...$('appointment-supports').querySelectorAll('input:checked')].map(i=>i.value));$('appointment-policy').onchange=feePolicy;$('appointment-start').oninput=plannedEnd;$('appointment-duration').oninput=plannedEnd;$('appointment-kind').onchange=()=>{if($('appointment-kind').value==='Manutenzione'){$('appointment-duration').value='60';plannedEnd();}};$('appointment-form').onsubmit=saveAppointment;$('appointment-cancel').onclick=cancel;$('agenda-report-from').onchange=renderReport;$('agenda-report-to').onchange=renderReport;window.addEventListener('ite-pagechange',()=>{if(ITERouter.current()==='calendario')renderCalendar()});
-window.ITEAgenda={newAppointment,cancel,open,start,finish,revision,validateDatabase,automaticSummary,summary,customerJobs,report,renderCalendar,plannedConflicts,filteredAppointments};renderCalendar();setInterval(()=>{if(!document.hidden&&ITERouter.current()==='scheda-intervento')detail()},30000);
+window.ITEAgenda={newAppointment,cancel,open,start,finish,revision,validateDatabase,automaticSummary,summary,customerJobs,report,renderCalendar,plannedConflicts,filteredAppointments,currentIntervention:()=>db().interventi.find(j=>j.id===activeId)||null};renderCalendar();setInterval(()=>{if(!document.hidden&&ITERouter.current()==='scheda-intervento')detail()},30000);
 })();
 
 
@@ -1542,6 +1542,49 @@ function renderStructured(type,values={}){
 const $=id=>document.getElementById(id),same=(a,b)=>String(a||'')===String(b||''),copy=v=>JSON.parse(JSON.stringify(v));
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const core=()=>ITE.snapshot(),commerce=()=>ITECommerce.technicalSnapshot(),all=()=>commerce().settings.technicalDrafts||[];
+const record=(db,key,id)=>(db[key]||[]).find(r=>same(r.id,id));
+function contextForIntervention(job,db){
+ if(!job||!Number.isSafeInteger(Number(job.id)))return null;
+ const device=record(db,'apparecchiature',job.apparecchiatura_id||(job.target_type==='apparecchiature'?job.target_id:''));
+ const plant=device?record(db,'impianti',device.impianto_id):null;
+ const site=record(db,'cantieri',job.cantiere_id||(job.target_type==='cantieri'?job.target_id:''));
+ const property=record(db,'immobili',job.immobile_id||plant?.immobile_id||site?.immobile_id||(job.target_type==='immobili'?job.target_id:''));
+ const client=record(db,'clienti',job.client_id||property?.client_id||site?.client_id||(job.target_type==='clienti'?job.target_id:''));
+ if(!client||device&&!plant||plant&&!property||property&&!same(property.client_id,client.id)||site&&!same(site.client_id,client.id)||site?.immobile_id&&property&&!same(site.immobile_id,property.id)||plant&&!same(plant.immobile_id,property.id))return null;
+ return {clientId:String(client.id),propertyId:property?String(property.id):'',plantId:plant?String(plant.id):'',deviceId:device?String(device.id):'',siteId:site?String(site.id):'',interventionId:String(job.id)};
+}
+function compatibleInterventions(db,ids){
+ return (db.interventi||[]).filter(job=>{
+  const ctx=contextForIntervention(job,db);
+  return ctx&&same(ctx.clientId,ids.clientId)&&['propertyId','plantId','deviceId','siteId'].every(k=>!ids[k]||!ctx[k]||same(ctx[k],ids[k]));
+ });
+}
+function suggestions(db,ids,job){
+ const client=record(db,'clienti',ids.clientId),property=record(db,'immobili',ids.propertyId),site=record(db,'cantieri',ids.siteId);
+ const address=[property?.name,property?.city,property?.province].filter(Boolean).join(', ');
+ const structured={};
+ if(client?.name)structured.committente=String(client.name);
+ if(address){structured.indirizzoImpianto=address;structured.indirizzoUtenza=address;}
+ if(site?.name)structured.cantiere=String(site.name);
+ const completed=job&&(job.appointment!=='1'||job.workflow_status==='Chiuso');
+ return {structured,fields:{pdr:String(property?.pdr||''),scope:completed?String(job.description||''):''},date:completed&&validDate(job.date)?String(job.date):''};
+}
+function clearSuggested(form,tracked){
+ for(const [key,value] of tracked){
+  const el=key.startsWith('detail:')?form.querySelector('[data-tech-detail="'+key.slice(7)+'"]'):form.elements[key];
+  if(el&&el.value===value)el.value='';
+ }
+ tracked.clear();
+}
+function applySuggestedFields(db,form,job,tracked=new Map()){
+ const ids=Object.fromEntries(['clientId','propertyId','siteId'].map(k=>[k,form.elements[k].value]));
+ const values=suggestions(db,ids,job);let count=0;
+ const fill=(key,value,el)=>{if(el&&value&&!String(el.value||'').trim()){el.value=value;tracked.set(key,value);count++;}};
+ for(const [key,value] of Object.entries(values.structured))fill('detail:'+key,value,form.querySelector('[data-tech-detail="'+key+'"]'));
+ for(const [key,value] of Object.entries(values.fields))fill(key,value,form.elements[key]);
+ fill('date',values.date,form.elements.date);
+ return count;
+}
 const isTechnical=d=>/^(Di\.Co\.|Di\.Ri\.|Allegato gas |POS$|PSC$|DVR$|DURC$|CCIAA$|Formazione sicurezza$|Scheda sicurezza SDS$|Documento aziendale$)/.test(d.type);
 const validDate=v=>!v||/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T12:00:00Z'))&&new Date(v+'T12:00:00Z').toISOString().slice(0,10)===v;
 function validateDrafts(data,base){
@@ -1571,6 +1614,11 @@ function validateDrafts(data,base){
     if(!value||typeof value!=='object'||Array.isArray(value)||!CHECK_STATES.includes(value.status)||typeof value.evidence!=='string'||value.evidence.length>500||(value.status!=='Da verificare'&&!value.evidence.trim()))throw Error('Stato o riferimento documentale checklist non valido');
    }
   }
+  if(r.interventionId!==undefined&&r.interventionId!==''){
+   if(typeof r.interventionId!=='string'||!/^\d+$/.test(r.interventionId))throw Error('Identificativo intervento non valido');
+   const ctx=contextForIntervention(find('interventi',r.interventionId),base);
+   if(!ctx||!same(ctx.clientId,r.clientId)||['propertyId','plantId','deviceId','siteId'].some(k=>ctx[k]&&!same(ctx[k],r[k])))throw Error('Intervento non coerente con cliente, sede, impianto o apparecchiatura');
+  }
   if(!Array.isArray(r.linkedDocIds)||r.linkedDocIds.length>30||new Set(r.linkedDocIds).size!==r.linkedDocIds.length)throw Error('Originali duplicati o non validi');
   for(const id of r.linkedDocIds){const d=docs.get(id);if(!d||!isTechnical(d)||!same(d.clientId||d.subjectId,r.clientId)||d.siteId&&!same(d.siteId,r.siteId)||d.propertyId&&!same(d.propertyId,r.propertyId))throw Error('Originale tecnico non coerente con la pratica');}
  }
@@ -1596,6 +1644,8 @@ function cascade(seed={}){
  const p=val('propertyId');fill('plantId',db.impianti.filter(r=>same(r.immobile_id,p)),'— Impianto —');
  const i=val('plantId');fill('deviceId',db.apparecchiature.filter(r=>same(r.impianto_id,i)),'— Apparecchiatura —');
  fill('siteId',(db.cantieri||[]).filter(r=>same(r.client_id,c)&&(!p||!r.immobile_id||same(r.immobile_id,p))),'— Cantiere —');
+ const jobs=compatibleInterventions(db,{clientId:c,propertyId:p,plantId:i,deviceId:val('deviceId'),siteId:val('siteId')});
+ fill('interventionId',jobs.map(j=>({id:j.id,name:[j.date||String(j.scheduled_start||'').slice(0,10),j.kind||'Intervento',String(j.description||'').slice(0,70)].filter(Boolean).join(' · ')})),'— Intervento / appuntamento —');
  const checked=[...form.querySelectorAll('[data-tech-doc]:checked')].map(x=>x.value);
  const docs=commerce().documents.filter(d=>isTechnical(d)&&same(d.clientId||d.subjectId,c)&&(!d.siteId||same(d.siteId,val('siteId')))&&(!d.propertyId||same(d.propertyId,p)));
  $('tech-docs').innerHTML=docs.map(d=>'<label class="item"><input type="checkbox" data-tech-doc value="'+esc(d.id)+'" '+(checked.includes(d.id)?'checked':'')+'> '+esc(d.type)+' · '+esc(d.number||d.sourceName||d.id)+'</label>').join('')||'<p class="hint">Nessun originale tecnico compatibile: importa prima il documento.</p>';
@@ -1607,28 +1657,49 @@ function cascade(seed={}){
  }).join('');
 }
 function editor(row=null,context={}){
- const db=core(),r=row||{type:'Di.Co. elettrica',status:'Bozza',clientId:context.clientId||'',propertyId:context.propertyId||'',plantId:'',deviceId:'',siteId:context.siteId||'',date:'',fields:{},linkedDocIds:[]},f=r.fields||{},host=$('tech-editor');
+ const db=core(),r=row||{type:'Di.Co. elettrica',status:'Bozza',clientId:context.clientId||'',propertyId:context.propertyId||'',plantId:context.plantId||'',deviceId:context.deviceId||'',siteId:context.siteId||'',interventionId:context.interventionId||'',date:'',fields:{},linkedDocIds:[]},f=r.fields||{},host=$('tech-editor');
  host.hidden=false;host.dataset.id=row?.id||'';
  const fields=[['reference','Riferimento / numero','input'],['scope','Descrizione lavori','textarea'],['materials','Materiali','textarea'],['checks','Verifiche e prove (da documentare)','textarea'],['pdr','PDR (non dedotto)','input'],['risks','Rischi / misure','textarea'],['ppe','DPI / attrezzature','textarea'],['notes','Note','textarea']];
- host.innerHTML='<h3>'+esc(row?'Revisione pratica':'Nuova pratica')+'</h3><p class="hint">Compila solo informazioni verificate. Non sostituisce il modulo ufficiale.</p><form id="tech-form"><div class="grid"><label>Tipo<select name="type">'+Object.keys(CHECKLIST).map(t=>'<option '+(t===r.type?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select></label><label>Stato<select name="status"><option>Bozza</option><option>Da verificare</option></select></label><label>Cliente<select name="clientId" required>'+opts(db.clienti,r.clientId,'— Cliente —')+'</select></label><label>Sede<select name="propertyId"></select></label><label>Impianto<select name="plantId"></select></label><label>Apparecchiatura<select name="deviceId"></select></label><label>Cantiere<select name="siteId"></select></label><label>Data<input name="date" type="date" value="'+esc(r.date||'')+'"></label></div>'+fields.map(([k,label,type])=>'<label>'+esc(label)+(type==='input'?'<input name="'+k+'" maxlength="4000" value="'+esc(f[k]||'')+'">':'<textarea name="'+k+'" rows="3" maxlength="4000">'+esc(f[k]||'')+'</textarea>')+'</label>').join('')+'<h4>Compilazione guidata per sezioni</h4><p class="hint">I campi non compilati restano da verificare. Nessuna prova o firma viene attestata automaticamente.</p><div id="tech-structured"></div><h4>Allegati e controlli previsti</h4><ul id="tech-checklist"></ul><h4>Originali tecnici già importati</h4><div id="tech-docs"></div><div class="actions"><button type="submit">Salva con backup e storico</button><button type="button" id="tech-close" class="secondary">Chiudi senza salvare</button></div></form>';
- const form=$('tech-form'),detailsCache=Object.create(null);detailsCache[r.type]=copy(r.structured||{});
+ host.innerHTML='<h3>'+esc(row?'Revisione pratica':'Nuova pratica')+'</h3><p class="hint">Compila solo informazioni verificate. Non sostituisce il modulo ufficiale.</p><form id="tech-form"><div class="grid"><label>Tipo<select name="type">'+Object.keys(CHECKLIST).map(t=>'<option '+(t===r.type?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select></label><label>Stato<select name="status"><option>Bozza</option><option>Da verificare</option></select></label><label>Cliente<select name="clientId" required>'+opts(db.clienti,r.clientId,'— Cliente —')+'</select></label><label>Sede<select name="propertyId"></select></label><label>Impianto<select name="plantId"></select></label><label>Apparecchiatura<select name="deviceId"></select></label><label>Cantiere<select name="siteId"></select></label><label>Intervento / appuntamento<select name="interventionId"></select></label><label>Data<input name="date" type="date" value="'+esc(r.date||'')+'"></label></div>'+fields.map(([k,label,type])=>'<label>'+esc(label)+(type==='input'?'<input name="'+k+'" maxlength="4000" value="'+esc(f[k]||'')+'">':'<textarea name="'+k+'" rows="3" maxlength="4000">'+esc(f[k]||'')+'</textarea>')+'</label>').join('')+'<h4>Compilazione guidata per sezioni</h4><p class="hint">I campi non compilati restano da verificare. Nessuna prova o firma viene attestata automaticamente.</p><div id="tech-structured"></div><p class="hint">I suggerimenti provengono dalle schede locali: controlla committente, indirizzo, PDR e descrizioni prima dell’uso. Non sono verifiche certificate.</p><button type="button" id="tech-autofill" class="secondary">Riprendi dati da anagrafica e intervento</button><h4>Allegati e controlli previsti</h4><ul id="tech-checklist"></ul><h4>Originali tecnici già importati</h4><div id="tech-docs"></div><div class="actions"><button type="submit">Salva con backup e storico</button><button type="button" id="tech-close" class="secondary">Chiudi senza salvare</button></div></form>';
+ const form=$('tech-form'),detailsCache=Object.create(null),autoFilled=new Map();detailsCache[r.type]=copy(r.structured||{});
  let previousType=r.type;
  const snapshotDetails=()=>Object.fromEntries([...form.querySelectorAll('[data-tech-detail]')].map(el=>[el.dataset.techDetail,String(el.value||'').trim()]));
  const drawDetails=()=>$('tech-structured').innerHTML=renderStructured(form.elements.type.value,detailsCache[form.elements.type.value]||{});
  drawDetails();
  form.elements.status.value=r.status==='Annullata'?'Bozza':r.status;form.elements.clientId.value=String(r.clientId||'');cascade(r.checklistEvidence||{});
  for(const k of ['propertyId','plantId','deviceId','siteId']){form.elements[k].value=String(r[k]||'');cascade();}
+ form.elements.interventionId.value=String(r.interventionId||'');cascade(r.checklistEvidence||{});
+ if(!row)applySuggestedFields(db,form,record(db,'interventi',r.interventionId),autoFilled);
+ $('tech-autofill').onclick=()=>{const job=record(core(),'interventi',form.elements.interventionId.value);const count=applySuggestedFields(core(),form,job,autoFilled);say(count?count+' dati ripresi dalle schede: verificare prima del salvataggio.':'Nessun campo vuoto con dati disponibili da riprendere.');};
  for(const id of r.linkedDocIds){const b=[...form.querySelectorAll('[data-tech-doc]')].find(x=>x.value===id);if(b)b.checked=true;}
  form.addEventListener('change',e=>{
-  if(e.target.name==='type'){detailsCache[previousType]=snapshotDetails();previousType=e.target.value;drawDetails();}
-  if(['type','clientId','propertyId','plantId','siteId'].includes(e.target.name))cascade();
+  const key=e.target.name;
+  if(key==='interventionId'){
+   const job=record(core(),'interventi',e.target.value),ctx=contextForIntervention(job,core());
+   clearSuggested(form,autoFilled);
+   if(ctx){
+    form.elements.clientId.value=ctx.clientId;cascade();
+    for(const k of ['propertyId','plantId','deviceId','siteId']){form.elements[k].value=ctx[k];cascade();}
+    form.elements.interventionId.value=ctx.interventionId;
+    applySuggestedFields(core(),form,job,autoFilled);
+    say('Collegamento intervento e dati anagrafici proposti: controllare prima di salvare.');
+   }
+   return;
+  }
+  if(key==='type'){detailsCache[previousType]=snapshotDetails();previousType=e.target.value;drawDetails();}
+  if(['type','clientId','propertyId','plantId','deviceId','siteId'].includes(key)){
+   if(key!=='type')clearSuggested(form,autoFilled);
+   cascade();
+   if(!row)applySuggestedFields(core(),form,record(core(),'interventi',form.elements.interventionId.value),autoFilled);
+   else if(key!=='type')say('Collegamenti modificati: verifica i dati tecnici già compilati.');
+  }
  });
  form.onsubmit=e=>{e.preventDefault();save().catch(err=>say('Pratica non salvata: '+err.message))};
  $('tech-close').onclick=()=>{host.hidden=true;host.replaceChildren()};host.scrollIntoView({block:'start'});
 }
 function collect(){
  const form=$('tech-form'),f=new FormData(form),id=$('tech-editor').dataset.id;
- return {id:id||'td_'+crypto.randomUUID(),type:String(f.get('type')||''),status:String(f.get('status')||'Bozza'),clientId:String(f.get('clientId')||''),propertyId:String(f.get('propertyId')||''),plantId:String(f.get('plantId')||''),deviceId:String(f.get('deviceId')||''),siteId:String(f.get('siteId')||''),date:String(f.get('date')||''),fields:Object.fromEntries(FIELD_NAMES.map(k=>[k,String(f.get(k)||'').trim()])),linkedDocIds:[...form.querySelectorAll('[data-tech-doc]:checked')].map(x=>x.value),structured:Object.fromEntries([...form.querySelectorAll('[data-tech-detail]')].map(el=>[el.dataset.techDetail,String(el.value||'').trim()])),checklistEvidence:Object.fromEntries([...form.querySelectorAll('[data-tech-check]')].map(el=>[el.dataset.techCheck,{status:el.value,evidence:String(el.closest('li').querySelector('[data-tech-evidence]').value||'').trim()}]))};
+ return {id:id||'td_'+crypto.randomUUID(),type:String(f.get('type')||''),status:String(f.get('status')||'Bozza'),clientId:String(f.get('clientId')||''),propertyId:String(f.get('propertyId')||''),plantId:String(f.get('plantId')||''),deviceId:String(f.get('deviceId')||''),siteId:String(f.get('siteId')||''),interventionId:String(f.get('interventionId')||''),date:String(f.get('date')||''),fields:Object.fromEntries(FIELD_NAMES.map(k=>[k,String(f.get(k)||'').trim()])),linkedDocIds:[...form.querySelectorAll('[data-tech-doc]:checked')].map(x=>x.value),structured:Object.fromEntries([...form.querySelectorAll('[data-tech-detail]')].map(el=>[el.dataset.techDetail,String(el.value||'').trim()])),checklistEvidence:Object.fromEntries([...form.querySelectorAll('[data-tech-check]')].map(el=>[el.dataset.techCheck,{status:el.value,evidence:String(el.closest('li').querySelector('[data-tech-evidence]').value||'').trim()}]))};
 }
 async function save(){
  const r=collect(),before=all().find(x=>x.id===r.id);if(before?.status==='Annullata')throw Error('Pratica annullata: crea nuova bozza');
@@ -1659,16 +1730,23 @@ function printDraft(id){
  const fields=FIELD_NAMES.map(k=>'<p><b>'+esc(k)+'</b>: '+esc(r.fields[k]||'Da compilare')+'</p>').join('');
  const structuredRows=STRUCTURED_GROUPS[r.type].map(group=>'<h3>'+esc(group.title)+'</h3>'+group.fields.map(field=>'<p><b>'+esc(field[1])+'</b>: '+esc(r.structured?.[field[0]]||'Da compilare')+'</p>').join('')).join('');
  const checklistRows=CHECKLIST[r.type].map(item=>{const v=r.checklistEvidence?.[item]||{status:'Da verificare',evidence:''};return '<li><b>'+esc(item)+'</b>: '+esc(v.status)+(v.evidence?' — '+esc(v.evidence):'')+'</li>'}).join('');
- const html='<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>BOZZA I.T.E.</title><style>body{font:14px Arial,sans-serif;max-width:850px;margin:25px auto;line-height:1.5;color:#21313b}h1{color:#008c45}header{border-bottom:3px solid #008c45}article{white-space:pre-wrap;overflow-wrap:anywhere}.warning{border:2px solid #b44;padding:12px;color:#8a2424}@media print{body{margin:16mm}}</style></head><body><header><h1>I.T.E. — '+esc(r.type)+'</h1><b>BOZZA DI LAVORO · NON VALIDA · NON FIRMATA</b></header><article><p>Cliente: '+esc(name('clienti',r.clientId))+'</p><p>Sede: '+esc(name('immobili',r.propertyId))+'</p><p>Impianto: '+esc(name('impianti',r.plantId))+'</p><p>Apparecchiatura: '+esc(name('apparecchiature',r.deviceId))+'</p><p>Cantiere: '+esc(name('cantieri',r.siteId))+'</p><p>Data: '+esc(r.date||'Da indicare')+' · Revisione '+r.revision+'</p>'+fields+structuredRows+'<h3>Checklist e riferimenti documentali (da verificare)</h3><ul>'+checklistRows+'</ul><p>Originali collegati: '+r.linkedDocIds.length+'</p><div class="warning">Da verificare: '+esc(missing(r).join(' · ')||'Prove, allegati, qualifiche e firme')+'</div></article><p>Documento interno di preparazione: non sostituisce i modelli ufficiali e non certifica esiti di prova o sottoscrizioni.</p></body></html>';
+ const html='<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>BOZZA I.T.E.</title><style>body{font:14px Arial,sans-serif;max-width:850px;margin:25px auto;line-height:1.5;color:#21313b}h1{color:#008c45}header{border-bottom:3px solid #008c45}article{white-space:pre-wrap;overflow-wrap:anywhere}.warning{border:2px solid #b44;padding:12px;color:#8a2424}@media print{body{margin:16mm}}</style></head><body><header><h1>I.T.E. — '+esc(r.type)+'</h1><b>BOZZA DI LAVORO · NON VALIDA · NON FIRMATA</b></header><article><p>Cliente: '+esc(name('clienti',r.clientId))+'</p><p>Sede: '+esc(name('immobili',r.propertyId))+'</p><p>Impianto: '+esc(name('impianti',r.plantId))+'</p><p>Apparecchiatura: '+esc(name('apparecchiature',r.deviceId))+'</p><p>Cantiere: '+esc(name('cantieri',r.siteId))+'</p><p>Intervento collegato: '+esc(r.interventionId||'Nessuno')+'</p><p>Data: '+esc(r.date||'Da indicare')+' · Revisione '+r.revision+'</p>'+fields+structuredRows+'<h3>Checklist e riferimenti documentali (da verificare)</h3><ul>'+checklistRows+'</ul><p>Originali collegati: '+r.linkedDocIds.length+'</p><div class="warning">Da verificare: '+esc(missing(r).join(' · ')||'Prove, allegati, qualifiche e firme')+'</div></article><p>Documento interno di preparazione: non sostituisce i modelli ufficiali e non certifica esiti di prova o sottoscrizioni.</p></body></html>';
  const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='ITE_BOZZA_'+r.type.replace(/[^a-z0-9]+/gi,'_')+'_'+r.id+'.html';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 function openFor(context={}){ITERouter.show('importazioni','push');editor(null,context)}
+function interventionButton(){
+ const host=$('appointment-detail'),job=window.ITEAgenda?.currentIntervention?.();
+ if(!host||ITERouter.current()!=='scheda-intervento'||!job||host.querySelector('[data-tech-intervention]'))return;
+ const ctx=contextForIntervention(job,core());if(!ctx)return;
+ const b=document.createElement('button');b.type='button';b.className='secondary';b.dataset.techIntervention=ctx.interventionId;b.textContent='+ Pratica tecnica da questo intervento';b.onclick=()=>openFor(ctx);host.append(b);
+}
 panel.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.techEdit||b.dataset.techPrint||b.dataset.techCancel;if(b.id==='tech-new')editor();else if(b.id==='tech-refresh')render();else if(b.dataset.techEdit)editor(all().find(x=>x.id===id));else if(b.dataset.techPrint)printDraft(id);else if(b.dataset.techCancel)cancel(id).catch(err=>say(err.message))});
 function siteButton(){const host=$('worksite-detail');if(!host||ITERouter.current()!=='scheda-cantiere'||host.querySelector('[data-tech-site]'))return;const id=host.querySelector('[data-work-edit]')?.dataset.workEdit,site=core().cantieri.find(x=>same(x.id,id));if(!site)return;const b=document.createElement('button');b.className='secondary';b.type='button';b.dataset.techSite=id;b.textContent='+ Pratica tecnica per questo cantiere';b.onclick=()=>openFor({clientId:site.client_id,propertyId:site.immobile_id||'',siteId:id});host.append(b)}
 new MutationObserver(()=>siteButton()).observe($('worksite-detail'),{childList:true});
-window.addEventListener('ite-pagechange',()=>{if(ITERouter.current()==='importazioni')render();if(ITERouter.current()==='scheda-cantiere')siteButton()});
-const previousRemove=ITE.remove;ITE.remove=(k,id)=>{const keys={clienti:'clientId',immobili:'propertyId',impianti:'plantId',apparecchiature:'deviceId',cantieri:'siteId'};if(keys[k]&&all().some(r=>same(r[keys[k]],id)))return alert('Scheda collegata a pratiche tecniche: cancellazione bloccata.');return previousRemove(k,id)};
-window.ITETechnicalDrafts={validate:validateDrafts,missing,structuredGroups:STRUCTURED_GROUPS,openFor,render};try{validateDrafts(commerce(),core());render()}catch(e){say('Archivio pratiche non valido: '+e.message+'. Conserva il backup; modifiche bloccate.');$('tech-new').disabled=true;$('tech-refresh').disabled=true;}
+new MutationObserver(()=>interventionButton()).observe($('appointment-detail'),{childList:true});
+window.addEventListener('ite-pagechange',()=>{if(ITERouter.current()==='importazioni')render();if(ITERouter.current()==='scheda-cantiere')siteButton();if(ITERouter.current()==='scheda-intervento')interventionButton()});
+const previousRemove=ITE.remove;ITE.remove=(k,id)=>{const keys={clienti:'clientId',immobili:'propertyId',impianti:'plantId',apparecchiature:'deviceId',cantieri:'siteId',interventi:'interventionId'};if(keys[k]&&all().some(r=>same(r[keys[k]],id)))return alert('Scheda collegata a pratiche tecniche: cancellazione bloccata.');return previousRemove(k,id)};
+window.ITETechnicalDrafts={validate:validateDrafts,missing,structuredGroups:STRUCTURED_GROUPS,openFor,render,contextForIntervention,suggestions};try{validateDrafts(commerce(),core());render()}catch(e){say('Archivio pratiche non valido: '+e.message+'. Conserva il backup; modifiche bloccate.');$('tech-new').disabled=true;$('tech-refresh').disabled=true;}
 })();
 /* ITE_TECHNICAL_DRAFTS_END */
 
