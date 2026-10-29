@@ -17,6 +17,8 @@ on:
       - 'ite-cad-workflow.js'
       - 'dev/test_400_cad_workflow.cjs'
       - 'dev/test_400_cad_workflow_browser.cjs'
+      - 'dev/test_400_technical_sources.cjs'
+      - 'dev/test_400_technical_sources_browser.cjs'
       - 'dev/test_400_cad_catalog.cjs'
       - 'dev/test_400_cad_browser.cjs'
       - 'index.html'
@@ -60,6 +62,8 @@ jobs:
           node dev/test_400_cad_catalog.cjs
           node --check ite-cad-workflow.js
           node dev/test_400_cad_workflow.cjs
+      - name: Technical crosscheck of CAD and interventions
+        run: node dev/test_400_technical_sources.cjs
       - name: Verify generated script integrity without pushing
         run: |
           node dev/sync_sri.cjs --write

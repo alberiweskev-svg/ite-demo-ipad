@@ -148,10 +148,174 @@ function mount(){
   const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='ITE_CAD_PRATICA_BOZZA_'+d.id.slice(-8)+'.html';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
   say('Fascicolo HTML preparato. È una bozza locale non cifrata, non un modello ufficiale.');
  }));
- host.append(panel);refresh();
+ host.append(panel);refresh();mountTechnicalAssist();
  root.addEventListener('ite-pagechange',()=>{if(root.ITEVault?.isUnlocked?.())refresh()});
 }
-const api=Object.freeze({markup,compatible,validateLinks,eligibleSites,proposal,parseQuotes,ensureNewQuote,addLink,mount});
+
+/* Milestone 16: incrocio guidato anagrafica -> intervento -> CAD -> pratica.
+ * Tutti i valori sono proposte, mai attestazioni di posa, prove o conformità.
+ */
+function technicalSources(practice,db,commerce){
+ if(!practice||!practice.clientId)throw Error('Seleziona un cliente per la verifica incrociata');
+ const client=find(db.clienti,practice.clientId);
+ if(!client)throw Error('Cliente non presente in anagrafica');
+ const property=practice.propertyId?find(db.immobili,practice.propertyId):null;
+ const plant=practice.plantId?find(db.impianti,practice.plantId):null;
+ const device=practice.deviceId?find(db.apparecchiature,practice.deviceId):null;
+ const site=practice.siteId?find(db.cantieri,practice.siteId):null;
+ if(practice.propertyId&&(!property||!same(property.client_id,client.id))||
+    practice.plantId&&(!plant||!property||!same(plant.immobile_id,property.id))||
+    practice.deviceId&&(!device||!plant||!same(device.impianto_id,plant.id))||
+    practice.siteId&&(!site||!same(site.client_id,client.id)||site.immobile_id&&property&&!same(site.immobile_id,property.id)))
+  throw Error('Collegamenti cliente, sede, impianto o apparecchiatura incoerenti');
+ const type=String(practice.type||'');
+ const isDico=type==='Di.Co. elettrica'||type==='Di.Co. idrica / termica';
+ const isGas=type.startsWith('Allegato gas ');
+ const warnings=[],candidates=[];
+ const add=(target,value,source)=>{
+  const v=String(value??'').trim();
+  if(!v)return;
+  if(v.length>(target.startsWith('detail:')?2000:4000)){warnings.push('Dato troppo lungo per '+target+': inserimento manuale necessario');return}
+  candidates.push({target,value:v,source});
+ };
+ const address=[property?.address||property?.name,property?.city,property?.province].filter(Boolean).join(', ');
+ if(type==='POS'||isDico||type==='Di.Ri.')add('detail:committente',client.name,'Anagrafica cliente '+client.id);
+ if(isDico||type==='Di.Ri.')add('detail:indirizzoImpianto',address,'Sede '+(property?.id||''));
+ if(isGas)add('detail:indirizzoUtenza',address,'Sede '+(property?.id||''));
+ if(type==='POS')add('detail:cantiere',[site?.name,site?.address].filter(Boolean).join(' — '),'Cantiere '+(site?.id||''));
+ if(type==='Di.Co. idrica / termica'){
+  const equipment=[plant?.name,device?.category,device?.brand,device?.model,device?.serial?'matricola '+device.serial:''].filter(Boolean).join(' · ');
+  add('detail:tipoRete',equipment,'Impianto e apparecchiatura (da verificare)');
+ }
+ if(isGas&&device){
+  const equipment=[device.brand,device.model,device.serial?'matricola '+device.serial:'',device.power?'potenza in anagrafica '+device.power:''].filter(Boolean).join(' · ');
+  add('detail:potenza',equipment?'Dati apparecchiatura da verificare: '+equipment:'','Scheda apparecchiatura '+device.id);
+ }
+ const job=practice.interventionId?find(db.interventi,practice.interventionId):null;
+ if(practice.interventionId&&!job)throw Error('Intervento collegato non presente');
+ if(job){
+  const ctx=root.ITETechnicalDrafts?.contextForIntervention?.(job,db);
+  if(!ctx||!same(ctx.clientId,practice.clientId)||['propertyId','plantId','deviceId','siteId'].some(k=>practice[k]&&ctx[k]&&!same(practice[k],ctx[k])))
+   throw Error('Intervento non coerente con cliente, sede o apparecchiatura');
+  if(job.appointment==='1'&&job.workflow_status!=='Chiuso')warnings.push('Appuntamento non chiuso: descrizione lavori non ripresa come eseguita');
+  else{
+   add('field:scope',job.description,'Intervento '+job.id+' (verificare lavorazioni)');
+   if(isDico)add('detail:descrizioneImpianto',job.description,'Intervento '+job.id+' (verificare consistenza)');
+  }
+ }
+ const links=(commerce.settings?.cadPracticeLinks||[]).filter(l=>same(l.practiceId,practice.id));
+ if(links.length>1)warnings.push('Più tavole CAD collegate: selezionare manualmente lo schema corretto');
+ if(links.length===0)warnings.push('Nessuna tavola CAD collegata alla pratica: materiali e schema non precompilati');
+ if(links.length===1){
+  const link=links[0],drawing=find(commerce.settings?.cadDrawings,link.drawingId);
+  if(!drawing||!compatible(drawing,practice))throw Error('Collegamento CAD non valido o appartenente ad altro cliente');
+  if(drawing.archived)warnings.push('Tavola CAD archiviata: nessuna proposta di materiali');
+  else if(drawing.revision!==link.drawingRevision)warnings.push('Tavola CAD modificata dopo il collegamento: ricollegare la revisione prima di usarla');
+  else if(isDico||isGas){
+   const schedule=root.ITECad.catalogSchedule(drawing.elements,drawing.scaleCmPerUnit,commerce.articles,commerce.movements);
+   if(!schedule.calibrated)warnings.push('Scala CAD non calibrata: quote e lunghezze non utilizzabili');
+   if(!schedule.items.length)warnings.push('Tavola CAD senza simboli materiali');
+   const valid=schedule.items.filter(r=>r.articleId&&r.articleCode&&/^(pz|pza|pezzo|pezzi)$/i.test(r.unit));
+   for(const row of schedule.items)if(!valid.includes(row))warnings.push('Articolo CAD da associare/verificare: '+row.label);
+   const ref='Tavola CAD '+drawing.title+' ('+drawing.id+', revisione '+drawing.revision+')';
+   const items=valid.map(r=>r.count+' pz · '+r.articleCode+' · '+r.description).join('\n');
+   if(items){
+    const material='Distinta PRELIMINARE da '+ref+'; quantità e posa da verificare sul posto:\n'+items;
+    add('field:materials',material,'Catalogo e simboli '+ref);
+    if(isDico)add('detail:materialiRiferimento',material,'Catalogo e simboli '+ref);
+    if(isGas)warnings.push('Materiali CAD preliminari: tubazioni gas e posa da verificare su schema e originali');
+   }
+   if(isDico)add('detail:schemaRiferimento',ref+' — disegno in bozza, verificare versione e allegati','CAD '+drawing.id);
+   for(const row of schedule.items)if(row.warning)warnings.push((row.articleCode||row.label)+': '+row.warning);
+  }
+ }
+ if(!practice.propertyId&&!practice.siteId)warnings.push('Manca la sede o il cantiere della pratica');
+ if(!practice.interventionId)warnings.push('Nessun intervento associato: descrizione lavori da verificare');
+ return {candidates,warnings:[...new Set(warnings)],clientId:String(client.id),practiceId:String(practice.id||'')};
+}
+function technicalAudit(rows,db,commerce,clientId){
+ if(!clientId||!find(db.clienti,clientId))throw Error('Seleziona un cliente valido per il controllo del fascicolo');
+ const selected=(rows||[]).filter(r=>same(r.clientId,clientId));
+ if(selected.length>100)throw Error('Fascicolo troppo esteso: seleziona un insieme più piccolo');
+ return selected.map(p=>{
+  const cross=technicalSources(p,db,commerce);
+  const quality=root.ITETechnicalDrafts?.qualityReport?.(p);
+  return {id:p.id,type:p.type,reference:String(p.fields?.reference||''),revision:p.revision,open:quality?.open??null,originals:p.linkedDocIds?.length||0,warnings:cross.warnings};
+ });
+}
+function mountTechnicalAssist(){
+ const editor=document.getElementById('tech-editor'),list=document.getElementById('tech-list');
+ if(!editor||!list||editor.dataset.crosscheckMounted)return;
+ editor.dataset.crosscheckMounted='1';
+ const readForm=form=>Object.fromEntries(['type','clientId','propertyId','plantId','deviceId','siteId','interventionId'].map(k=>[k,form.elements[k]?.value||'']));
+ const field=(form,target)=>target.startsWith('field:')?form.elements[target.slice(6)]:form.querySelector('[data-tech-detail="'+target.slice(7)+'"]');
+ const inject=()=>{
+  const form=editor.querySelector('#tech-form');
+  if(!form||form.querySelector('#tech-crosscheck'))return;
+  const panel=document.createElement('div');panel.id='tech-crosscheck';panel.className='panel';
+  const title=document.createElement('h4');title.textContent='Verifica incrociata — anagrafiche, intervento e CAD';panel.append(title);
+  const note=document.createElement('p');note.className='hint';note.textContent='Proposte solo da fonti locali collegate. I campi compilati non vengono sovrascritti. Nessuna firma, PDR verificato o esito di prova viene creato. Il salvataggio della pratica resta manuale e con backup.';panel.append(note);
+  const check=document.createElement('button');check.type='button';check.className='secondary';check.textContent='Analizza fonti collegate';panel.append(check);
+  const preview=document.createElement('div');preview.setAttribute('aria-live','polite');panel.append(preview);
+  form.querySelector('#tech-checklist')?.before(panel);
+  check.onclick=()=>{
+   preview.replaceChildren();
+   try{
+    const context={...readForm(form),id:editor.dataset.id||''};
+    const result=technicalSources(context,root.ITE.snapshot(),root.ITECommerce.snapshot());
+    const header=document.createElement('p');header.textContent=result.candidates.length+' proposte, '+result.warnings.length+' avvisi. Seleziona solo dati verificati.';preview.append(header);
+    if(result.warnings.length){const ul=document.createElement('ul');for(const w of result.warnings){const li=document.createElement('li');li.textContent=w;ul.append(li)}preview.append(ul)}
+    const available=result.candidates.filter(c=>field(form,c.target)&&!String(field(form,c.target).value||'').trim());
+    if(!available.length){const p=document.createElement('p');p.textContent='Nessun campo vuoto con proposta disponibile.';preview.append(p);return}
+    const controls=[];
+    for(const candidate of available){
+     const label=document.createElement('label');label.className='item';
+     const cb=document.createElement('input');cb.type='checkbox';cb.style.width='auto';label.append(cb);
+     const span=document.createElement('span');span.textContent=' '+candidate.target+' · '+candidate.source+' — '+candidate.value.slice(0,180);label.append(span);preview.append(label);
+     controls.push({cb,candidate});
+    }
+    const apply=document.createElement('button');apply.type='button';apply.textContent='Applica solo le proposte selezionate';preview.append(apply);
+    apply.onclick=()=>{
+     try{
+      const now={...readForm(form),id:editor.dataset.id||''};
+      const latest=technicalSources(now,root.ITE.snapshot(),root.ITECommerce.snapshot());
+      if(JSON.stringify(now)!==JSON.stringify(context)||JSON.stringify(latest.candidates)!==JSON.stringify(result.candidates))throw Error('Fonti o collegamenti cambiati: ripeti l’analisi');
+      let count=0;
+      for(const {cb,candidate} of controls){
+       const el=field(form,candidate.target);
+       if(cb.checked&&el&&!String(el.value||'').trim()){el.value=candidate.value;el.dispatchEvent(new Event('input',{bubbles:true}));count++}
+      }
+      preview.replaceChildren();
+      const p=document.createElement('p');p.textContent=count+' campi proposti inseriti. Verifica gli originali, poi salva manualmente la pratica con backup.';preview.append(p);
+     }catch(e){const p=document.createElement('p');p.textContent='Applicazione bloccata: '+e.message;preview.append(p)}
+    };
+   }catch(e){const p=document.createElement('p');p.textContent='Analisi bloccata: '+e.message;preview.append(p)}
+  };
+ };
+ new MutationObserver(inject).observe(editor,{childList:true});
+ inject();
+ const panel=document.getElementById('technical-drafts-panel');
+ if(panel&&!panel.querySelector('#tech-crosscheck-audit')){
+  const audit=document.createElement('button');audit.id='tech-crosscheck-audit';audit.type='button';audit.className='secondary';audit.textContent='Controllo incrociato fascicolo cliente';panel.querySelector('#tech-dossier')?.after(audit);
+  const status=document.createElement('div');status.id='tech-crosscheck-report';status.setAttribute('role','status');audit.after(status);
+  audit.onclick=()=>{
+   status.replaceChildren();
+   try{
+    const clientId=document.getElementById('tech-filter-client')?.value;
+    const data=root.ITECommerce.snapshot(),db=root.ITE.snapshot();
+    const rows=technicalAudit(data.settings.technicalDrafts||[],db,data,clientId);
+    const p=document.createElement('p');p.textContent=rows.length+' pratiche analizzate; controllo documentale interno, non certificazione.';status.append(p);
+    for(const row of rows){
+     const d=document.createElement('details');d.className='item';
+     const s=document.createElement('summary');s.textContent=row.type+' · '+(row.reference||row.id)+' · rev. '+row.revision+' · originali '+row.originals+' · '+row.warnings.length+' avvisi';d.append(s);
+     const ul=document.createElement('ul');for(const w of row.warnings){const li=document.createElement('li');li.textContent=w;ul.append(li)}d.append(ul);status.append(d);
+    }
+   }catch(e){const p=document.createElement('p');p.textContent='Controllo non eseguito: '+e.message;status.append(p)}
+  };
+ }
+}
+
+const api=Object.freeze({markup,compatible,validateLinks,eligibleSites,proposal,parseQuotes,ensureNewQuote,addLink,technicalSources,technicalAudit,mountTechnicalAssist,mount});
 root.ITECadWorkflow=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(typeof document!=='undefined')root.addEventListener('ite-vault-ready',mount);

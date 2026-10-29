@@ -60,6 +60,8 @@ jobs:
           node dev/test_400_cad_catalog.cjs
           node --check ite-cad-workflow.js
           node dev/test_400_cad_workflow.cjs
+      - name: Test technical crosscheck of CAD, equipment and intervention (synthetic)
+        run: node dev/test_400_technical_sources.cjs
       - name: Test technical dossier, filters and revision comparisons
         run: node dev/test_400_technical_dossier.cjs
       - name: Test technical PDF bytes, privacy, pagination and client isolation
@@ -151,6 +153,12 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_cad_workflow_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Chromium crosscheck of technical practice and CAD materials (synthetic)
+        run: node dev/test_400_technical_sources_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit crosscheck of technical practice and CAD materials (synthetic)
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_technical_sources_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Chromium integrated technical draft browser flow with synthetic data
         run: node dev/test_400_technical_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit integrated technical draft save, backup, revision and print
