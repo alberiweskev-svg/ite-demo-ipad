@@ -102,6 +102,35 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(linked.structured.committente,'Cliente dimostrativo');
  assert.equal(linked.structured.pdrVerificato,undefined);
 
+
+ // Originale tecnico fittizio: conferma selettiva e tracciabilità.
+ await page.evaluate(async()=>{
+  const raw=new TextEncoder().encode('ORIGINALE FITTIZIO DI.CO.');
+  const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',raw))].map(x=>x.toString(16).padStart(2,'0')).join('');
+  await ITECommerce.mutate(next=>{
+   next.files.push({id:'file_'+hash,base64:btoa(String.fromCharCode(...raw)),size:raw.length,hash});
+   next.documents.push({id:'doc_tech_prefill',type:'Di.Co. elettrica',fileId:'file_'+hash,clientId:'1',propertyId:'1',siteId:'',lines:[],number:'DICO-TEST-55',sourceName:'originale_prefill_fittizio.txt',text:'Committente: Mario Fittizio\nUbicazione impianto: Via Prova 20\nImpresa esecutrice: Impresa TEST\nDescrizione lavori: Circuito sintetico\nProve e verifiche: SUPERATE'});
+  });
+ });
+ await page.locator('#tech-new').click();
+ await page.locator('#tech-form [name="clientId"]').selectOption('1');
+ await page.locator('#tech-form [name="propertyId"]').selectOption('1');
+ await page.locator('[data-tech-detail="committente"]').fill('');
+ await page.locator('[data-tech-doc][value="doc_tech_prefill"]').check();
+ await page.locator('#tech-original-proposals').click();
+ await page.locator('[data-tech-proposal]').first().waitFor();
+ assert((await page.locator('[data-tech-proposal]').count())>=3);
+ await page.locator('[data-tech-proposal]').first().check();
+ await page.locator('#tech-apply-proposals').click();
+ assert.equal(await page.locator('[data-tech-detail="committente"]').inputValue(),'Mario Fittizio');
+ assert.equal(await page.locator('#tech-form [name="checks"]').inputValue(),'','Original text must not certify checks');
+ await page.locator('#tech-form button[type="submit"]').click();
+ await page.waitForFunction(()=>ITECommerce.snapshot().settings.technicalDrafts?.length===4,{timeout:30000});
+ const saved=await page.evaluate(async()=>({draft:ITECommerce.snapshot().settings.technicalDrafts.find(x=>x.originalPrefill?.['detail:committente']?.documentId==='doc_tech_prefill'),backup:(await ITEBackup.pack()).commerce.settings.technicalDrafts}));
+ assert.equal(saved.draft.originalPrefill['detail:committente'].value,'Mario Fittizio');
+ assert.deepEqual(saved.draft.linkedDocIds,['doc_tech_prefill']);
+ assert(saved.backup.some(x=>x.id===saved.draft.id&&x.originalPrefill?.['detail:committente']?.documentId==='doc_tech_prefill'));
+
  assert.deepEqual(errors,[],'Browser errors: '+errors.join(' | '));
  console.log('OK: technical Di.Co. structured fields, POS 12 sections, encrypted persistence, backup, revision history and non-official printable draft');
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
