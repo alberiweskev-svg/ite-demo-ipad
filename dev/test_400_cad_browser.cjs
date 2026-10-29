@@ -65,6 +65,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.getByRole('button',{name:'Esporta distinta CSV (indicativa)'}).click();
  const csvFile=await csvDownload;assert.match(csvFile.suggestedFilename(),/ITE-CAD-distinta-bozza.csv/);
  assert.match(fs.readFileSync(await csvFile.path(),'utf8'),/Presa elettrica/);
+ assert.match(fs.readFileSync(await csvFile.path(),'utf8'),/Lunghezza totale muri/);
  const jsonDownload=page.waitForEvent('download');
  await page.getByRole('button',{name:'Esporta JSON'}).click();
  const jsonFile=await jsonDownload;
