@@ -18,13 +18,18 @@ function context(r,clientId,base){
  const plant=r.plantId?find(base.impianti,r.plantId):null;
  const device=r.deviceId?find(base.apparecchiature,r.deviceId):null;
  const job=r.interventionId?find(base.interventi,r.interventionId):null;
+ const jobDevice=job?.apparecchiatura_id?find(base.apparecchiature,job.apparecchiatura_id):null;
+ const jobPlant=jobDevice?find(base.impianti,jobDevice.impianto_id):null;
+ const jobProperty=jobPlant?find(base.immobili,jobPlant.immobile_id):null;
  if(r.propertyId&&(!property||!same(property.client_id,clientId))||
     r.siteId&&(!site||!same(site.client_id,clientId))||
     r.plantId&&(!plant||!property||!same(plant.immobile_id,property.id))||
     r.deviceId&&(!device||!plant||!same(device.impianto_id,plant.id))||
     property&&site?.immobile_id&&!same(site.immobile_id,property.id)||
     r.interventionId&&(!job||job.client_id&&!same(job.client_id,clientId)||
-      job.apparecchiatura_id&&r.deviceId&&!same(job.apparecchiatura_id,r.deviceId)))
+      job.apparecchiatura_id&&(!jobDevice||!jobPlant||!jobProperty||!same(jobProperty.client_id,clientId)||
+       property&&!same(jobProperty.id,property.id)||r.deviceId&&!same(job.apparecchiatura_id,r.deviceId))||
+      !job.apparecchiatura_id&&!job.client_id))
   throw Error('Collegamenti cliente, sede, impianto o intervento incoerenti: PDF bloccato.');
  const desc=o=>o?.name||[o?.brand,o?.model,o?.serial].filter(Boolean).join(' ')||'Non collegato';
  return [
