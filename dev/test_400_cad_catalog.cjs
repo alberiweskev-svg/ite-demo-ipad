@@ -15,7 +15,7 @@ assert.throws(()=>cad.operate([cad.make('wall',{x:10,y:10},{x:20,y:20})],'linkAr
 let schedule=cad.catalogSchedule(rows,2,articles,[{articleId:id,quantity:3},{articleId:id,quantity:-2}]);
 assert.equal(schedule.items.length,2);
 const linked=schedule.items.find(x=>x.articleId===id);
-assert.equal(linked.count,2);assert.equal(linked.stock,1);assert.equal(linked.shortage,1);assert.equal(linked.estimated,25);
+assert.equal(linked.count,2);assert.equal(linked.stock,1);assert.equal(linked.shortage,1);assert.equal(linked.estimated,25);assert.match(linked.warning,/Giacenza inferiore/);
 assert.equal(schedule.allPriced,false,'Unlinked symbol blocks total');
 assert.equal(schedule.items.find(x=>!x.articleId).warning,'Articolo non associato o non più presente');
 rows=cad.operate(rows,'linkArticle',lavabo.id,{articleId:other});
