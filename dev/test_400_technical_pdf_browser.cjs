@@ -50,7 +50,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  });
  await page.locator('#ite-pdf-import-review').waitFor({state:'visible'});
  assert.match(await page.locator('#ite-pdf-import-review').innerText(),/Lavori sintetici per PDX/);
- const scopeChoice=page.locator('#ite-pdf-import-review label').filter({hasText:'Descrizione lavori'}).locator('input[type="checkbox"]');
+ const scopeChoice=page.locator('#ite-pdf-import-review label').filter({hasText:'Lavori sintetici per PDX'}).locator('input[type="checkbox"]');
  assert.equal(await scopeChoice.isChecked(),false,'Existing values require explicit overwrite');
  await scopeChoice.check();
  await page.locator('[data-pdf-confirm]').click();
