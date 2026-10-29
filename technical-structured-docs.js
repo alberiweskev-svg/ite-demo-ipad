@@ -58,13 +58,107 @@ function assess(p,docs,options={}){
 function table(rows){
  return '<table><tbody>'+rows.map(([k,v])=>'<tr><th>'+esc(k)+'</th><td>'+esc(val(v))+'</td></tr>').join('')+'</tbody></table>';
 }
+
+/* Registro operativo di verifica: nessuna voce rappresenta attestazione normativa. */
+function materialTrace(p,clientId,options={}){
+ const rows=[],warnings=[];
+ for(const link of arr(options.links).filter(l=>same(l.practiceId,p.id))){
+  const drawing=find(options.drawings,link.drawingId);
+  if(!drawing||drawing.archived||!same(drawing.clientId,clientId)||!same(drawing.revision,link.drawingRevision)){
+   warnings.push('Tavola CAD assente, non autorizzata, archiviata o con revisione superata');
+   continue;
+  }
+  const grouped=new Map();
+  for(const e of arr(drawing.elements)){
+   if(e?.kind!=='symbol')continue;
+   const k=String(e.text||'')+'|'+String(e.articleId||'');
+   if(!grouped.has(k))grouped.set(k,{symbol:clean(e.text),articleId:String(e.articleId||''),quantity:0});
+   grouped.get(k).quantity++;
+  }
+  for(const item of grouped.values()){
+   const article=item.articleId?find(options.articles,item.articleId):null;
+   const valid=article?.kind==='Materiale';
+   const unit=valid?clean(article.unit):'';
+   const compatible=/^(pz|pza|pezzo|pezzi)$/i.test(unit);
+   const moves=valid?arr(options.movements).filter(x=>same(x.articleId,article.id)):[];
+   const numbers=moves.map(x=>typeof x.quantity==='number'?x.quantity:Number(x.quantity));
+   const stock=moves.length&&numbers.every(Number.isFinite)?numbers.reduce((a,n)=>a+n,0):null;
+   const status=!valid?'Articolo non associato':!compatible?'Unità da verificare':stock===null?'Giacenza non documentata':stock<item.quantity?'Giacenza insufficiente':'Da verificare sul campo';
+   if(status!=='Da verificare sul campo')warnings.push('Distinta '+(valid?clean(article.code):item.symbol)+': '+status);
+   rows.push({drawingId:String(drawing.id),drawingTitle:clean(drawing.title),revision:drawing.revision,symbol:item.symbol,
+    code:valid?clean(article.code):'',description:valid?clean(article.description):'',quantity:item.quantity,
+    unit,status,stock});
+   if(rows.length>500)throw Error('Distinta troppo estesa: riduci le tavole selezionate.');
+  }
+ }
+ return {rows,warnings:[...new Set(warnings)]};
+}
+function inspectionMatrix(p,docs,clientId,options={}){
+ const checks=[],push=(section,item,status,note='')=>checks.push({section,item,status,note});
+ push('Identificazione','Riferimento pratica',clean(p.fields?.reference)?'Presente':'Da verificare',p.fields?.reference||'Mancante');
+ push('Identificazione','Descrizione dei lavori',clean(p.fields?.scope)?'Presente':'Da verificare',p.fields?.scope||'Mancante');
+ push('Collegamenti','Sede',p.propertyId?'Collegata':'Da verificare',p.propertyId?'Riferimento anagrafico':'Sede non selezionata');
+ push('Collegamenti','Impianto',p.plantId?'Collegato':'Da verificare',p.plantId?'Riferimento anagrafico':'Impianto non selezionato');
+ for(const g of options.groups?.[p.type]||[]){
+  for(const f of g.fields||[]){
+   if(!f[3])continue;
+   const value=clean(p.structured?.[f[0]]);
+   push(g.title,f[1],value?'Compilato':'Da verificare',value?'Dato inserito dall’operatore':'Campo richiesto dalla scheda interna');
+  }
+ }
+ const linked=arr(p.linkedDocIds);
+ push('Originali','Documenti collegati',linked.length?'Riferiti':'Da verificare',linked.length?linked.length+' riferimento/i, non incorporati':'Nessun originale');
+ for(const id of linked){
+  const d=find(docs,id);
+  if(d&&same(d.clientId||d.subjectId,clientId))push('Originali','Riferimento '+String(id),'Riferito',clean(d.type||'Documento')+' · '+clean(d.number||d.sourceName||d.id));
+ }
+ for(const [item,c] of Object.entries(p.checklistEvidence||{})){
+  const ok=['Documentato','Non applicabile'].includes(c?.status)&&clean(c?.evidence);
+  const attached=!c?.documentId||linked.some(id=>same(id,c.documentId));
+  push('Evidenze',item,ok&&attached?(c.status==='Non applicabile'?'Non applicabile':'Riferita'):'Da verificare',
+   clean(c?.evidence)||'Evidenza non indicata');
+ }
+ if(p.type.startsWith('Allegato gas'))push('GAS','PDR verificato da documento',clean(p.structured?.pdrVerificato)?'Dato inserito':'Da verificare',
+  'Non equivale ad attestazione automatica del PDR');
+ if(p.type==='POS'){
+  push('POS','Cantiere',p.siteId?'Collegato':'Da verificare',p.siteId?'Cantiere associato':'Cantiere non selezionato');
+  const start=clean(p.structured?.inizioLavori),end=clean(p.structured?.fineLavori);
+  push('POS','Cronologia lavori',start&&end&&start<=end?'Date presenti':'Da verificare',
+   start&&end&&start>end?'Fine lavori precedente all’inizio':'Verificare date e completezza');
+ }
+ const links=arr(options.links).filter(l=>same(l.practiceId,p.id));
+ push('Disegni','Tavole CAD',links.length?'Riferite':'Da verificare',links.length?links.length+' collegamento/i':'Nessuna tavola collegata');
+ const trace=materialTrace(p,clientId,options);
+ for(const warning of trace.warnings)push('Distinta CAD','Controllo materiali','Da verificare',warning);
+ for(const item of trace.rows)push('Distinta CAD',item.code||item.symbol,item.status==='Da verificare sul campo'?'Riferito':'Da verificare',
+  item.quantity+' '+(item.unit||'pz')+' · '+(item.description||item.symbol)+' · '+item.status);
+ return checks;
+}
+function csvCell(v){
+ const raw=clean(v),safe=/^[=+\-@]/.test(raw)?"'"+raw:raw;
+ return '"'+safe.replace(/"/g,'""')+'"';
+}
+function csvReport(rows,clientId,docs,base,options={}){
+ validate(rows,clientId,docs,base);
+ const lines=[['Pratica','Tipo','Sezione','Controllo','Esito interno','Nota'].map(csvCell).join(';')];
+ const counts={total:0,toVerify:0};
+ for(const p of rows)for(const item of inspectionMatrix(p,docs,clientId,options)){
+  counts.total++;if(item.status==='Da verificare')counts.toVerify++;
+  lines.push([p.fields?.reference||p.id,p.type,item.section,item.item,item.status,item.note].map(csvCell).join(';'));
+ }
+ if(lines.join('').length>750000)throw Error('Registro troppo esteso: restringi la selezione.');
+ return {csv:'\uFEFF'+lines.join('\r\n')+'\r\n',counts};
+}
+
 function build(rows,clientId,docs,base,options={}){
  validate(rows,clientId,docs,base);
  const client=find(base.clienti,clientId),docMap=new Map(arr(docs).map(d=>[String(d.id),d]));
  const annexes=[],sections=[],issuesByPractice=[];
  const drawings=arr(options.drawings),links=arr(options.links);
  for(const [i,p] of rows.entries()){
-  const issues=assess(p,docs,options);issuesByPractice.push({id:p.id,issues});
+  const issues=assess(p,docs,options),trace=materialTrace(p,clientId,options),matrix=inspectionMatrix(p,docs,clientId,options);
+  for(const warning of trace.warnings)if(!issues.includes(warning))issues.push(warning);
+  issuesByPractice.push({id:p.id,issues});
   const property=find(base.immobili,p.propertyId),plant=find(base.impianti,p.plantId);
   const device=find(base.apparecchiature,p.deviceId),site=find(base.cantieri,p.siteId);
   const intervention=find(base.interventi,p.interventionId);
@@ -92,6 +186,8 @@ function build(rows,clientId,docs,base,options={}){
    '<h3>Identificazione e collegamenti</h3>'+table([['Cliente',display(client)],['Sede',display(property)],['Impianto',display(plant)],['Apparecchiatura',display(device)],['Cantiere',display(site)],['Intervento',intervention?.description||p.interventionId||'Non collegato']])+
    '<h3>Dati della pratica</h3>'+generic+details+
    '<h3>Checklist e riferimenti alle evidenze</h3>'+(checks.length?table(checks):'<p>Nessuna evidenza registrata: verificare sul campo.</p>')+
+   '<h3>Matrice di verifica interna (non certificativa)</h3>'+table(matrix.map(x=>[x.section+' · '+x.item+' — '+x.status,x.note]))+
+   '<h3>Distinta materiali CAD (quantità da verificare, posa separata)</h3>'+(trace.rows.length?table(trace.rows.map(x=>[x.code||x.symbol,x.quantity+' '+(x.unit||'pz')+' · '+x.description+' · '+x.status+' · tavola rev. '+x.revision])):'<p>Nessun materiale CAD associato a una tavola valida.</p>')+
    '<h3>Schema e tavole collegate</h3>'+(cadRows.length?table(cadRows):'<p>Nessuna tavola CAD collegata.</p>')+
    '<h3>Originali collegati (solo indice, nessun file incorporato)</h3>'+(linked.length?table(linked.map(d=>[d.type||'Originale',String(d.number||d.sourceName||d.id)+(d.date?' · '+d.date:'')])):'<p>Nessun originale collegato.</p>')+
    '<h3>Provenienza delle proposte originali</h3>'+(sourceRows.length?table(sourceRows):'<p>Nessuna provenienza registrata.</p>')+
@@ -122,6 +218,10 @@ function install(){
   if(anchor&&!panel.querySelector('#tech-dossier-structured')){
    const b=root.document.createElement('button');b.id='tech-dossier-structured';b.type='button';b.className='secondary';b.textContent='Fascicolo strutturato A4 (bozza)';anchor.insertAdjacentElement('afterend',b);
   }
+  const structured=panel.querySelector('#tech-dossier-structured');
+  if(structured&&!panel.querySelector('#tech-dossier-checklist')){
+   const b=root.document.createElement('button');b.id='tech-dossier-checklist';b.type='button';b.className='secondary';b.textContent='Registro verifiche CSV (bozza)';structured.insertAdjacentElement('afterend',b);
+  }
   for(const original of panel.querySelectorAll('[data-tech-print]')){
    if(original.parentElement?.querySelector('[data-tech-structured="'+original.dataset.techPrint+'"]'))continue;
    const b=root.document.createElement('button');b.type='button';b.className='secondary';b.dataset.techStructured=original.dataset.techPrint;b.textContent='Scheda A4 (bozza)';original.insertAdjacentElement('afterend',b);
@@ -129,13 +229,13 @@ function install(){
  };
  refresh();new MutationObserver(refresh).observe(panel,{childList:true,subtree:true});
  panel.addEventListener('click',event=>{
-  const button=event.target.closest('[data-tech-structured],#tech-dossier-structured');if(!button||!panel.contains(button))return;
+  const button=event.target.closest('[data-tech-structured],#tech-dossier-structured,#tech-dossier-checklist');if(!button||!panel.contains(button))return;
   const status=panel.querySelector('#tech-status');
   try{
    if(!root.ITEVault?.isUnlocked?.()||root.ITECommerce?.busy?.())throw Error('Archivio non sbloccato o salvataggio in corso.');
    const base=root.ITE.snapshot(),state=root.ITECommerce.snapshot(),rows=state.settings?.technicalDrafts||[];
    let selected,clientId;
-   if(button.id==='tech-dossier-structured'){
+   if(button.id==='tech-dossier-structured'||button.id==='tech-dossier-checklist'){
     clientId=panel.querySelector('#tech-filter-client')?.value;
     if(!clientId)throw Error('Seleziona un cliente specifico per il fascicolo.');
     const ids=[...panel.querySelectorAll('#tech-list [data-tech-print]')].map(b=>b.dataset.techPrint);
@@ -144,14 +244,15 @@ function install(){
     selected=rows.filter(r=>same(r.id,button.dataset.techStructured));clientId=selected[0]?.clientId;
    }
    const api=root.ITETechnicalDrafts;
-   const result=build(selected,clientId,state.documents||[],base,{groups:api?.structuredGroups||{},review:api?.qualityReport,drawings:state.settings?.cadDrawings,links:state.settings?.cadPracticeLinks});
-   const blob=new Blob([result.html],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=root.document.createElement('a');
-   a.href=url;a.download='ITE_SCHEDE_TECNICHE_BOZZA_'+String(clientId).replace(/[^a-z0-9_-]/gi,'_')+'.html';root.document.body.append(a);a.click();a.remove();
+   const options={groups:api?.structuredGroups||{},review:api?.qualityReport,drawings:state.settings?.cadDrawings,links:state.settings?.cadPracticeLinks,articles:state.articles,movements:state.movements};
+   const csv=button.id==='tech-dossier-checklist',result=csv?csvReport(selected,clientId,state.documents||[],base,options):build(selected,clientId,state.documents||[],base,options);
+   const blob=new Blob([csv?result.csv:result.html],{type:csv?'text/csv;charset=utf-8':'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=root.document.createElement('a');
+   a.href=url;a.download=(csv?'ITE_REGISTRO_VERIFICHE_BOZZA_':'ITE_SCHEDE_TECNICHE_BOZZA_')+String(clientId).replace(/[^a-z0-9_-]/gi,'_')+(csv?'.csv':'.html');root.document.body.append(a);a.click();a.remove();
    setTimeout(()=>URL.revokeObjectURL(url),60000);
-   if(status)status.textContent='Fascicolo strutturato A4 scaricato (HTML locale non cifrato). Verifiche aperte: '+result.issuesByPractice.reduce((n,x)=>n+x.issues.length,0)+'. Nessuna firma o conformità attestata.';
+   if(status)status.textContent=csv?'Registro CSV non cifrato scaricato: '+result.counts.toVerify+' controlli da verificare su '+result.counts.total+'. Non certificativo.':'Fascicolo strutturato A4 scaricato (HTML locale non cifrato). Verifiche aperte: '+result.issuesByPractice.reduce((n,x)=>n+x.issues.length,0)+'. Nessuna firma o conformità attestata.';
   }catch(e){if(status)status.textContent='Scheda A4 non generata: '+e.message;}
  });
 }
 if(root?.document){root.addEventListener('ite-vault-ready',install);if(root.ITEVault?.isUnlocked?.())install();}
-root.ITEStructuredDocuments=Object.freeze({validate,assess,build});
+root.ITEStructuredDocuments=Object.freeze({validate,assess,materialTrace,inspectionMatrix,csvReport,build});
 })(typeof window!=='undefined'?window:globalThis);

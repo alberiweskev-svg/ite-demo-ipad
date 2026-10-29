@@ -51,6 +51,13 @@ const server=http.createServer((req,res)=>{try{
   await page.locator('#tech-dossier-structured').click();
   const dossier=await dossierDownload,dossierHtml=fs.readFileSync(await dossier.path(),'utf8');
   assert.match(dossierHtml,/STRUCT-TEST-001/);
+  const csvDownload=page.waitForEvent('download');
+  await page.locator('#tech-dossier-checklist').click();
+  const audit=await csvDownload,auditCsv=fs.readFileSync(await audit.path(),'utf8');
+  assert.match(audit.suggestedFilename(),/^ITE_REGISTRO_VERIFICHE_BOZZA_.*\.csv$/);
+  assert.match(auditCsv,/STRUCT-TEST-001/);
+  assert.match(auditCsv,/"Pratica";"Tipo";"Sezione"/);
+  assert.match(await page.locator('#tech-status').innerText(),/non cifrato/);
   assert.equal(await page.evaluate(()=>JSON.stringify(ITECommerce.snapshot().settings.technicalDrafts)),before);
   assert.deepEqual(errors,[]);
   console.log('OK: '+engine.name()+' structured A4 document and filtered dossier, vault guard, no archive mutation');

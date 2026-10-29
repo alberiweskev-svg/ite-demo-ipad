@@ -48,3 +48,40 @@ const pos={...p,type:'POS',siteId:'',structured:{inizioLavori:'2026-10-30',fineL
 assert(assess(pos,docs).some(x=>x.includes('Date POS incoerenti')));
 assert(validate([p],'1',docs,base));
 console.log('OK: structured A4 dossier, linked entities, original index, XSS escape, CAD revision, PDR safety, isolation, read-only');
+
+
+const {materialTrace,inspectionMatrix,csvReport}=sandbox.ITEStructuredDocuments;
+const cad={id:'cad_syn',title:'Schema [TEST]',clientId:'1',revision:3,elements:[
+ {kind:'symbol',text:'presa',articleId:'art_syn'},{kind:'symbol',text:'presa',articleId:'art_syn'},
+ {kind:'symbol',text:'valvola',articleId:''}
+]};
+const auditOptions={groups,drawings:[cad],links:[{drawingId:'cad_syn',drawingRevision:3,practiceId:p.id}],
+ articles:[{id:'art_syn',kind:'Materiale',code:'ART-TEST',description:'Presa sintetica',unit:'pz'}],
+ movements:[{articleId:'art_syn',quantity:1}]};
+const traced=materialTrace(p,'1',auditOptions);
+assert.equal(traced.rows.length,2);
+assert.equal(traced.rows.find(x=>x.code==='ART-TEST').quantity,2);
+assert(traced.warnings.some(x=>x.includes('Giacenza insufficiente')));
+assert(traced.warnings.some(x=>x.includes('non associato')));
+const matrix=inspectionMatrix(p,docs,'1',auditOptions);
+assert(matrix.some(x=>x.item==='Impresa'&&x.status==='Da verificare'));
+assert(matrix.some(x=>x.section==='Distinta CAD'&&x.note.includes('ART-TEST')===false));
+const enriched=build([p],'1',docs,base,auditOptions);
+assert.match(enriched.html,/Matrice di verifica interna/);
+assert.match(enriched.html,/Distinta materiali CAD/);
+assert.match(enriched.html,/ART-TEST/);
+assert.match(enriched.html,/Giacenza insufficiente/);
+const report=csvReport([p],'1',docs,base,auditOptions);
+assert.match(report.csv,/"Pratica";"Tipo";"Sezione"/);
+assert(report.csv.startsWith('\uFEFF'));
+assert.match(report.csv,/ART-TEST/);
+assert(report.counts.toVerify>0);
+const injected={...p,fields:{...p.fields,scope:'=2+2'}};
+assert(csvReport([injected],'1',docs,base,auditOptions).csv.includes("'=2+2"),'CSV formula injection must be escaped');
+const foreignCad={...cad,clientId:'2',title:'SEGRETO-DISEGNO'};
+const foreignAudit={...auditOptions,drawings:[foreignCad]};
+const protectedReport=csvReport([p],'1',docs,base,foreignAudit);
+assert(!protectedReport.csv.includes('SEGRETO-DISEGNO'));
+assert.equal(materialTrace(p,'1',foreignAudit).rows.length,0);
+assert.equal(JSON.stringify({p,base,docs}),before,'New audit must not modify the source');
+console.log('OK: CAD material trace, quantities, shortage, internal inspection matrix, CSV formula protection and client isolation');
