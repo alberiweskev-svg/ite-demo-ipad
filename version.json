@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-29",
-  "notes": "Anteprima I.T.E. 4.0 isolata: Di.Co./Di.Ri./GAS e POS, fascicoli PDF in bozza, CAD vettoriale con scala metrica assistita, 9 simboli, gruppi, associazione materiali a catalogo, controllo giacenze indicativo, distinta CSV e tavola HTML A4 in bozza, revisioni e backup cifrati. Quote da verificare, CAD non equivalente al modulo 2.7.5; la 3.0.74 su main resta invariata."
+  "notes": "Anteprima I.T.E. 4.0 isolata: pratiche Di.Co./Di.Ri./GAS/POS con precompilazione controllata, fascicoli PDF di bozza e nuove schede strutturate A4 HTML con indice allegati, verifiche aperte e isolamento cliente. CAD vettoriale con scala, simboli, materiali, distinte e tavola HTML; revisioni e backup cifrati. Documenti ufficiali, firme, parità Windows 2.7.5 e Safari iPad fisico non completati. Main 3.0.74 invariato."
 }
