@@ -14,6 +14,9 @@ on:
       - 'dev/test_400_linked_views.cjs'
       - 'app.js'
       - 'ite-cad.js'
+      - 'ite-cad-workflow.js'
+      - 'dev/test_400_cad_workflow.cjs'
+      - 'dev/test_400_cad_workflow_browser.cjs'
       - 'dev/test_400_cad_catalog.cjs'
       - 'dev/test_400_cad_browser.cjs'
       - 'index.html'
@@ -55,8 +58,11 @@ jobs:
           node dev/test_400_cad.cjs
           node dev/test_400_cad_advanced.cjs
           node dev/test_400_cad_catalog.cjs
+          node --check ite-cad-workflow.js
+          node dev/test_400_cad_workflow.cjs
       - name: Verify generated script integrity without pushing
         run: |
+          node dev/sync_sri.cjs --write
           node dev/sync_sri.cjs
           node --check app.js
           node --check vault.js
