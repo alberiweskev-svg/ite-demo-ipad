@@ -120,18 +120,22 @@ function renderSvg(elements,selected='',draft=true,scale=null){
 function mount(){
  const host=document.getElementById('ite-cad');if(!host||host.dataset.mounted)return;
  host.dataset.mounted='1';
- const state={current:null,elements:[],selected:'',tool:'select',start:null,drag:null,undo:[],redo:[],dirty:false,saving:false};
- const h=el('h2','Disegno tecnico I.T.E. CAD — bozza vettoriale'),note=el('p','Strumenti per muri, linee, rettangoli, quote ed etichette. Le unità del foglio sono grafiche, non centimetri certificati. Il salvataggio crea una copia completa preventiva e una revisione.','hint');
+ const state={current:null,elements:[],selected:'',selectedIds:[],multi:false,snap:true,scale:null,tool:'select',start:null,drag:null,undo:[],redo:[],dirty:false,saving:false};
+ const h=el('h2','Disegno tecnico I.T.E. CAD — bozza vettoriale'),note=el('p','Strumenti per muri, linee, rettangoli, simboli impiantistici, quote, gruppi e distinta indicativa. La scala in cm è inserita dall'operatore e deve essere verificata sul posto. Ogni salvataggio crea un backup preventivo e una revisione.','hint');
  host.append(h,note);
  const selectors=el('div');selectors.className='grid';
  const mkSelect=(title)=>{const l=el('label',title),s=el('select');l.append(s);selectors.append(l);return s};
  const client=mkSelect('Cliente'),property=mkSelect('Sede / immobile'),site=mkSelect('Cantiere'),plant=mkSelect('Impianto');
  const title=el('input');title.maxLength=120;title.placeholder='Titolo del disegno';const titleLabel=el('label','Titolo del disegno');titleLabel.append(title);selectors.append(titleLabel);host.append(selectors);
+ const options=el('div');options.className='actions';host.append(options);
+ const scaleLabel=el('label','Scala di lavoro (cm per unità grafica)'),scaleInput=el('input');scaleInput.type='number';scaleInput.min='0.01';scaleInput.max='100';scaleInput.step='0.01';scaleInput.placeholder='Non calibrata';scaleLabel.append(scaleInput);options.append(scaleLabel);
+ const symbolLabel=el('label','Simbolo impiantistico'),symbolSelect=el('select');for(const [code,label] of Object.entries(SYMBOLS))symbolSelect.append(new Option(label,code));symbolLabel.append(symbolSelect);options.append(symbolLabel);
  const list=mkSelect('Disegni salvati (seleziona per aprire)');host.append(list.parentElement);
  const toolbar=el('div');toolbar.className='actions';host.append(toolbar);
  const status=el('p','','hint');status.setAttribute('role','status');host.append(status);
  const canvas=el('div');canvas.style.cssText='overflow:auto;touch-action:pan-x pan-y;border:1px solid #b5c6d7;background:white;max-width:100%';host.append(canvas);
  const commands=el('div');commands.className='actions';host.append(commands);
+ const scheduleBox=el('div');scheduleBox.setAttribute('aria-label','Distinta materiali indicativa');host.append(scheduleBox);
  const say=s=>{status.textContent=s};
  const button=(where,label,fn)=>{const b=el('button',label);b.type='button';b.addEventListener('click',fn);where.append(b);return b};
  const option=(s,value,label)=>s.append(new Option(label,value));
@@ -140,36 +144,72 @@ function mount(){
  function cascade(){const db=database();fill(property,(db.immobili||[]).filter(r=>same(r.client_id,client.value)),'— Sede facoltativa —');fill(site,(db.cantieri||[]).filter(r=>same(r.client_id,client.value)),'— Cantiere facoltativo —');fill(plant,(db.impianti||[]).filter(r=>same(r.immobile_id,property.value)),'— Impianto facoltativo —')}
  function refreshChoices(){const db=database();fill(client,db.clienti||[],'— Seleziona cliente —');cascade();const drawings=root.ITECommerce.snapshot().settings.cadDrawings||[];fill(list,drawings.filter(r=>!r.archived),'— Nuovo disegno —')}
  client.addEventListener('change',cascade);property.addEventListener('change',()=>{const db=database();fill(plant,(db.impianti||[]).filter(r=>same(r.immobile_id,property.value)),'— Impianto facoltativo —')});
- function snapshot(){state.undo.push(copy(state.elements));if(state.undo.length>60)state.undo.shift();state.redo.length=0}
+ function snapshot(){state.undo.push({elements:copy(state.elements),scale:state.scale});if(state.undo.length>60)state.undo.shift();state.redo.length=0}
  function update(next){snapshot();state.elements=next;state.dirty=true;paint()}
- function paint(){const svg=renderSvg(state.elements,state.selected);svg.style.cssText='width:100%;height:auto;min-width:450px;touch-action:none';canvas.replaceChildren(svg);svg.addEventListener('pointerdown',down);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',()=>{state.start=null;state.drag=null});svg.addEventListener('pointermove',move);say(state.elements.length+' elementi · '+(state.dirty?'Modifiche da salvare':'Salvato / nuova bozza')+' · strumento '+state.tool)}
- const coord=e=>{const svg=canvas.querySelector('svg'),r=svg.getBoundingClientRect();return point((e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height)};
- function down(e){if(e.button!==0)return;const p=coord(e),target=e.target.closest('[data-cad-id]');state.selected=target?.getAttribute('data-cad-id')||'';state.start=p;state.drag=state.tool==='select'&&state.selected?p:null;e.currentTarget.setPointerCapture?.(e.pointerId);paintSelection()}
- function paintSelection(){for(const node of canvas.querySelectorAll('[data-cad-id]'))node.style.opacity=node.getAttribute('data-cad-id')===state.selected?'1':'0.9'}
+ function paint(){
+  const svg=renderSvg(state.elements,state.selectedIds.length?state.selectedIds:state.selected,true,state.scale);
+  svg.style.cssText='width:100%;height:auto;min-width:450px;touch-action:none';canvas.replaceChildren(svg);
+  svg.addEventListener('pointerdown',down);svg.addEventListener('pointerup',up);
+  svg.addEventListener('pointercancel',()=>{state.start=null;state.drag=null});svg.addEventListener('pointermove',move);
+  const summary=materialSchedule(state.elements,state.scale);scheduleBox.replaceChildren(el('h3','Distinta preliminare (non è un ordine materiali)'));
+  for(const item of summary.items)scheduleBox.append(el('p',item.label+' · quantità: '+item.count));
+  scheduleBox.append(el('p',summary.calibrated?'Muri: '+summary.wallMeters+' m · Linee: '+summary.lineMeters+' m (indicativi)':'Lunghezze non disponibili: calibrare la scala'));
+  say(state.elements.length+' elementi · '+(state.dirty?'Modifiche da salvare':'Salvato / nuova bozza')+' · strumento '+state.tool+(state.multi?' · selezione multipla':''));
+ }
+ const coord=e=>{const svg=canvas.querySelector('svg'),r=svg.getBoundingClientRect();return snapPoint(point((e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height),state.elements,state.snap&&state.tool!=='select')};
+ function down(e){if(e.button!==0)return;const p=coord(e),target=e.target.closest('[data-cad-id]'),id=target?.getAttribute('data-cad-id')||'';
+  if(state.multi){if(id){state.selectedIds=state.selectedIds.includes(id)?state.selectedIds.filter(x=>x!==id):[...state.selectedIds,id];state.selected=id}state.start=null;paintSelection();return}
+  state.selectedIds=[];state.selected=id;state.start=p;state.drag=state.tool==='select'&&state.selected?p:null;e.currentTarget.setPointerCapture?.(e.pointerId);paintSelection()}
+ function paintSelection(){for(const node of canvas.querySelectorAll('[data-cad-id]'))node.style.opacity=(state.selectedIds.length?state.selectedIds.includes(node.getAttribute('data-cad-id')):node.getAttribute('data-cad-id')===state.selected)?'1':'0.9'}
  function move(e){if(!state.start)return;const p=coord(e);status.textContent='Da ('+state.start.x+','+state.start.y+') a ('+p.x+','+p.y+') · '+Math.round(Math.hypot(p.x-state.start.x,p.y-state.start.y))+' unità grafiche'}
  function up(e){if(!state.start)return;const p=coord(e),start=state.start;state.start=null;
   try{if(state.tool==='select'){if(state.drag&&state.selected&&(p.x!==start.x||p.y!==start.y))update(operate(state.elements,'move',state.selected,{dx:p.x-start.x,dy:p.y-start.y}));else paint();state.drag=null;return}
-   const text=state.tool==='label'?root.prompt('Testo etichetta (max 120 caratteri)','')||'':state.tool==='dimension'?root.prompt('Quota (facoltativa; verificare sul posto)','')||'':'';
-   const element=make(state.tool,start,p,text);update(operate(state.elements,'add','',{element}));state.selected=element.id;
+   const text=state.tool==='symbol'?symbolSelect.value:state.tool==='label'?root.prompt('Testo etichetta (max 120 caratteri)','')||'':state.tool==='dimension'?root.prompt('Quota (facoltativa; verificare sul posto)','')||'':'';
+   const element=make(state.tool,start,state.tool==='symbol'?start:p,text);update(operate(state.elements,'add','',{element}));state.selected=element.id;
   }catch(err){say(err.message)}
  }
- for(const [key,label] of [['select','Seleziona / sposta'],['wall','Muro'],['line','Linea'],['rect','Rettangolo'],['dimension','Quota'],['label','Testo']])button(toolbar,label,()=>{state.tool=key;state.start=null;say('Strumento: '+label)});
+ for(const [key,label] of [['select','Seleziona / sposta'],['wall','Muro'],['line','Linea'],['rect','Rettangolo'],['dimension','Quota'],['label','Testo'],['symbol','Simbolo']])button(toolbar,label,()=>{state.tool=key;state.start=null;say('Strumento: '+label)});
  const action=(label,fn)=>button(commands,label,()=>{try{fn()}catch(err){say(err.message)}});
+ button(toolbar,'Selezione multipla: OFF',function(){state.multi=!state.multi;state.tool='select';state.selectedIds=[];this.textContent='Selezione multipla: '+(state.multi?'ON':'OFF');paint()});
+ button(toolbar,'Aggancio estremi: ON',function(){state.snap=!state.snap;this.textContent='Aggancio estremi: '+(state.snap?'ON':'OFF');paint()});
+ action('Raggruppa selezionati',()=>{const next=operate(state.elements,'group','',{ids:state.selectedIds});update(next);state.selectedIds=[];state.multi=false;paint()});
+ action('Separa gruppo',()=>update(operate(state.elements,'ungroup',state.selected)));
+ action('Calibra segmento (cm)',()=>{
+  const selected=state.elements.find(e=>e.id===state.selected);
+  if(!selected||!['wall','line','dimension'].includes(selected.kind))throw Error('Seleziona un muro, linea o quota');
+  const length=Math.hypot(selected.x2-selected.x,selected.y2-selected.y);
+  const value=root.prompt('Lunghezza reale del segmento in centimetri (misurata sul posto)','');
+  if(value===null)return;
+  const cm=Number(String(value).replace(',','.')),scale=cm/length;
+  if(!Number.isFinite(cm)||cm<=0||!validScale(scale))throw Error('Misura o scala non valida');
+  snapshot();state.scale=scale;scaleInput.value=String(scale);state.dirty=true;paint();
+ });
+ scaleInput.addEventListener('change',()=>{
+  try{const value=scaleInput.value.trim()===''?null:Number(scaleInput.value);
+   if(!validScale(value))throw Error('Scala ammessa: da 0,01 a 100 cm per unità');
+   if(value!==state.scale){snapshot();state.scale=value;state.dirty=true;paint()}
+  }catch(err){scaleInput.value=state.scale==null?'':String(state.scale);say(err.message)}
+ });
  for(const [label,kind] of [['Duplica','duplicate'],['Ruota 90°','rotate'],['Porta avanti','front'],['Porta indietro','back'],['Elimina elemento','delete']])action(label,()=>update(operate(state.elements,kind,state.selected)));
  for(const color of COLORS)action('Colore '+color,()=>update(operate(state.elements,'color',state.selected,{color})));
- action('Annulla',()=>{if(!state.undo.length)return;state.redo.push(copy(state.elements));state.elements=state.undo.pop();state.dirty=true;paint()});
- action('Ripeti',()=>{if(!state.redo.length)return;state.undo.push(copy(state.elements));state.elements=state.redo.pop();state.dirty=true;paint()});
+ action('Annulla',()=>{if(!state.undo.length)return;state.redo.push({elements:copy(state.elements),scale:state.scale});const prior=state.undo.pop();state.elements=prior.elements;state.scale=prior.scale;scaleInput.value=state.scale==null?'':String(state.scale);state.dirty=true;paint()});
+ action('Ripeti',()=>{if(!state.redo.length)return;state.undo.push({elements:copy(state.elements),scale:state.scale});const next=state.redo.pop();state.elements=next.elements;state.scale=next.scale;scaleInput.value=state.scale==null?'':String(state.scale);state.dirty=true;paint()});
  function download(data,name,type){const url=URL.createObjectURL(new Blob([data],{type})),a=el('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000)}
- action('Esporta SVG (bozza)',()=>{const xml=new XMLSerializer().serializeToString(renderSvg(state.elements,'',true));download(xml,'ITE-CAD-bozza.svg','image/svg+xml')});
- action('Esporta JSON',()=>{const data={format:'ITE-CAD-DRAFT',schema:1,title:title.value,elements:state.elements};download(JSON.stringify(data,null,2),'ITE-CAD-bozza.json','application/json')});
+ action('Esporta SVG (bozza)',()=>{const xml=new XMLSerializer().serializeToString(renderSvg(state.elements,'',true,state.scale));download(xml,'ITE-CAD-bozza.svg','image/svg+xml')});
+ action('Esporta JSON',()=>{const data={format:'ITE-CAD-DRAFT',schema:2,title:title.value,scaleCmPerUnit:state.scale,elements:state.elements};download(JSON.stringify(data,null,2),'ITE-CAD-bozza.json','application/json')});
+ action('Esporta distinta CSV (indicativa)',()=>{
+  const summary=materialSchedule(state.elements,state.scale),lines=['Codice;Descrizione;Quantita'];
+  for(const item of summary.items)lines.push([item.code,item.label,String(item.count)].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';'));
+  download('\uFEFF'+lines.join('\r\n'),'ITE-CAD-distinta-bozza.csv','text/csv;charset=utf-8');
+ });
  const upload=el('input');upload.type='file';upload.accept='.json,application/json';const uploadLabel=el('label','Importa disegno JSON in bozza');uploadLabel.append(upload);host.append(uploadLabel);
- upload.addEventListener('change',async()=>{try{const f=upload.files[0];if(!f)return;if(f.size>250000)throw Error('File CAD troppo grande');const data=JSON.parse(await f.text());if(data.format!=='ITE-CAD-DRAFT'||data.schema!==1||!Array.isArray(data.elements)||data.elements.length>MAX)throw Error('Formato CAD non valido');const ids=new Set();for(const e of data.elements){validateElement(e);if(ids.has(e.id))throw Error('Elementi duplicati');ids.add(e.id)}update(copy(data.elements));title.value=safeText(data.title)||title.value;say('Bozza importata: verifica cliente e sede prima di salvare.')}catch(err){say(err.message)}finally{upload.value=''}});
+ upload.addEventListener('change',async()=>{try{const f=upload.files[0];if(!f)return;if(f.size>250000)throw Error('File CAD troppo grande');const data=JSON.parse(await f.text());if(data.format!=='ITE-CAD-DRAFT'||![1,2].includes(data.schema)||!validScale(data.scaleCmPerUnit)||!Array.isArray(data.elements)||data.elements.length>MAX)throw Error('Formato CAD non valido');const ids=new Set();for(const e of data.elements){validateElement(e);if(ids.has(e.id))throw Error('Elementi duplicati');ids.add(e.id)}update(copy(data.elements));state.scale=data.scaleCmPerUnit??null;scaleInput.value=state.scale==null?'':String(state.scale);title.value=safeText(data.title)||title.value;paint();say('Bozza importata: verifica cliente e sede prima di salvare.')}catch(err){say(err.message)}finally{upload.value=''}});
  async function save(archived=false){
   if(state.saving)throw Error('Salvataggio CAD già in corso');state.saving=true;
   try{
   if(!root.ITEVault?.isUnlocked?.())throw Error('Archivio cifrato bloccato');
   const db=database(),old=root.ITECommerce.snapshot().settings.cadDrawings||[],previous=old.find(x=>same(x.id,state.current));
-  const record={id:previous?.id||uid('cad'),title:safeText(title.value),clientId:client.value,propertyId:property.value,siteId:site.value,plantId:plant.value,updated:new Date().toISOString(),archived,revision:(previous?.revision||0)+1,elements:copy(state.elements),history:previous?[...previous.history,{revision:previous.revision,at:previous.updated,elements:copy(previous.elements)}].slice(-30):[]};
+  const record={id:previous?.id||uid('cad'),title:safeText(title.value),clientId:client.value,propertyId:property.value,siteId:site.value,plantId:plant.value,updated:new Date().toISOString(),archived,revision:(previous?.revision||0)+1,scaleCmPerUnit:state.scale,elements:copy(state.elements),history:previous?[...previous.history,{revision:previous.revision,at:previous.updated,scaleCmPerUnit:previous.scaleCmPerUnit??null,elements:copy(previous.elements)}].slice(-30):[]};
   if(!record.title)throw Error('Indica il titolo');validateCollection([record],db);
   if(root.ITEBackup?.busy?.())throw Error('Backup già in corso');
   await root.ITEHistory.create('Prima modifica CAD '+record.title);
@@ -179,12 +219,12 @@ function mount(){
  }
  button(commands,'Salva con backup e revisione',()=>save().catch(e=>say(e.message)));
  button(commands,'Archivia (non elimina)',()=>{if(!state.current)return say('Apri un disegno salvato');if(root.confirm('Archiviare il disegno conservando lo storico?'))save(true).catch(e=>say(e.message))});
- button(commands,'Nuovo',()=>{if(state.dirty&&!root.confirm('Abbandonare le modifiche non salvate?'))return;state.current=null;state.elements=[];state.selected='';state.undo=[];state.redo=[];state.dirty=false;title.value='';list.value='';paint()});
- list.addEventListener('change',()=>{if(!list.value)return;if(state.dirty&&!root.confirm('Abbandonare le modifiche non salvate?'))return;const record=(root.ITECommerce.snapshot().settings.cadDrawings||[]).find(r=>same(r.id,list.value));if(!record)return;state.current=record.id;state.elements=copy(record.elements);state.undo=[];state.redo=[];state.selected='';state.dirty=false;title.value=record.title;client.value=record.clientId;cascade();property.value=record.propertyId;site.value=record.siteId;const db=database();fill(plant,(db.impianti||[]).filter(r=>same(r.immobile_id,property.value)),'— Impianto facoltativo —');plant.value=record.plantId;paint()});
+ button(commands,'Nuovo',()=>{if(state.dirty&&!root.confirm('Abbandonare le modifiche non salvate?'))return;state.current=null;state.elements=[];state.selected='';state.selectedIds=[];state.scale=null;scaleInput.value='';state.undo=[];state.redo=[];state.dirty=false;title.value='';list.value='';paint()});
+ list.addEventListener('change',()=>{if(!list.value)return;if(state.dirty&&!root.confirm('Abbandonare le modifiche non salvate?'))return;const record=(root.ITECommerce.snapshot().settings.cadDrawings||[]).find(r=>same(r.id,list.value));if(!record)return;state.current=record.id;state.elements=copy(record.elements);state.scale=record.scaleCmPerUnit??null;scaleInput.value=state.scale==null?'':String(state.scale);state.undo=[];state.redo=[];state.selected='';state.selectedIds=[];state.dirty=false;title.value=record.title;client.value=record.clientId;cascade();property.value=record.propertyId;site.value=record.siteId;const db=database();fill(plant,(db.impianti||[]).filter(r=>same(r.immobile_id,property.value)),'— Impianto facoltativo —');plant.value=record.plantId;paint()});
  refreshChoices();paint();
  root.addEventListener('beforeunload',event=>{if(state.dirty){event.preventDefault();event.returnValue='';}});
 }
-const api=Object.freeze({KINDS,COLORS,validateElement,validateCollection,make,operate,references,renderSvg,mount});
+const api=Object.freeze({KINDS,COLORS,SYMBOLS,validScale,snapPoint,materialSchedule,validateElement,validateCollection,make,operate,references,renderSvg,mount});
 root.ITECad=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(typeof document!=='undefined')root.addEventListener('ite-vault-ready',mount);
