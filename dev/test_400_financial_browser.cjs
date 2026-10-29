@@ -34,12 +34,14 @@ const server=http.createServer((req,res)=>{try{const name=decodeURIComponent(new
   page.once('dialog',d=>d.accept());
   await page.locator('#ite-financial-form [type="submit"]').click();
   await page.waitForFunction(()=>window.ITECommerce.snapshot().settings.financialSettlements?.length===1,null,{timeout:30000});
+  await page.waitForFunction(()=>document.getElementById('ite-financial-results').textContent.includes('Parzialmente incassata'));
   assert.match(await page.locator('#ite-financial-results').textContent(),/Parzialmente incassata/);
   await page.locator('#ite-financial-offset').click();
   await page.locator('#ite-financial-form [name="amount"]').fill('30.00');
   page.once('dialog',d=>d.accept());
   await page.locator('#ite-financial-form [type="submit"]').click();
   await page.waitForFunction(()=>window.ITECommerce.snapshot().settings.financialSettlements?.length===2,null,{timeout:30000});
+  await page.waitForFunction(()=>document.getElementById('ite-financial-results').textContent.includes('Rimborsata'));
   assert.match(await page.locator('#ite-financial-results').textContent(),/Rimborsata/);
   await page.locator('#ite-financial-filter').selectOption('credito');
   assert.equal(await page.locator('#ite-financial-results [data-fin-pay]').count(),0);
@@ -52,6 +54,7 @@ const server=http.createServer((req,res)=>{try{const name=decodeURIComponent(new
   await page.locator('[data-fin-void]').last().click();
   page.off('dialog',onVoidDialog);
   await page.waitForFunction(()=>window.ITECommerce.snapshot().settings.financialSettlements.some(e=>e.voidedAt),null,{timeout:30000});
+  await page.waitForFunction(()=>document.getElementById('ite-financial-ledger').textContent.includes('STORNATO'));
   assert.match(await page.locator('#ite-financial-ledger').textContent(),/STORNATO/);
   assert.deepEqual(errors,[],'Browser errors: '+errors.join(' | '));
   console.log('OK '+(process.env.ITE_TEST_BROWSER||'chromium')+': synthetic invoice, partial receipt, TD04 compensation, CSV and audited reversal');
