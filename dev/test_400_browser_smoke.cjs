@@ -97,7 +97,8 @@ const server=http.createServer((req,res)=>{
     'Manual lock left the app shell visible on iPad portrait');
   await page.setViewportSize({width:1280,height:800});
   await page.locator('#vault-password').fill('WRONG-SYNTHETIC-PASSWORD');
-  await page.locator('#vault-submit').click();
+  // Il controllo credenziali puo' generare navigazioni di ripristino: attendiamo l'esito visibile, non il navigation event.
+  await page.locator('#vault-submit').click({noWaitAfter:true});
   await page.waitForFunction(()=>/Password errata o archivio danneggiato|Password non valida/.test(document.getElementById('vault-message').textContent),{timeout:30000});
   assert.equal(await page.locator('#app-shell').isVisible(),false,'Wrong password unlocked archive');
   await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
