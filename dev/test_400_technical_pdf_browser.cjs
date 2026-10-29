@@ -48,7 +48,8 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.locator('[data-tech-file]').first().setInputFiles({
   name:'DICO_COMPILATO_TEST.pdf',mimeType:'application/pdf',buffer:edited
  });
- await page.locator('#ite-pdf-import-review').waitFor({state:'visible'});
+ try{await page.locator('#ite-pdf-import-review').waitFor({state:'visible',timeout:12000});}
+ catch(e){throw Error('AcroForm import preview unavailable: '+await page.locator('#tech-status').innerText()+' | page errors: '+errors.join(' | ')+' | '+e.message);}
  assert.match(await page.locator('#ite-pdf-import-review').innerText(),/Lavori sintetici per PDX/);
  const scopeChoice=page.locator('#ite-pdf-import-review label').filter({hasText:'Lavori sintetici per PDX'}).locator('input[type="checkbox"]');
  assert.equal(await scopeChoice.isChecked(),false,'Existing values require explicit overwrite');
