@@ -160,7 +160,7 @@ function mount(){
  function down(e){if(e.button!==0)return;const p=coord(e),target=e.target.closest('[data-cad-id]'),id=target?.getAttribute('data-cad-id')||'';
   if(state.multi){if(id){state.selectedIds=state.selectedIds.includes(id)?state.selectedIds.filter(x=>x!==id):[...state.selectedIds,id];state.selected=id}state.start=null;paintSelection();return}
   state.selectedIds=[];state.selected=id;state.start=p;state.drag=state.tool==='select'&&state.selected?p:null;e.currentTarget.setPointerCapture?.(e.pointerId);paintSelection()}
- function paintSelection(){for(const node of canvas.querySelectorAll('[data-cad-id]'))node.style.opacity=(state.selectedIds.length?state.selectedIds.includes(node.getAttribute('data-cad-id')):node.getAttribute('data-cad-id')===state.selected)?'1':'0.9'}
+ function paintSelection(){for(const node of canvas.querySelectorAll('[data-cad-id]'))node.style.opacity=(state.selectedIds.length?state.selectedIds.includes(node.getAttribute('data-cad-id')):node.getAttribute('data-cad-id')===state.selected)?'1':state.multi?'0.35':'0.9'}
  function move(e){if(!state.start)return;const p=coord(e);status.textContent='Da ('+state.start.x+','+state.start.y+') a ('+p.x+','+p.y+') · '+Math.round(Math.hypot(p.x-state.start.x,p.y-state.start.y))+' unità grafiche'}
  function up(e){if(!state.start)return;const p=coord(e),start=state.start;state.start=null;
   try{if(state.tool==='select'){if(state.drag&&state.selected&&(p.x!==start.x||p.y!==start.y))update(operate(state.elements,'move',state.selected,{dx:p.x-start.x,dy:p.y-start.y}));else paint();state.drag=null;return}
@@ -168,7 +168,7 @@ function mount(){
    const element=make(state.tool,start,state.tool==='symbol'?start:p,text);update(operate(state.elements,'add','',{element}));state.selected=element.id;
   }catch(err){say(err.message)}
  }
- for(const [key,label] of [['select','Seleziona / sposta'],['wall','Muro'],['line','Linea'],['rect','Rettangolo'],['dimension','Quota'],['label','Testo'],['symbol','Simbolo']])button(toolbar,label,()=>{state.tool=key;state.start=null;say('Strumento: '+label)});
+ for(const [key,label] of [['select','Seleziona / sposta'],['wall','Muro'],['line','Linea'],['rect','Rettangolo'],['dimension','Quota'],['label','Testo'],['symbol','Simbolo']])button(toolbar,label,()=>{state.tool=key;state.start=null;state.multi=false;state.selectedIds=[];multiButton.textContent='Selezione multipla: OFF';paint();say('Strumento: '+label)});
  const action=(label,fn)=>button(commands,label,()=>{try{fn()}catch(err){say(err.message)}});
  const multiButton=button(toolbar,'Selezione multipla: OFF',function(){state.multi=!state.multi;state.tool='select';state.selectedIds=[];this.textContent='Selezione multipla: '+(state.multi?'ON':'OFF');paint()});
  button(toolbar,'Aggancio estremi: ON',function(){state.snap=!state.snap;this.textContent='Aggancio estremi: '+(state.snap?'ON':'OFF');paint()});
