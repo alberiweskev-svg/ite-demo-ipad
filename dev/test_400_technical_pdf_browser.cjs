@@ -3,7 +3,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
 const {chromium,webkit}=require('playwright'),root=path.resolve(process.argv[2]||'.');
 const {pathToFileURL}=require('node:url');
 const browserType=process.env.ITE_TEST_BROWSER==='webkit'?webkit:chromium;
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json','.wasm':'application/wasm'};
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json','.wasm':'application/wasm'};
 const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(target!==root&&!target.startsWith(root+path.sep))throw Error('outside root');const file=fs.statSync(target).isDirectory()?path.join(target,'index.html'):target;res.setHeader('Content-Type',mime[path.extname(file)]||'application/octet-stream');fs.createReadStream(file).on('error',()=>{if(!res.headersSent)res.writeHead(404);res.end()}).pipe(res)}catch{res.writeHead(404);res.end('Not found')}});
 (async()=>{await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const browser=await browserType.launch({headless:true});try{
  const page=await browser.newPage({acceptDownloads:true}),errors=[];page.on('pageerror',e=>errors.push(e.message));
