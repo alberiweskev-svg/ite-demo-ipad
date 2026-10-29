@@ -58,6 +58,13 @@ assert(maintenancePattern.test(html),'Cannot find maintenance planner script tag
 html=html.replace(maintenancePattern,'<script src="./ite-maintenance-planner.js?v=4.0.0" integrity="'+maintenanceHash+'" crossorigin="anonymous"></script>');
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
 else assert.equal(fs.readFileSync('index.html','utf8'),html,'Maintenance planner SRI is outdated; run node dev/sync_sri.cjs --write');
+const financialHash=digest('ite-financial-desk.js');
+const financialPattern=/<script src="\.\/ite-financial-desk\.js\?v=4\.0\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\/script>/;
+assert(financialPattern.test(html),'Cannot find financial desk script tag');
+html=html.replace(financialPattern,'<script src="./ite-financial-desk.js?v=4.0.0" integrity="'+financialHash+'" crossorigin="anonymous"></script>');
+if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
+else assert.equal(fs.readFileSync('index.html','utf8'),html,'Financial desk SRI is outdated; run node dev/sync_sri.cjs --write');
+console.log('FINANCIAL_DESK_SRI='+financialHash);
 console.log('MAINTENANCE_PLANNER_SRI='+maintenanceHash);
 console.log('ACROFORM_SRI='+acroHash);
 console.log('STRUCTURED_DOCS_SRI='+structuredHash);
