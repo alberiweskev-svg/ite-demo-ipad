@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-29",
-  "notes": "Anteprima I.T.E. 4.0 in sviluppo isolato: pratiche tecniche guidate Di.Co./Di.Ri./GAS e POS (12 sezioni). Non è una release operativa né un modello ufficiale. La versione 3.0.74 su main non è modificata."
+  "notes": "Anteprima I.T.E. 4.0 isolata: Di.Co./Di.Ri./GAS, POS 12 sezioni con 5 registri operativi multi-riga e collegamento anagrafiche. PDF soltanto bozze non firmate. Non e una release operativa ne un modello ufficiale. La 3.0.74 su main resta invariata."
 }
