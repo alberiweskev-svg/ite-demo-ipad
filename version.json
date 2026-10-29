@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-29",
-  "notes": "Anteprima I.T.E. 4.0 isolata: fascicoli A4 preparatori con matrice interna verifiche, distinta materiali CAD e registro CSV per cliente (escaping anti-formula), allegati e revisioni. CAD, POS, preventivi, archivio e backup cifrati integrati. Nessuna attestazione automatica; modelli ufficiali, firme, parità Windows 2.7.5 e Safari iPad fisico non completati. Main 3.0.74 invariato."
+  "notes": "Anteprima I.T.E. 4.0 isolata: fascicolo tecnico A4, registro verifiche e piano completamento, con pacchetto ZIP locale degli originali tecnici collegati, verificati SHA-256 e manifest. ZIP NON cifrato, nessuna pubblicazione di PDF clienti, nessuna attestazione automatica. CAD, POS, preventivi, archivio e backup cifrati integrati. Modelli ufficiali, firme, parità Windows 2.7.5 e Safari iPad fisico non completati. Main 3.0.74 invariato."
 }
