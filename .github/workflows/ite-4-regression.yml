@@ -58,6 +58,8 @@ jobs:
           node dev/test_400_cad.cjs
           node dev/test_400_cad_advanced.cjs
           node dev/test_400_cad_catalog.cjs
+          node --check ite-cad-workflow.js
+          node dev/test_400_cad_workflow.cjs
       - name: Test technical dossier, filters and revision comparisons
         run: node dev/test_400_technical_dossier.cjs
       - name: Test technical PDF bytes, privacy, pagination and client isolation
@@ -119,6 +121,7 @@ jobs:
           test -s "$RUNNER_TEMP/ite-4-preview/technical-pdf.js"
           test -s "$RUNNER_TEMP/ite-4-preview/pos-operativo.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-cad.js"
+          test -s "$RUNNER_TEMP/ite-4-preview/ite-cad-workflow.js"
           test -s "$RUNNER_TEMP/ite-4-preview/vault.js"
           test -s "$RUNNER_TEMP/ite-4-preview/version.json"
           test -s "$RUNNER_TEMP/ite-4-preview/AVVIA_ANTEPRIMA_WINDOWS.bat"
@@ -142,6 +145,12 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_cad_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Chromium CAD to worksite quote with synthetic data
+        run: node dev/test_400_cad_workflow_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit CAD to worksite quote with synthetic data
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_cad_workflow_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Chromium integrated technical draft browser flow with synthetic data
         run: node dev/test_400_technical_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit integrated technical draft save, backup, revision and print
