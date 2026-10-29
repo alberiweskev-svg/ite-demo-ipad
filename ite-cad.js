@@ -170,9 +170,9 @@ function mount(){
  }
  for(const [key,label] of [['select','Seleziona / sposta'],['wall','Muro'],['line','Linea'],['rect','Rettangolo'],['dimension','Quota'],['label','Testo'],['symbol','Simbolo']])button(toolbar,label,()=>{state.tool=key;state.start=null;say('Strumento: '+label)});
  const action=(label,fn)=>button(commands,label,()=>{try{fn()}catch(err){say(err.message)}});
- button(toolbar,'Selezione multipla: OFF',function(){state.multi=!state.multi;state.tool='select';state.selectedIds=[];this.textContent='Selezione multipla: '+(state.multi?'ON':'OFF');paint()});
+ const multiButton=button(toolbar,'Selezione multipla: OFF',function(){state.multi=!state.multi;state.tool='select';state.selectedIds=[];this.textContent='Selezione multipla: '+(state.multi?'ON':'OFF');paint()});
  button(toolbar,'Aggancio estremi: ON',function(){state.snap=!state.snap;this.textContent='Aggancio estremi: '+(state.snap?'ON':'OFF');paint()});
- action('Raggruppa selezionati',()=>{const next=operate(state.elements,'group','',{ids:state.selectedIds});update(next);state.selectedIds=[];state.multi=false;paint()});
+ action('Raggruppa selezionati',()=>{const next=operate(state.elements,'group','',{ids:state.selectedIds});update(next);state.selectedIds=[];state.multi=false;multiButton.textContent='Selezione multipla: OFF';paint()});
  action('Separa gruppo',()=>update(operate(state.elements,'ungroup',state.selected)));
  action('Calibra segmento (cm)',()=>{
   const selected=state.elements.find(e=>e.id===state.selected);
