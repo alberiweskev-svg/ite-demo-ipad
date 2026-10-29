@@ -408,7 +408,7 @@ function install(){
  };
  refresh();new MutationObserver(refresh).observe(panel,{childList:true,subtree:true});
  panel.addEventListener('click',async event=>{
-  const button=event.target.closest('[data-tech-structured],#tech-dossier-structured,#tech-dossier-checklist,#tech-dossier-plan,#tech-dossier-plan-csv');if(!button||!panel.contains(button))return;
+  const button=event.target.closest('[data-tech-structured],#tech-dossier-structured,#tech-dossier-checklist,#tech-dossier-plan,#tech-dossier-plan-csv,#tech-dossier-originals');if(!button||!panel.contains(button))return;
   const status=panel.querySelector('#tech-status');
   try{
    if(!root.ITEVault?.isUnlocked?.()||root.ITECommerce?.busy?.())throw Error('Archivio non sbloccato o salvataggio in corso.');
