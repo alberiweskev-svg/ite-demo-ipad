@@ -10,6 +10,7 @@ Questa milestone rende più operativa la compilazione delle **12 sezioni POS gi�
 
 - Cinque registri guidati, accessibili dall'editor della stessa pratica POS: personale/mansioni/formazione da verificare; attrezzature/uso/controlli; fasi/rischi/misure; mansioni/DPI/protezioni collettive; scenari/procedure di emergenza/referenti.
 - Inserimento, modifica e rimozione di più righe per registro, con controlli di campi minimi, duplicati, caratteri non ammessi, lunghezza massima e massimo 15 righe per registro.
+- Per il personale, selezione facoltativa di dipendenti/tecnici/collaboratori già presenti nell'anagrafica: propone nominativo e mansione, lascia vuota la formazione, e richiede conferma esplicita per aggiungere la riga.
 - Conservazione del testo manuale già presente: nessuna migrazione distruttiva e nessuna sostituzione automatica. I dati delle righe guidate sono leggibili anche nelle normali aree di testo POS.
 - I registri usano **esclusivamente i campi strutturati POS esistenti** (personale, attrezzature, rischi, dpi, emergenze): pertanto passano nel salvataggio con backup preventivo, revisioni, audit, esportazione del fascicolo e PDF di bozza già presenti. Nessun database parallelo o dato salvato fuori dall'archivio cifrato.
 - Verifica incrociata **indicativa** di presenza personale/rischi/DPI/emergenze. Non è una valutazione dei rischi e non attesta l'efficacia delle misure.
