@@ -61,14 +61,14 @@ const server=http.createServer((req,res)=>{try{
   const planDownload=page.waitForEvent('download');
   await page.locator('#tech-dossier-plan').click();
   const plan=await planDownload,planHtml=fs.readFileSync(await plan.path(),'utf8');
-  assert.match(plan.suggestedFilename(),/^ITE_PIANO_COMPLETAMENTO_BOZZA_.*\\.html$/);
+  assert.match(plan.suggestedFilename(),/^ITE_PIANO_COMPLETAMENTO_BOZZA_.*\.html$/);
   assert.match(planHtml,/Piano di completamento del fascicolo tecnico/);
   assert.match(planHtml,/STRUCT-TEST-001/);
   assert.match(planHtml,/BOZZA OPERATIVA NON VALIDA/);
   const planCsvDownload=page.waitForEvent('download');
   await page.locator('#tech-dossier-plan-csv').click();
   const planCsvFile=await planCsvDownload,planCsv=fs.readFileSync(await planCsvFile.path(),'utf8');
-  assert.match(planCsvFile.suggestedFilename(),/^ITE_PIANO_ATTIVITA_BOZZA_.*\\.csv$/);
+  assert.match(planCsvFile.suggestedFilename(),/^ITE_PIANO_ATTIVITA_BOZZA_.*\.csv$/);
   assert.match(planCsv,/\"Priorità\";\"Pratica\";\"Tipo\"/);
   assert.match(planCsv,/STRUCT-TEST-001/);
   assert.match(await page.locator('#tech-status').innerText(),/attività/);
