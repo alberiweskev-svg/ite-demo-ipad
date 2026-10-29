@@ -178,6 +178,7 @@ async function readEditedPdf(file){
  const data=new Uint8Array(await file.arrayBuffer());
  if(String.fromCharCode(...data.slice(0,5))!=='%PDF-')throw Error('Il file non è un PDF.');
  const pdfjs=await import('./vendor/pdf.mjs');
+ pdfjs.GlobalWorkerOptions.workerSrc='./vendor/pdf.worker.mjs';
  const task=pdfjs.getDocument({data,disableFontFace:true,isEvalSupported:false,stopAtErrors:true});
  try{
   const doc=await task.promise;
