@@ -6,7 +6,7 @@ const s=app.slice(start,end);
 function declaration(prefix){const i=s.indexOf(prefix);assert(i>=0,prefix);const j=s.indexOf(';\n',i);return s.slice(i,j+1)}
 function extract(name){const i=s.indexOf('function '+name+'(');assert(i>=0,name);const b=s.indexOf('{',i);let n=0,q='',esc=false;for(let p=b;p<s.length;p++){const c=s[p];if(q){if(esc){esc=false;continue}if(c==='\\'){esc=true;continue}if(c===q)q='';continue}if(c==="'"||c==='"'||c===String.fromCharCode(96)){q=c;continue}if(c==='{')n++;else if(c==='}'&&!--n)return s.slice(i,p+1)}throw Error('Unclosed '+name)}
 const context={Date,Array,Set,Map,String,Number,Error,Object};vm.createContext(context);
-vm.runInContext([declaration('const CHECKLIST='),declaration('const FIELD_NAMES='),declaration('const CHECK_STATES='),declaration('const STRUCTURED_GROUPS='),declaration('const $='),declaration('const isTechnical='),declaration('const validDate='),declaration('const record='),extract('contextForIntervention'),extract('compatibleInterventions'),extract('suggestions'),extract('validateDrafts'),extract('structuredMissing'),extract('missing'),'this.validateDrafts=validateDrafts;this.missing=missing;this.structuredGroups=STRUCTURED_GROUPS;'].join('\n'),context);
+vm.runInContext([declaration('const CHECKLIST='),declaration('const FIELD_NAMES='),declaration('const CHECK_STATES='),declaration('const STRUCTURED_GROUPS='),declaration('const $='),declaration('const isTechnical='),declaration('const validDate='),declaration('const record='),extract('contextForIntervention'),extract('compatibleInterventions'),extract('suggestions'),extract('originalCandidates'),extract('originalSuggestions'),extract('validateDrafts'),extract('structuredMissing'),extract('missing'),'this.validateDrafts=validateDrafts;this.missing=missing;this.structuredGroups=STRUCTURED_GROUPS;this.originalSuggestions=originalSuggestions;'].join('\n'),context);
 const base={clienti:[{id:1,name:'Cliente TEST'},{id:2,name:'Altro TEST'}],immobili:[{id:3,client_id:'1'},{id:4,client_id:'2'}],impianti:[{id:5,immobile_id:'3'}],apparecchiature:[{id:6,impianto_id:'5'}],cantieri:[{id:7,client_id:'1',immobile_id:'3'}]};
 const doc={id:'doc_TEST',type:'Di.Co. elettrica',clientId:'1',propertyId:'3',siteId:'7'};
 const row={id:'td_00000000-0000-4000-8000-000000000001',type:'Di.Co. elettrica',status:'Bozza',revision:1,history:[],clientId:'1',propertyId:'3',plantId:'5',deviceId:'6',siteId:'7',date:'2026-10-28',fields:{scope:'TEST',materials:'TEST',checks:''},linkedDocIds:['doc_TEST']};
@@ -96,5 +96,19 @@ assert.equal(context.compatibleInterventions(base,{clientId:'1',propertyId:'3'})
 assert.match(s,/data-tech-intervention/);
 assert.match(s,/data-tech-autofill|id="tech-autofill"/);
 assert.match(s,/interventi:'interventionId'/);
+
+
+const originalText={id:'doc_TEST',type:'Di.Co. elettrica',sourceName:'originale_fittizio.txt',number:'DICO-TEST-44',text:'Committente: Mario Fittizio\nUbicazione impianto: Via Prova 20\nImpresa esecutrice: Impresa TEST\nDescrizione lavori: Circuito sintetico\nProve e verifiche: SUPERATE'};
+const proposed=context.originalSuggestions([originalText],'Di.Co. elettrica');
+assert(proposed.suggestions.some(x=>x.target==='detail:committente'&&x.value==='Mario Fittizio'));
+assert(proposed.suggestions.some(x=>x.target==='field:scope'&&x.value==='Circuito sintetico'));
+assert(!proposed.suggestions.some(x=>/check|prov|firma|verific/i.test(x.target)),'No automatic certification');
+assert(context.originalSuggestions([originalText,{...originalText,id:'doc_TEST_2',text:'Committente: Altro Fittizio'}],'Di.Co. elettrica').conflicts.includes('detail:committente'));
+assert.equal(context.originalSuggestions([{...originalText,type:'POS'}],'Di.Co. elettrica').suggestions.length,0);
+const withSource={...row,structured:{committente:'Mario Fittizio'},originalPrefill:{'detail:committente':{documentId:'doc_TEST',value:'Mario Fittizio'}}};
+assert.equal(context.validateDrafts({settings:{technicalDrafts:[withSource]},documents:[doc]},base),true);
+for(const change of [{originalPrefill:{'detail:committente':{documentId:'doc_MISSING',value:'Mario Fittizio'}}},{structured:{committente:'Modificato'}},{linkedDocIds:[]},{originalPrefill:{'detail:pdrVerificato':{documentId:'doc_TEST',value:'Mario Fittizio'}}}])
+ assert.throws(()=>context.validateDrafts({settings:{technicalDrafts:[{...withSource,...change}]},documents:[doc]},base));
+assert.match(app,/async function technicalOriginalHints/);
 
 console.log('OK: technical drafts, 8 structured types, POS 12 sections, legacy compatibility, checklist, originals, revisions, validation and non-official print');

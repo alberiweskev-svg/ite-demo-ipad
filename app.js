@@ -1506,7 +1506,22 @@ $('import-queue').addEventListener('change',e=>{readQueue();if(e.target.dataset.
 build();
 const ready=(async()=>{try{await refresh();for(const [k,v] of Object.entries(state.settings))if($('import-settings').elements[k])$('import-settings').elements[k].value=v;render()}catch(e){unavailable=e.message;say('Archivio magazzino non disponibile: '+e.message);throw e}})();ready.catch(()=>{});
 window.addEventListener('beforeunload',event=>{if(processing||locked||queue.length||!$('warehouse-editor').hidden){event.preventDefault();event.returnValue=''}});
-window.ITECommerce={documentLayoutKey,folderLevels,processFor,selectProcess,processes,nonFinancial,windowsHeaderMap,windowsDetectHeader,windowsPrice,windowsClassify,catalogKey,prepareWindowsCatalog,workbookDocs,excelCell,analyzeMatrix,codeKey,busy:()=>processing||locked||queue.length>0,ready,exportState,replaceState,validate,mutate,choose,applyQueue,tableDocs,xmlDocs,textDocs,csv,num,date,balance,stockDocument,articleEdit,stockEdit,openOriginal,editDocument,summaryForSite,technicalSnapshot:()=>({settings:{technicalDrafts:copy(state.settings.technicalDrafts||[])},documents:state.documents.filter(nonFinancial).map(d=>({id:d.id,type:d.type,clientId:d.clientId,subjectId:d.subjectId,propertyId:d.propertyId,siteId:d.siteId,number:d.number,sourceName:d.sourceName,date:d.date}))}),snapshot:()=>copy(state),queue:()=>queue,render};
+
+ async function technicalOriginalHints(ids){
+  await ready;
+  if(!Array.isArray(ids)||!ids.length||ids.length>10||new Set(ids).size!==ids.length||ids.some(x=>typeof x!=='string'))throw Error('Seleziona da uno a dieci originali distinti.');
+  await refresh();
+  const out=[];
+  for(const id of ids){
+   const d=state.documents.find(x=>x.id===id),f=d&&state.files.find(x=>x.id===d.fileId);
+   if(!d||!nonFinancial(d)||!f||!f.base64||f.id!=='file_'+f.hash||!/^[a-f0-9]{64}$/.test(f.hash))throw Error('Originale tecnico mancante o identificativo non valido.');
+   const bytes=decode(f.base64);
+   if(bytes.length!==f.size||await hash(bytes)!==f.hash)throw Error('Integrità SHA-256 dell’originale non verificata: proposta bloccata.');
+   out.push({id:d.id,type:d.type,number:String(d.number||''),sourceName:String(d.sourceName||''),text:String(d.text||'').slice(0,60000)});
+  }
+  return out;
+ }
+window.ITECommerce={technicalOriginalHints,documentLayoutKey,folderLevels,processFor,selectProcess,processes,nonFinancial,windowsHeaderMap,windowsDetectHeader,windowsPrice,windowsClassify,catalogKey,prepareWindowsCatalog,workbookDocs,excelCell,analyzeMatrix,codeKey,busy:()=>processing||locked||queue.length>0,ready,exportState,replaceState,validate,mutate,choose,applyQueue,tableDocs,xmlDocs,textDocs,csv,num,date,balance,stockDocument,articleEdit,stockEdit,openOriginal,editDocument,summaryForSite,technicalSnapshot:()=>({settings:{technicalDrafts:copy(state.settings.technicalDrafts||[])},documents:state.documents.filter(nonFinancial).map(d=>({id:d.id,type:d.type,clientId:d.clientId,subjectId:d.subjectId,propertyId:d.propertyId,siteId:d.siteId,number:d.number,sourceName:d.sourceName,date:d.date}))}),snapshot:()=>copy(state),queue:()=>queue,render};
 })();
 
 
@@ -1621,11 +1636,59 @@ function validateDrafts(data,base){
   }
   if(!Array.isArray(r.linkedDocIds)||r.linkedDocIds.length>30||new Set(r.linkedDocIds).size!==r.linkedDocIds.length)throw Error('Originali duplicati o non validi');
   for(const id of r.linkedDocIds){const d=docs.get(id);if(!d||!isTechnical(d)||!same(d.clientId||d.subjectId,r.clientId)||d.siteId&&!same(d.siteId,r.siteId)||d.propertyId&&!same(d.propertyId,r.propertyId))throw Error('Originale tecnico non coerente con la pratica');}
+
+  if(r.originalPrefill!==undefined){
+   if(!r.originalPrefill||typeof r.originalPrefill!=='object'||Array.isArray(r.originalPrefill)||Object.keys(r.originalPrefill).length>40)throw Error('Provenienza originale non valida');
+   const allowed=new Set(STRUCTURED_GROUPS[r.type].flatMap(g=>g.fields.map(f=>'detail:'+f[0])));
+   for(const [target,source] of Object.entries(r.originalPrefill)){
+    if(!source||typeof source.documentId!=='string'||typeof source.value!=='string'||!source.value||source.value.length>2000||!r.linkedDocIds.includes(source.documentId)||!docs.has(source.documentId))throw Error('Fonte originale non collegata');
+    if(target.startsWith('detail:')){if(!allowed.has(target)||r.structured?.[target.slice(7)]!==source.value)throw Error('Provenienza campo guidato incoerente');}
+    else if(target.startsWith('field:')){if(!FIELD_NAMES.includes(target.slice(6))||r.fields[target.slice(6)]!==source.value)throw Error('Provenienza campo pratica incoerente');}
+    else throw Error('Provenienza campo sconosciuto');
+   }
+  }
   for(const value of Object.values(r.checklistEvidence||{}))if(value.documentId!==undefined&&value.documentId!==''){
    if(typeof value.documentId!=='string'||!r.linkedDocIds.includes(value.documentId)||value.status==='Da verificare')throw Error('Fonte checklist non collegata o non verificata');
   }
  }
  return true;
+}
+
+/* Proposte conservative dal testo locale: nessuna firma o prova presunta. */
+function originalCandidates(doc,type){
+ if(!doc||doc.type!==type)return [];
+ const lines=String(doc.text||'').slice(0,60000).split(/\r?\n/).slice(0,1500);
+ const rules=[
+ ['detail:committente',/^\s*(?:committente|proprietario)\s*[:：–-]\s*(.+)\s*$/i],
+ ['detail:indirizzoImpianto',/^\s*(?:ubicazione impianto|indirizzo impianto)\s*[:：–-]\s*(.+)\s*$/i],
+ ['detail:indirizzoUtenza',/^\s*indirizzo utenza\s*[:：–-]\s*(.+)\s*$/i],
+ ['detail:impresaEsecutrice',/^\s*(?:impresa esecutrice|ditta installatrice)\s*[:：–-]\s*(.+)\s*$/i],
+ ['detail:professionista',/^\s*professionista incaricato\s*[:：–-]\s*(.+)\s*$/i],
+ ['detail:cantiere',/^\s*(?:cantiere|indirizzo cantiere)\s*[:：–-]\s*(.+)\s*$/i],
+ ['detail:impresa',/^\s*impresa esecutrice\s*[:：–-]\s*(.+)\s*$/i],
+ ['field:scope',/^\s*(?:descrizione lavori|oggetto intervento)\s*[:：–-]\s*(.+)\s*$/i],
+ ['field:materials',/^\s*(?:materiali impiegati|elenco materiali)\s*[:：–-]\s*(.+)\s*$/i],
+ ['field:pdr',/^\s*PDR\s*[:：–-]\s*([A-Z0-9 -]+)\s*$/i]
+ ];
+ const allowed=new Set(STRUCTURED_GROUPS[type].flatMap(g=>g.fields.map(f=>'detail:'+f[0])));
+ const found=[];
+ for(const [target,re] of rules){
+  if(target.startsWith('detail:')&&!allowed.has(target)||target==='field:pdr'&&!type.startsWith('Allegato gas'))continue;
+  const values=[...new Set(lines.map(line=>line.match(re)?.[1]?.trim()).filter(v=>v&&v.length<=180&&!/[<>]/.test(v)))];
+  if(values.length===1)found.push({target,value:values[0],documentId:doc.id,sourceName:doc.sourceName||doc.id});
+ }
+ if(String(doc.number||'').trim()&&String(doc.number).length<=180)found.push({target:'field:reference',value:String(doc.number).trim(),documentId:doc.id,sourceName:doc.sourceName||doc.id});
+ return found;
+}
+function originalSuggestions(docs,type){
+ const grouped=new Map();
+ for(const doc of docs)for(const candidate of originalCandidates(doc,type)){
+  if(!grouped.has(candidate.target))grouped.set(candidate.target,[]);
+  grouped.get(candidate.target).push(candidate);
+ }
+ const suggestions=[],conflicts=[];
+ for(const [target,values] of grouped){if(values.length===1)suggestions.push(values[0]);else conflicts.push(target);}
+ return {suggestions,conflicts};
 }
 function missing(r){
  const out=[];if(!r.clientId)out.push('Cliente');if(!r.propertyId&&r.type!=='POS')out.push('Sede');if(!r.plantId&&r.type!=='POS')out.push('Impianto');if(r.type==='POS'&&!r.siteId)out.push('Cantiere');if(r.type.startsWith('Allegato gas')&&!r.fields.pdr)out.push('PDR');
@@ -1764,7 +1827,7 @@ new MutationObserver(()=>siteButton()).observe($('worksite-detail'),{childList:t
 new MutationObserver(()=>interventionButton()).observe($('appointment-detail'),{childList:true});
 window.addEventListener('ite-pagechange',()=>{if(ITERouter.current()==='importazioni')render();if(ITERouter.current()==='scheda-cantiere')siteButton();if(ITERouter.current()==='scheda-intervento')interventionButton()});
 const previousRemove=ITE.remove;ITE.remove=(k,id)=>{const keys={clienti:'clientId',immobili:'propertyId',impianti:'plantId',apparecchiature:'deviceId',cantieri:'siteId',interventi:'interventionId'};if(keys[k]&&all().some(r=>same(r[keys[k]],id)))return alert('Scheda collegata a pratiche tecniche: cancellazione bloccata.');return previousRemove(k,id)};
-window.ITETechnicalDrafts={validate:validateDrafts,missing,structuredGroups:STRUCTURED_GROUPS,openFor,render,contextForIntervention,suggestions};try{validateDrafts(commerce(),core());render()}catch(e){say('Archivio pratiche non valido: '+e.message+'. Conserva il backup; modifiche bloccate.');$('tech-new').disabled=true;$('tech-refresh').disabled=true;}
+window.ITETechnicalDrafts={originalCandidates,originalSuggestions,validate:validateDrafts,missing,structuredGroups:STRUCTURED_GROUPS,openFor,render,contextForIntervention,suggestions};try{validateDrafts(commerce(),core());render()}catch(e){say('Archivio pratiche non valido: '+e.message+'. Conserva il backup; modifiche bloccate.');$('tech-new').disabled=true;$('tech-refresh').disabled=true;}
 })();
 /* ITE_TECHNICAL_DRAFTS_END */
 
