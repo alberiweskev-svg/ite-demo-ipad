@@ -65,6 +65,13 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.getByRole('button',{name:'Esporta distinta CSV (indicativa)'}).click();
  const csvFile=await csvDownload;assert.match(csvFile.suggestedFilename(),/ITE-CAD-distinta-bozza.csv/);
  assert.match(fs.readFileSync(await csvFile.path(),'utf8'),/Presa elettrica/);
+ const jsonDownload=page.waitForEvent('download');
+ await page.getByRole('button',{name:'Esporta JSON'}).click();
+ const jsonFile=await jsonDownload;
+ const json=JSON.parse(fs.readFileSync(await jsonFile.path(),'utf8'));
+ assert.equal(json.schema,2);
+ assert.equal(json.scaleCmPerUnit,2);
+ assert(json.elements.some(e=>e.kind==='symbol'&&e.text==='presa'));
  assert.equal(errors.length,0,'JavaScript errors: '+errors.join('; '));
  console.log('OK: '+(process.env.ITE_TEST_BROWSER||'chromium')+' CAD save, backup, revision, undo/redo, SVG, references');
 }finally{await browser.close();server.close()}})().catch(e=>{console.error(e);server.close();process.exitCode=1});
