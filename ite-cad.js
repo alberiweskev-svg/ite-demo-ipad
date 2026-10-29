@@ -12,10 +12,10 @@ const clamp=(v,max)=>Math.max(0,Math.min(max,Math.round(Number(v)/GRID)*GRID));
 const safeText=s=>String(s??'').trim().slice(0,120);
 const finite=(n,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=max;
 function validateElement(e){
- if(!e||typeof e!=='object'||!/^e_[a-zA-Z0-9-]{8,70}$/.test(e.id)||!KINDS.includes(e.kind)||!finite(e.x,W)||!finite(e.y,H)||!finite(e.x2,W)||!finite(e.y2,H)||!COLORS.includes(e.color)||typeof e.text!=='string'||e.text.length>120||!Number.isInteger(e.rotation)||e.rotation<0||e.rotation>270||e.rotation%90||(e.groupId!==undefined&&!/^g_[a-zA-Z0-9-]{8,70}$/.test(e.groupId))||(e.kind==='symbol'&&!Object.prototype.hasOwnProperty.call(SYMBOLS,e.text)))throw Error('Elemento CAD non valido');
+ if(!e||typeof e!=='object'||!/^e_[a-zA-Z0-9-]{8,70}$/.test(e.id)||!KINDS.includes(e.kind)||!finite(e.x,W)||!finite(e.y,H)||!finite(e.x2,W)||!finite(e.y2,H)||!COLORS.includes(e.color)||typeof e.text!=='string'||e.text.length>120||!Number.isInteger(e.rotation)||e.rotation<0||e.rotation>270||e.rotation%90||(e.groupId!==undefined&&!/^g_[a-zA-Z0-9-]{8,70}$/.test(e.groupId))||(e.kind==='symbol'&&!Object.prototype.hasOwnProperty.call(SYMBOLS,e.text))||(e.articleId!==undefined&&(e.kind!=='symbol'||typeof e.articleId!=='string'||!/^art_[a-zA-Z0-9-]{8,70}$/.test(e.articleId))))throw Error('Elemento CAD non valido');
  return true;
 }
-function validateCollection(rows,db){
+function validateCollection(rows,db,articles){
  if(rows===undefined)return true;
  if(!Array.isArray(rows)||rows.length>300)throw Error('Archivio disegni CAD non valido');
  const ids=new Set();
@@ -25,7 +25,7 @@ function validateCollection(rows,db){
   const client=(db?.clienti||[]).find(x=>same(x.id,r.clientId)),property=(db?.immobili||[]).find(x=>same(x.id,r.propertyId)),site=(db?.cantieri||[]).find(x=>same(x.id,r.siteId)),plant=(db?.impianti||[]).find(x=>same(x.id,r.plantId));
   if(!client||r.propertyId&&(!property||!same(property.client_id,client.id))||r.siteId&&(!site||!same(site.client_id,client.id))||r.plantId&&(!plant||!property||!same(plant.immobile_id,property.id))||site?.immobile_id&&property&&!same(site.immobile_id,property.id))throw Error('Collegamenti CAD incoerenti');
   const eids=new Set();
-  for(const e of r.elements){validateElement(e);if(eids.has(e.id))throw Error('Elemento CAD duplicato');eids.add(e.id)}
+  for(const e of r.elements){validateElement(e);if(eids.has(e.id))throw Error('Elemento CAD duplicato');eids.add(e.id);if(e.articleId&&articles&&!articles.some(a=>same(a.id,e.articleId)&&a.kind==='Materiale'))throw Error('Materiale CAD non presente nel catalogo')}
   for(const h of r.history){if(!h||!Number.isSafeInteger(h.revision)||h.revision<1||typeof h.at!=='string'||!Number.isFinite(Date.parse(h.at))||!Array.isArray(h.elements)||h.elements.length>MAX||!validScale(h.scaleCmPerUnit))throw Error('Revisione CAD non valida');const seen=new Set();for(const e of h.elements){validateElement(e);if(seen.has(e.id))throw Error('Revisione CAD duplicata');seen.add(e.id)}}
  }
  return true;
@@ -50,7 +50,8 @@ function operate(elements,action,id,payload={}){
  else{
   if(i<0)throw Error('Seleziona un elemento CAD');
   const members=rows[i].groupId?rows.filter(e=>e.groupId===rows[i].groupId):[rows[i]];
-  if(action==='delete')rows.splice(i,1);
+  if(action==='linkArticle'){if(rows[i].kind!=='symbol')throw Error('Seleziona un simbolo impiantistico');const articleId=String(payload.articleId||'');if(articleId&&!/^art_[a-zA-Z0-9-]{8,70}$/.test(articleId))throw Error('Codice articolo CAD non valido');if(articleId)rows[i].articleId=articleId;else delete rows[i].articleId}
+  else if(action==='delete')rows.splice(i,1);
   else if(action==='duplicate'){
    if(rows.length+members.length>MAX)throw Error('Limite 200 elementi');
    const groupId=members.length>1?uid('g'):undefined;
@@ -84,6 +85,34 @@ function materialSchedule(elements,scale=null){
  return {items:[...counts].sort((a,b)=>a[0].localeCompare(b[0])).map(([code,count])=>({code,label:SYMBOLS[code],count})),
   wallMeters:meters(wallUnits),lineMeters:meters(lineUnits),calibrated:scale!=null};
 }
+
+/* Distinta collegata al catalogo: sola lettura, non scarica la giacenza e non crea preventivi. */
+function catalogSchedule(elements,scale,articles=[],movements=[]){
+ const geometry=materialSchedule(elements,scale);
+ if(!Array.isArray(articles)||!Array.isArray(movements))throw Error('Catalogo CAD non valido');
+ const ids=new Set();for(const a of articles){if(!a||typeof a.id!=='string'||ids.has(a.id))throw Error('Catalogo CAD non valido');ids.add(a.id)}
+ const groups=new Map();
+ for(const e of elements){if(e.kind!=='symbol')continue;
+  const key=e.text+'|'+(e.articleId||'');
+  if(!groups.has(key))groups.set(key,{symbol:e.text,articleId:e.articleId||'',count:0});
+  groups.get(key).count++;
+ }
+ const items=[...groups.values()].sort((a,b)=>(a.symbol+'|'+a.articleId).localeCompare(b.symbol+'|'+b.articleId)).map(row=>{
+  const article=articles.find(a=>a.id===row.articleId&&a.kind==='Materiale');
+  const unit=String(article?.unit||'').trim();
+  const compatible=/^(pz|pza|pezzo|pezzi)$/i.test(unit);
+  const price=typeof article?.price==='number'&&Number.isFinite(article.price)&&article.price>=0?article.price:null;
+  const related=movements.filter(m=>m.articleId===row.articleId);
+  let stock=0;
+  for(const m of related){const q=typeof m.quantity==='number'?m.quantity:typeof m.quantity==='string'&&m.quantity.trim()?Number(m.quantity):NaN;if(!Number.isFinite(q)){stock=null;break}stock+=q}
+  const valid=!!article&&compatible;
+  const warning=!article?'Articolo non associato o non più presente':!compatible?'Unità non compatibile con il conteggio pezzi':stock===null?'Giacenza non verificabile':price===null?'Prezzo archivio mancante':'';
+  return {...row,label:SYMBOLS[row.symbol],articleCode:String(article?.code||''),description:String(article?.description||''),unit,price:valid?price:null,priceRole:String(article?.priceRole||'non specificato'),stock:valid?stock:null,shortage:valid&&stock!==null?Math.max(0,row.count-stock):null,estimated:valid&&price!==null?Math.round(row.count*price*100)/100:null,warning};
+ });
+ const allPriced=items.length>0&&items.every(x=>x.estimated!==null);
+ return {items,wallMeters:geometry.wallMeters,lineMeters:geometry.lineMeters,calibrated:geometry.calibrated,allPriced,archiveTotal:allPriced?Math.round(items.reduce((n,x)=>n+x.estimated,0)*100)/100:null};
+}
+
 function references(rows,kind,id){
  const fields={clienti:'clientId',immobili:'propertyId',cantieri:'siteId',impianti:'plantId'};
  return (rows||[]).some(r=>fields[kind]&&same(r[fields[kind]],id));
@@ -130,6 +159,7 @@ function mount(){
  const options=el('div');options.className='actions';host.append(options);
  const scaleLabel=el('label','Scala di lavoro (cm per unità grafica)'),scaleInput=el('input');scaleInput.type='number';scaleInput.min='0.01';scaleInput.max='100';scaleInput.step='0.01';scaleInput.placeholder='Non calibrata';scaleLabel.append(scaleInput);options.append(scaleLabel);
  const symbolLabel=el('label','Simbolo impiantistico'),symbolSelect=el('select');for(const [code,label] of Object.entries(SYMBOLS))symbolSelect.append(new Option(label,code));symbolLabel.append(symbolSelect);options.append(symbolLabel);
+ const articleLabel=el('label','Articolo di magazzino associato al simbolo selezionato'),articleSelect=el('select');articleLabel.append(articleSelect);options.append(articleLabel);
  const list=mkSelect('Disegni salvati (seleziona per aprire)');host.append(list.parentElement);
  const toolbar=el('div');toolbar.className='actions';host.append(toolbar);
  const status=el('p','','hint');status.setAttribute('role','status');host.append(status);
@@ -142,7 +172,8 @@ function mount(){
  const fill=(s,rows,placeholder)=>{const old=s.value;s.replaceChildren();option(s,'',placeholder);for(const r of rows)option(s,String(r.id),String(r.name||r.title||r.address||'#'+r.id));s.value=rows.some(r=>same(r.id,old))?old:''};
  const database=()=>root.ITE.snapshot();
  function cascade(){const db=database();fill(property,(db.immobili||[]).filter(r=>same(r.client_id,client.value)),'— Sede facoltativa —');fill(site,(db.cantieri||[]).filter(r=>same(r.client_id,client.value)),'— Cantiere facoltativo —');fill(plant,(db.impianti||[]).filter(r=>same(r.immobile_id,property.value)),'— Impianto facoltativo —')}
- function refreshChoices(){const db=database();fill(client,db.clienti||[],'— Seleziona cliente —');cascade();const drawings=root.ITECommerce.snapshot().settings.cadDrawings||[];fill(list,drawings.filter(r=>!r.archived),'— Nuovo disegno —')}
+ function refreshCatalog(){const old=articleSelect.value;articleSelect.replaceChildren(new Option('— Nessun articolo associato —',''));for(const a of root.ITECommerce.snapshot().articles.filter(a=>a.kind==='Materiale'))articleSelect.append(new Option([a.code,a.description,a.unit].filter(Boolean).join(' · ').slice(0,180),a.id));articleSelect.value=[...articleSelect.options].some(o=>o.value===old)?old:''}
+ function refreshChoices(){const db=database();fill(client,db.clienti||[],'— Seleziona cliente —');cascade();const drawings=root.ITECommerce.snapshot().settings.cadDrawings||[];fill(list,drawings.filter(r=>!r.archived),'— Nuovo disegno —');refreshCatalog()}
  client.addEventListener('change',cascade);property.addEventListener('change',()=>{const db=database();fill(plant,(db.impianti||[]).filter(r=>same(r.immobile_id,property.value)),'— Impianto facoltativo —')});
  function snapshot(){state.undo.push({elements:copy(state.elements),scale:state.scale});if(state.undo.length>60)state.undo.shift();state.redo.length=0}
  function update(next){snapshot();state.elements=next;state.dirty=true;paint()}
@@ -151,9 +182,11 @@ function mount(){
   svg.style.cssText='width:100%;height:auto;min-width:450px;touch-action:none';canvas.replaceChildren(svg);
   svg.addEventListener('pointerdown',down);svg.addEventListener('pointerup',up);
   svg.addEventListener('pointercancel',()=>{state.start=null;state.drag=null});svg.addEventListener('pointermove',move);
-  const summary=materialSchedule(state.elements,state.scale);scheduleBox.replaceChildren(el('h3','Distinta preliminare (non è un ordine materiali)'));
-  for(const item of summary.items)scheduleBox.append(el('p',item.label+' · quantità: '+item.count));
+  const summary=catalogSchedule(state.elements,state.scale,root.ITECommerce.snapshot().articles,root.ITECommerce.snapshot().movements);scheduleBox.replaceChildren(el('h3','Distinta CAD e catalogo — bozza, non è un ordine né uno scarico'));
+  const chosen=state.elements.find(e=>e.id===state.selected);articleSelect.value=chosen?.kind==='symbol'&&[...articleSelect.options].some(o=>o.value===chosen.articleId)?chosen.articleId:'';
+  for(const item of summary.items){const info=item.articleCode?' · '+item.articleCode+' · '+item.description:' · senza articolo';const stock=item.stock===null?' · giacenza non verificata':' · giacenza attuale '+item.stock+' '+item.unit;const cost=item.estimated===null?' · prezzo da verificare':' · valore archivio '+item.estimated.toFixed(2)+' € ('+item.priceRole+')';scheduleBox.append(el('p',item.label+' × '+item.count+info+stock+cost+(item.warning?' · ATTENZIONE: '+item.warning:'')))}
   scheduleBox.append(el('p',summary.calibrated?'Muri: '+summary.wallMeters+' m · Linee: '+summary.lineMeters+' m (indicativi)':'Lunghezze non disponibili: calibrare la scala'));
+  scheduleBox.append(el('p',summary.allPriced?'Somma prezzi archivio '+summary.archiveTotal.toFixed(2)+' € — non è un prezzo di vendita né un preventivo. Posa esclusa.':'Prezzi non completi: nessun totale economico. Fornitura e posa da quantificare separatamente.'));
   say(state.elements.length+' elementi · '+(state.dirty?'Modifiche da salvare':'Salvato / nuova bozza')+' · strumento '+state.tool+(state.multi?' · selezione multipla':''));
  }
  const coord=e=>{const svg=canvas.querySelector('svg'),r=svg.getBoundingClientRect();return snapPoint(point((e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height),state.elements,state.snap&&state.tool!=='select')};
@@ -170,6 +203,8 @@ function mount(){
  }
  for(const [key,label] of [['select','Seleziona / sposta'],['wall','Muro'],['line','Linea'],['rect','Rettangolo'],['dimension','Quota'],['label','Testo'],['symbol','Simbolo']])button(toolbar,label,()=>{state.tool=key;state.start=null;state.multi=false;state.selectedIds=[];multiButton.textContent='Selezione multipla: OFF';paint();say('Strumento: '+label)});
  const action=(label,fn)=>button(commands,label,()=>{try{fn()}catch(err){say(err.message)}});
+ action('Aggiorna catalogo materiali',()=>{refreshCatalog();paint();say('Catalogo aggiornato senza modificare il disegno')});
+ action('Associa articolo al simbolo',()=>{const selected=state.elements.find(e=>e.id===state.selected);if(!selected||selected.kind!=='symbol')throw Error('Seleziona prima un simbolo');const articleId=articleSelect.value;const articles=root.ITECommerce.snapshot().articles;if(articleId&&!articles.some(a=>a.id===articleId&&a.kind==='Materiale'))throw Error('Articolo non valido o non più presente');update(operate(state.elements,'linkArticle',selected.id,{articleId}))});
  const multiButton=button(toolbar,'Selezione multipla: OFF',function(){state.multi=!state.multi;state.tool='select';state.selectedIds=[];this.textContent='Selezione multipla: '+(state.multi?'ON':'OFF');paint()});
  button(toolbar,'Aggancio estremi: ON',function(){state.snap=!state.snap;this.textContent='Aggancio estremi: '+(state.snap?'ON':'OFF');paint()});
  action('Raggruppa selezionati',()=>{const next=operate(state.elements,'group','',{ids:state.selectedIds});update(next);state.selectedIds=[];state.multi=false;multiButton.textContent='Selezione multipla: OFF';paint()});
@@ -204,6 +239,25 @@ function mount(){
   if(summary.calibrated){lines.push(csvRow(['MURI','Lunghezza totale muri',summary.wallMeters,'m']));lines.push(csvRow(['LINEE','Lunghezza totale linee',summary.lineMeters,'m']))}
   download('\uFEFF'+lines.join('\r\n'),'ITE-CAD-distinta-bozza.csv','text/csv;charset=utf-8');
  });
+
+ action('Esporta distinta catalogo CSV (bozza)',()=>{
+  const summary=catalogSchedule(state.elements,state.scale,root.ITECommerce.snapshot().articles,root.ITECommerce.snapshot().movements);
+  const csvRow=fields=>fields.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';');
+  const lines=[csvRow(['Simbolo','Articolo','Descrizione','Quantità simboli','Unità catalogo','Prezzo archivio','Ruolo prezzo','Valore archivio','Giacenza attuale','Fabbisogno non coperto','Avvertenze','Posa'])];
+  for(const i of summary.items)lines.push(csvRow([i.label,i.articleCode,i.description,i.count,i.unit,i.price,i.priceRole,i.estimated,i.stock,i.shortage,i.warning,'DA QUANTIFICARE SEPARATAMENTE']));
+  lines.push(csvRow(['NOTA','Bozza CAD, non è ordine, preventivo o movimento di magazzino. Verificare quantità, prezzi, unità e posa.']));
+  download('\uFEFF'+lines.join('\r\n'),'ITE-CAD-catalogo-bozza.csv','text/csv;charset=utf-8');
+ });
+ action('Esporta tavola A4 HTML (bozza)',()=>{
+  const summary=catalogSchedule(state.elements,state.scale,root.ITECommerce.snapshot().articles,root.ITECommerce.snapshot().movements),db=database();
+  const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+  const name=db.clienti.find(x=>same(x.id,client.value))?.name||'Non indicato';
+  const address=db.immobili.find(x=>same(x.id,property.value))?.address||'Non indicata';
+  const drawing=new XMLSerializer().serializeToString(renderSvg(state.elements,'',true,state.scale));
+  const rows=summary.items.map(i=>'<tr><td>'+safe(i.label)+'</td><td>'+safe(i.articleCode)+'</td><td>'+safe(i.description)+'</td><td>'+i.count+'</td><td>'+safe(i.unit)+'</td><td>'+safe(i.warning||'Da verificare sul posto')+'</td></tr>').join('');
+  const html='<!doctype html><html lang="it"><head><meta charset="utf-8"><title>ITE CAD - BOZZA</title><style>@page{size:A4 landscape;margin:12mm}body{font:12px Arial,sans-serif;color:#173451}h1{font-size:20px}p{margin:5px 0}.draft{color:#a02020;font-weight:bold}svg{width:100%;height:auto;max-height:135mm}table{border-collapse:collapse;width:100%;font-size:10px}td,th{border:1px solid #999;padding:4px;text-align:left}tr{break-inside:avoid}footer{margin-top:8px;border-top:1px solid #999}</style></head><body><h1>I.T.E. — Tavola tecnica CAD</h1><p class="draft">BOZZA NON CERTIFICATA — QUOTE E MATERIALI DA VERIFICARE</p><p>Disegno: '+safe(title.value)+' · Cliente: '+safe(name)+' · Sede: '+safe(address)+'</p><p>Scala di lavoro: '+safe(state.scale==null?'Non calibrata':state.scale+' cm per unità grafica')+'</p>'+drawing+'<h2>Distinta preliminare</h2><table><thead><tr><th>Simbolo</th><th>Codice</th><th>Articolo</th><th>Quantità</th><th>U.M.</th><th>Note</th></tr></thead><tbody>'+rows+'</tbody></table><footer>Fornitura e posa da quantificare separatamente. Nessun prelievo di magazzino, nessuna attestazione di conformità. Esportazione locale non cifrata.</footer></body></html>';
+  download(html,'ITE-CAD-tavola-A4-bozza.html','text/html;charset=utf-8');
+ });
  const upload=el('input');upload.type='file';upload.accept='.json,application/json';const uploadLabel=el('label','Importa disegno JSON in bozza');uploadLabel.append(upload);host.append(uploadLabel);
  upload.addEventListener('change',async()=>{try{const f=upload.files[0];if(!f)return;if(f.size>250000)throw Error('File CAD troppo grande');const data=JSON.parse(await f.text());if(data.format!=='ITE-CAD-DRAFT'||![1,2].includes(data.schema)||!validScale(data.scaleCmPerUnit)||!Array.isArray(data.elements)||data.elements.length>MAX)throw Error('Formato CAD non valido');const ids=new Set();for(const e of data.elements){validateElement(e);if(ids.has(e.id))throw Error('Elementi duplicati');ids.add(e.id)}update(copy(data.elements));state.scale=data.scaleCmPerUnit??null;scaleInput.value=state.scale==null?'':String(state.scale);title.value=safeText(data.title)||title.value;paint();say('Bozza importata: verifica cliente e sede prima di salvare.')}catch(err){say(err.message)}finally{upload.value=''}});
  async function save(archived=false){
@@ -212,7 +266,7 @@ function mount(){
   if(!root.ITEVault?.isUnlocked?.())throw Error('Archivio cifrato bloccato');
   const db=database(),old=root.ITECommerce.snapshot().settings.cadDrawings||[],previous=old.find(x=>same(x.id,state.current));
   const record={id:previous?.id||uid('cad'),title:safeText(title.value),clientId:client.value,propertyId:property.value,siteId:site.value,plantId:plant.value,updated:new Date().toISOString(),archived,revision:(previous?.revision||0)+1,scaleCmPerUnit:state.scale,elements:copy(state.elements),history:previous?[...previous.history,{revision:previous.revision,at:previous.updated,scaleCmPerUnit:previous.scaleCmPerUnit??null,elements:copy(previous.elements)}].slice(-30):[]};
-  if(!record.title)throw Error('Indica il titolo');validateCollection([record],db);
+  if(!record.title)throw Error('Indica il titolo');validateCollection([record],db,root.ITECommerce.snapshot().articles);
   if(root.ITEBackup?.busy?.())throw Error('Backup già in corso');
   await root.ITEHistory.create('Prima modifica CAD '+record.title);
   await root.ITECommerce.mutate(next=>{const rows=next.settings.cadDrawings||[];const index=rows.findIndex(r=>same(r.id,record.id));if(previous&&index<0)throw Error('Disegno modificato da altra sessione');if(index>=0){if(rows[index].revision!==previous.revision)throw Error('Revisione CAD cambiata: riapri il disegno');rows[index]=record}else rows.push(record);next.settings.cadDrawings=rows});
@@ -226,7 +280,7 @@ function mount(){
  refreshChoices();paint();
  root.addEventListener('beforeunload',event=>{if(state.dirty){event.preventDefault();event.returnValue='';}});
 }
-const api=Object.freeze({KINDS,COLORS,SYMBOLS,validScale,snapPoint,materialSchedule,validateElement,validateCollection,make,operate,references,renderSvg,mount});
+const api=Object.freeze({KINDS,COLORS,SYMBOLS,validScale,snapPoint,materialSchedule,catalogSchedule,validateElement,validateCollection,make,operate,references,renderSvg,mount});
 root.ITECad=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(typeof document!=='undefined')root.addEventListener('ite-vault-ready',mount);
