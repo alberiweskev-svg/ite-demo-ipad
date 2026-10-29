@@ -38,7 +38,7 @@ const server=http.createServer((req,res)=>{try{
   await page.getByRole('button',{name:'Aggiorna disegni, pratiche e cantieri'}).click();
   await page.locator('#cad-workflow select').nth(0).selectOption(fixture.drawId);
   await page.locator('#cad-workflow select').nth(2).selectOption(String(fixture.siteId));
-  await page.locator('#cad-workflow input[type=number]').fill('58');
+  await page.locator('#cad-workflow input[inputmode=decimal]').fill('58');
   const before=await page.evaluate(()=>ITECommerce.snapshot().movements.length);
   await page.getByRole('button',{name:'Crea preventivo CAD con fornitura e posa'}).click();
   await page.waitForFunction(id=>{const s=ITE.snapshot().cantieri.find(x=>x.id===id);return s&&JSON.parse(s.ite_quotes||'[]').length===1},fixture.siteId,{timeout:60000});
