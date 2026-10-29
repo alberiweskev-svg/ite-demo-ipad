@@ -10,6 +10,10 @@ const data=build(rows,'1',docs,base),pdf=Buffer.from(data).toString('latin1');
 assert(pdf.startsWith('%PDF-1.4'));assert(pdf.includes('xref\n0 '));assert(pdf.endsWith('%%EOF\n'));
 assert(pdf.includes('DICO-FITTIZIO-001'));assert(pdf.includes('ORIG-FITTIZIO'));assert(pdf.includes('NON VALIDA'));
 assert(!pdf.includes('SEGRETO-ALTRO-CLIENTE'));assert(!pdf.includes('Cliente Esterno'));
+const foreignPrefill={...rows[0],originalPrefill:{injected:{value:'SEGRETO-PREFILL-ALTRO-CLIENTE',documentId:'docOther'}}};
+const foreignPdf=Buffer.from(build([foreignPrefill],'1',docs,base)).toString('latin1');
+assert(!foreignPdf.includes('SEGRETO-PREFILL-ALTRO-CLIENTE'));assert(foreignPdf.includes('fonte non verificabile'));
+
 assert(pdf.includes('città, perché e \x80'),'WinAnsi must preserve accents and euro');
 assert(pdf.includes('\\(verifica\\) \\\\ prova'),'Escape parentheses and backslashes');
 const match=pdf.match(/startxref\n(\d+)\n/);assert(match);assert.equal(pdf.slice(Number(match[1]),Number(match[1])+5),'xref\n');
