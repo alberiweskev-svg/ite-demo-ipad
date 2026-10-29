@@ -45,6 +45,26 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  const file=await download;assert.match(file.suggestedFilename(),/ITE-CAD-bozza.svg/);
  const svgText=fs.readFileSync(await file.path(),'utf8');assert.match(svgText,/BOZZA CAD/);assert(!svgText.includes('<script'));
  const guard=await page.evaluate(()=>ITECad.references(ITECommerce.snapshot().settings.cadDrawings,'clienti',1));assert(guard);
+ // Milestone 13: simboli, scala metrica dichiarata, distinta e persistenza cifrata.
+ await page.getByRole('button',{name:'Simbolo',exact:true}).click();
+ await page.locator('#ite-cad label').filter({hasText:'Simbolo impiantistico'}).locator('select').selectOption('presa');
+ const symbolSvg=page.locator('#ite-cad svg');await symbolSvg.scrollIntoViewIfNeeded();const sb=await symbolSvg.boundingBox();assert(sb);
+ await page.mouse.move(sb.x+sb.width*.5,sb.y+sb.height*.65);await page.mouse.down();await page.mouse.up();
+ assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),3,'Symbol placement failed');
+ const scaleInput=page.locator('#ite-cad input[type=number]');
+ await scaleInput.fill('2');await scaleInput.press('Tab');
+ assert.match(await page.locator('#ite-cad svg').innerText(),/Scala di lavoro/);
+ assert.match(await page.locator('#ite-cad [aria-label="Distinta materiali indicativa"]').innerText(),/Presa elettrica/);
+ await page.getByRole('button',{name:'Salva con backup e revisione'}).click();
+ await page.waitForFunction(()=>ITECommerce.snapshot().settings.cadDrawings?.[0]?.revision===3,{timeout:60000});
+ const advanced=await page.evaluate(()=>ITECommerce.snapshot().settings.cadDrawings[0]);
+ assert.equal(advanced.scaleCmPerUnit,2);
+ assert.equal(advanced.history.length,2);
+ assert(advanced.elements.some(e=>e.kind==='symbol'&&e.text==='presa'));
+ const csvDownload=page.waitForEvent('download');
+ await page.getByRole('button',{name:'Esporta distinta CSV (indicativa)'}).click();
+ const csvFile=await csvDownload;assert.match(csvFile.suggestedFilename(),/ITE-CAD-distinta-bozza.csv/);
+ assert.match(fs.readFileSync(await csvFile.path(),'utf8'),/Presa elettrica/);
  assert.equal(errors.length,0,'JavaScript errors: '+errors.join('; '));
  console.log('OK: '+(process.env.ITE_TEST_BROWSER||'chromium')+' CAD save, backup, revision, undo/redo, SVG, references');
 }finally{await browser.close();server.close()}})().catch(e=>{console.error(e);server.close();process.exitCode=1});
