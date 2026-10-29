@@ -63,6 +63,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  const printText=fs.readFileSync(await download.path(),'utf8');assert.match(printText,/NON VALIDA · NON FIRMATA/);assert.match(printText,/Schema sintetico fittizio TEST-001/);assert.match(printText,/Committente TEST fittizio/);assert.match(printText,/Circuiti elettrici fittizi/);assert.match(printText,/Registro originali tecnici collegati/);assert.match(printText,/DICO-ORIG-TEST-007/);assert.match(printText,/dico_fittizia\.txt/);assert.match(printText,/Cliente dimostrativo/);
  
  // Una seconda pratica POS usa lo stesso archivio, senza alterare la Di.Co. salvata.
+ await page.evaluate(()=>ITE.commit(db=>db.clienti.push({id:901,name:'Tecnico POS Fittizio',roles:['Dipendente'],kind:'Dipendente',job_role:'Termoidraulico'})));
  await page.locator('#tech-new').click();
  await page.locator('#tech-form [name="type"]').selectOption('POS');
  assert.equal(await page.locator('[data-tech-section]').count(),12,'POS must expose twelve guided sections');
@@ -80,7 +81,10 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  // Registri POS: testo manuale conservato, righe strutturate aggiunte e incluse nel backup.
  await page.locator('[data-pos-register="personale"] summary').click();
  const staff=page.locator('[data-pos-register="personale"]');
- await staff.locator('input').nth(0).fill('Tecnico Fittizio');
+ await staff.locator('select').selectOption('901');
+ assert.equal(await staff.locator('input').nth(0).inputValue(),'Tecnico POS Fittizio');
+ assert.equal(await staff.locator('input').nth(1).inputValue(),'Termoidraulico');
+ assert.equal(await staff.locator('input').nth(2).inputValue(),'');
  await staff.locator('input').nth(1).fill('Installazione idrica');
  await staff.locator('input').nth(2).fill('Formazione da verificare');
  await staff.getByRole('button',{name:'Aggiungi riga'}).click();
@@ -99,7 +103,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(pos.draft.structured.inizioLavori,'2026-10-29');
  assert.match(pos.draft.structured.rischi,/Rischi fittizi da verificare/);
  assert.match(pos.draft.structured.rischi,/Posa tubazioni/);
- assert.match(pos.draft.structured.personale,/Tecnico Fittizio/);
+ assert.match(pos.draft.structured.personale,/Tecnico POS Fittizio/);
  assert.equal(pos.backup,2,'Full backup lost one of the technical drafts');
   await page.locator('[data-tech-review]').last().click();
   assert.match(await page.locator('#tech-review-overlay').innerText(),/12 blocchi/);
