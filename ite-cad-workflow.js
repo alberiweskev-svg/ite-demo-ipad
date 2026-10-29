@@ -81,7 +81,7 @@ function mount(){
  const grid=document.createElement('div');grid.className='grid';panel.append(grid);
  const select=(title)=>{const label=document.createElement('label');label.textContent=title;const el=document.createElement('select');label.append(el);grid.append(label);return el};
  const drawing=select('Disegno CAD salvato'),practice=select('Pratica tecnica compatibile'),site=select('Cantiere per preventivo');
- const laborLabel=document.createElement('label');laborLabel.textContent='Prezzo posa complessiva (€), da quantificare';const labor=document.createElement('input');labor.type='number';labor.min='0.01';labor.max='1000000';labor.step='0.01';labor.placeholder='Inserire importo';laborLabel.append(labor);grid.append(laborLabel);
+ const laborLabel=document.createElement('label');laborLabel.textContent='Prezzo posa complessiva (€), da quantificare';const labor=document.createElement('input');labor.type='text';labor.inputMode='decimal';labor.maxLength=12;labor.placeholder='Inserire importo';laborLabel.append(labor);grid.append(laborLabel);
  const vat=select('IVA da verificare');for(const v of [10,22])vat.append(new Option(v+'%',String(v)));
  const buttons=document.createElement('div');buttons.className='actions';panel.append(buttons);
  const button=(label,handler)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=handler;buttons.append(b);return b};
@@ -125,7 +125,7 @@ function mount(){
  }));
  button('Crea preventivo CAD con fornitura e posa',()=>guarded(async()=>{
   const core=root.ITE.snapshot(),state=root.ITECommerce.snapshot(),d=find(state.settings.cadDrawings,drawing.value),s=find(core.cantieri,site.value);
-  const q=proposal(d,s,core,state,Number(labor.value),Number(vat.value));
+  const q=proposal(d,s,core,state,Number(String(labor.value).trim().replace(',','.')),Number(vat.value));
   ensureNewQuote(parseQuotes(s),q);
   await root.ITEHistory.create('Prima preventivo CAD '+q.number);
   const latest=root.ITECommerce.snapshot(),current=find(latest.settings.cadDrawings,d.id);
