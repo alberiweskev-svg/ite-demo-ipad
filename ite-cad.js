@@ -121,7 +121,7 @@ function mount(){
  const host=document.getElementById('ite-cad');if(!host||host.dataset.mounted)return;
  host.dataset.mounted='1';
  const state={current:null,elements:[],selected:'',selectedIds:[],multi:false,snap:true,scale:null,tool:'select',start:null,drag:null,undo:[],redo:[],dirty:false,saving:false};
- const h=el('h2','Disegno tecnico I.T.E. CAD — bozza vettoriale'),note=el('p','Strumenti per muri, linee, rettangoli, simboli impiantistici, quote, gruppi e distinta indicativa. La scala in cm è inserita dall'operatore e deve essere verificata sul posto. Ogni salvataggio crea un backup preventivo e una revisione.','hint');
+ const h=el('h2','Disegno tecnico I.T.E. CAD — bozza vettoriale'),note=el('p','Strumenti per muri, linee, rettangoli, simboli impiantistici, quote, gruppi e distinta indicativa. La scala in cm è inserita dal tecnico e deve essere verificata sul posto. Ogni salvataggio crea un backup preventivo e una revisione.','hint');
  host.append(h,note);
  const selectors=el('div');selectors.className='grid';
  const mkSelect=(title)=>{const l=el('label',title),s=el('select');l.append(s);selectors.append(l);return s};
