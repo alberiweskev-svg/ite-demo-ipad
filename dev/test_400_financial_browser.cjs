@@ -15,6 +15,7 @@ const server=http.createServer((req,res)=>{try{const name=decodeURIComponent(new
   await page.locator('#vault-confirm').fill('ITE-4-FINANCIAL-TEST-SYNTHETIC');
   await page.locator('#vault-submit').click();
   await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  await page.waitForFunction(()=>window.ITECommerce&&!window.ITECommerce.busy(),null,{timeout:30000});
   await page.evaluate(async()=>{
    const bytes=new TextEncoder().encode('%PDF-1.4\n%%EOF'),digest=await crypto.subtle.digest('SHA-256',bytes),hash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join(''),base64=btoa(String.fromCharCode(...bytes));
    const docs=[['fin-synthetic-invoice','Fattura vendita',110],['fin-synthetic-credit','Nota credito vendita',30]];
