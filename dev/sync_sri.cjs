@@ -46,6 +46,13 @@ assert(structuredPattern.test(html),'Cannot find structured technical document s
 html=html.replace(structuredPattern,'<script src="./technical-structured-docs.js?v=4.0.0" integrity="'+structuredHash+'" crossorigin="anonymous"></script>');
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
 else assert.equal(fs.readFileSync('index.html','utf8'),html,'Structured technical document SRI is outdated; run node dev/sync_sri.cjs --write');
+const acroHash=digest('technical-acroform.js');
+const acroPattern=/<script src="\.\/technical-acroform\.js\?v=4\.0\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\/script>/;
+assert(acroPattern.test(html),'Cannot find editable technical PDF script tag');
+html=html.replace(acroPattern,'<script src="./technical-acroform.js?v=4.0.0" integrity="'+acroHash+'" crossorigin="anonymous"></script>');
+if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
+else assert.equal(fs.readFileSync('index.html','utf8'),html,'Editable PDF SRI is outdated; run node dev/sync_sri.cjs --write');
+console.log('ACROFORM_SRI='+acroHash);
 console.log('STRUCTURED_DOCS_SRI='+structuredHash);
 console.log('CAD_WORKFLOW_SRI='+flowHash);
-console.log('OK: app.js, vault.js, technical-pdf.js, pos-operativo.js, ite-cad.js CAD workflow and structured document SRI hashes match');
+console.log('OK: app.js, vault.js, technical-pdf.js, pos-operativo.js, ite-cad.js CAD workflow structured document and AcroForm SRI hashes match');
