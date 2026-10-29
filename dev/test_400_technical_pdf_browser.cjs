@@ -39,6 +39,24 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(formFields['general.reference'][0].value,'DICO-PDF-TEST-001');
  assert(formFields['detail.committente'],'Editable technical fields must be present');
  await formTask.destroy();
+ // Synthetic AcroForm edit: change a same-length value without shifting PDF xref offsets.
+ const edited=Buffer.from(formBytes),oldValue=Buffer.from('/V (Lavori sintetici per PDF)');
+ const newValue=Buffer.from('/V (Lavori sintetici per PDX)');
+ assert.equal(oldValue.length,newValue.length);
+ const at=edited.indexOf(oldValue);assert(at>0,'Editable source value must be present');
+ edited.set(newValue,at);
+ await page.locator('[data-tech-file]').first().setInputFiles({
+  name:'DICO_COMPILATO_TEST.pdf',mimeType:'application/pdf',buffer:edited
+ });
+ await page.locator('#ite-pdf-import-review').waitFor({state:'visible'});
+ assert.match(await page.locator('#ite-pdf-import-review').innerText(),/Lavori sintetici per PDX/);
+ const scopeChoice=page.locator('#ite-pdf-import-review label').filter({hasText:'Descrizione lavori'}).locator('input[type="checkbox"]');
+ assert.equal(await scopeChoice.isChecked(),false,'Existing values require explicit overwrite');
+ await scopeChoice.check();
+ await page.locator('[data-pdf-confirm]').click();
+ await page.waitForFunction(()=>ITECommerce.snapshot().settings.technicalDrafts?.[0]?.revision===2,{timeout:30000});
+ assert.equal(await page.evaluate(()=>ITECommerce.snapshot().settings.technicalDrafts[0].fields.scope),'Lavori sintetici per PDX');
+ assert.equal(await page.evaluate(()=>ITECommerce.snapshot().settings.technicalDrafts[0].history.length),1);
  await page.locator('#tech-dossier-pdf').click();
  assert.match(await page.locator('#tech-status').innerText(),/Seleziona un cliente/);
  await page.locator('#tech-filter-client').selectOption('1');
@@ -47,5 +65,5 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert(fs.readFileSync(await dossier.path()).includes(Buffer.from('DICO-PDF-TEST-001')));
  assert.equal((await page.evaluate(()=>ITECommerce.snapshot().settings.technicalDrafts)).length,1,'PDF export changed stored drafts');
  assert.deepEqual(errors,[],'Browser errors: '+errors.join(' | '));
- console.log('OK: '+browserType.name()+' technical PDF, editable AcroForm and filtered dossier, client guard, no archive mutation');
+ console.log('OK: '+browserType.name()+' technical PDF, edited AcroForm round-trip, revisioned save and filtered dossier');
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
