@@ -291,6 +291,93 @@ function build(rows,clientId,docs,base,options={}){
  if(html.length>900000)throw Error('Fascicolo troppo esteso: restringi le pratiche.');
  return {html,issuesByPractice,annexes:uniqueAnnexes};
 }
+
+/* Milestone 20: fascicolo locale con originali effettivi e impronte SHA-256.
+   Mai inviare in rete: il file ZIP NON e' cifrato, la scelta e' esplicita. */
+let zipLoader=null;
+function ensureLocalZip(){
+ if(root.JSZip)return Promise.resolve(root.JSZip);
+ if(!root.document)throw Error('Motore ZIP non disponibile.');
+ if(zipLoader)return zipLoader;
+ zipLoader=new Promise((resolve,reject)=>{
+  const script=root.document.createElement('script');
+  script.src='./vendor/jszip.min.js';script.async=true;
+  script.onload=()=>root.JSZip?resolve(root.JSZip):reject(Error('Libreria ZIP locale non inizializzata.'));
+  script.onerror=()=>reject(Error('Libreria ZIP locale non caricata: nessun pacchetto creato.'));
+  root.document.head.append(script);
+ }).catch(e=>{zipLoader=null;throw e});
+ return zipLoader;
+}
+function packageOriginalRefs(rows,clientId,docs,base){
+ validate(rows,clientId,docs,base);
+ const ids=new Map(),byId=new Map(arr(docs).map(d=>[String(d.id),d]));
+ for(const p of rows)for(const id of arr(p.linkedDocIds)){
+  const d=byId.get(String(id));
+  if(!d||!same(d.clientId||d.subjectId,clientId))throw Error('Originale di un altro cliente: pacchetto bloccato.');
+  if(!ids.has(String(id)))ids.set(String(id),{document:d,practices:[]});
+  ids.get(String(id)).practices.push(String(p.id));
+ }
+ if(!ids.size)throw Error('Nessun originale collegato: importa e collega prima i documenti tecnici.');
+ if(ids.size>30)throw Error('Massimo 30 originali per pacchetto: restringi le pratiche.');
+ return [...ids.values()];
+}
+async function buildOriginalPackage(rows,clientId,docs,base,commerce,options={},deps={}){
+ const refs=packageOriginalRefs(rows,clientId,docs,base),files=arr(commerce?.files);
+ const ZIP=deps.JSZip||root.JSZip,subtle=deps.subtle||root.crypto?.subtle;
+ if(typeof ZIP!=='function'||!subtle?.digest)throw Error('Motore ZIP o verifica SHA-256 non disponibile.');
+ const verified=[],usedPaths=new Map(),manifestDocs=[];let totalBytes=0;
+ const hex=bytes=>[...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('');
+ for(const {document:d,practices} of refs){
+  const f=files.find(x=>same(x.id,d.fileId));
+  if(!f||typeof f.base64!=='string'||!Number.isSafeInteger(f.size)||f.size<1||
+     typeof f.hash!=='string'||!/^[a-f0-9]{64}$/.test(f.hash)||f.id!=='file_'+f.hash)
+   throw Error('Originale tecnico assente o metadati non validi: esportazione bloccata.');
+  if(f.size>15000000||totalBytes+f.size>30000000)throw Error('Originali troppo grandi per iPad: limite complessivo 30 MB.');
+  if(!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(f.base64))
+   throw Error('Originale non leggibile: codifica non valida.');
+  let bytes;
+  try{bytes=Uint8Array.from((deps.atob||root.atob)(f.base64),c=>c.charCodeAt(0))}
+  catch(_){throw Error('Originale non leggibile: esportazione bloccata.');}
+  if(bytes.length!==f.size||hex(await subtle.digest('SHA-256',bytes))!==f.hash)
+   throw Error('Integrità SHA-256 originale non valida: esportazione bloccata.');
+  totalBytes+=f.size;
+  const ext=(String(f.name||'').match(/\.([a-z0-9]{1,5})$/i)||[])[1]?.toLowerCase();
+  const suffix=['pdf','xml','png','jpg','jpeg','webp','txt','csv'].includes(ext)?ext:'bin';
+  if(suffix==='pdf'&&String.fromCharCode(...bytes.subarray(0,5))!=='%PDF-')
+   throw Error('Originale indicato come PDF non valido: esportazione bloccata.');
+  if(!usedPaths.has(f.hash)){
+   const safePath='ORIGINALI/'+String(usedPaths.size+1).padStart(2,'0')+'_'+f.hash.slice(0,12)+'.'+suffix;
+   usedPaths.set(f.hash,safePath);verified.push({path:safePath,bytes});
+  }
+  manifestDocs.push({documentId:String(d.id),type:clean(d.type),number:clean(d.number),originalName:clean(f.name),
+   filePath:usedPaths.get(f.hash),size:f.size,sha256:f.hash,practiceIds:practices});
+ }
+ const structured=build(rows,clientId,docs,base,options);
+ const register=csvReport(rows,clientId,docs,base,options);
+ const plan=dossierPlanHtml(rows,clientId,docs,base,options);
+ const tasks=dossierPlanCsv(rows,clientId,docs,base,options);
+ const manifest={format:'ITE-4-TECHNICAL-EVIDENCE-1',status:'BOZZA_NON_FIRMATA',
+  warning:'Archivio ZIP locale NON CIFRATO. Originali verificati SHA-256; nessuna conformita o firma attestata.',
+  clientId:String(clientId),practices:rows.map(p=>({id:String(p.id),type:p.type,reference:clean(p.fields?.reference),
+   revision:p.revision,status:p.status})),documents:manifestDocs,
+  totalOriginalBytes:totalBytes,openChecks:register.counts.toVerify};
+ const zip=new ZIP();
+ zip.file('LEGGIMI_PRIMA.txt','I.T.E. 4.0 - PACCHETTO TECNICO PREPARATORIO\n'+
+  'BOZZA NON VALIDA, NON FIRMATA. ZIP NON CIFRATO: custodire in luogo protetto.\n'+
+  'Contiene copie byte-per-byte degli originali collegati, verificati SHA-256 prima della creazione.\n'+
+  'Non sostituisce modelli ufficiali, prove, firme, allegati obbligatori o invio a enti.\n'+
+  'Confrontare i documenti con il manifest.json e verificare ogni dato prima della consegna.\n');
+ zip.file('manifest.json',JSON.stringify(manifest,null,2)+'\n');
+ zip.file('FASCICOLO_BOZZA.html',structured.html);
+ zip.file('REGISTRO_VERIFICHE.csv',register.csv);
+ zip.file('PIANO_COMPLETAMENTO_BOZZA.html',plan.html);
+ zip.file('ATTIVITA_DA_VERIFICARE.csv',tasks.csv);
+ for(const f of verified)zip.file(f.path,f.bytes,{binary:true});
+ const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
+ if(blob.size>60000000)throw Error('ZIP oltre il limite di 60 MB: restringi la selezione.');
+ return {blob,manifest,originals:manifestDocs.length,uniqueFiles:verified.length,checks:register.counts.toVerify};
+}
+
 function install(){
  const panel=root.document?.getElementById('technical-drafts-panel');
  if(!panel||panel.dataset.iteStructuredInstalled)return;
@@ -309,20 +396,25 @@ function install(){
    const b=root.document.createElement('button');b.id='tech-dossier-plan';b.type='button';b.className='secondary';b.textContent='Piano completamento A4 (bozza)';checklist.insertAdjacentElement('afterend',b);
    const c=root.document.createElement('button');c.id='tech-dossier-plan-csv';c.type='button';c.className='secondary';c.textContent='Attività da verificare CSV';b.insertAdjacentElement('afterend',c);
   }
+  const planCsv=panel.querySelector('#tech-dossier-plan-csv');
+  if(planCsv&&!panel.querySelector('#tech-dossier-originals')){
+   const b=root.document.createElement('button');b.id='tech-dossier-originals';b.type='button';b.className='secondary';
+   b.textContent='Pacchetto ZIP con originali verificati (non cifrato)';planCsv.insertAdjacentElement('afterend',b);
+  }
   for(const original of panel.querySelectorAll('[data-tech-print]')){
    if(original.parentElement?.querySelector('[data-tech-structured="'+original.dataset.techPrint+'"]'))continue;
    const b=root.document.createElement('button');b.type='button';b.className='secondary';b.dataset.techStructured=original.dataset.techPrint;b.textContent='Scheda A4 (bozza)';original.insertAdjacentElement('afterend',b);
   }
  };
  refresh();new MutationObserver(refresh).observe(panel,{childList:true,subtree:true});
- panel.addEventListener('click',event=>{
+ panel.addEventListener('click',async event=>{
   const button=event.target.closest('[data-tech-structured],#tech-dossier-structured,#tech-dossier-checklist,#tech-dossier-plan,#tech-dossier-plan-csv');if(!button||!panel.contains(button))return;
   const status=panel.querySelector('#tech-status');
   try{
    if(!root.ITEVault?.isUnlocked?.()||root.ITECommerce?.busy?.())throw Error('Archivio non sbloccato o salvataggio in corso.');
    const base=root.ITE.snapshot(),state=root.ITECommerce.snapshot(),rows=state.settings?.technicalDrafts||[];
    let selected,clientId;
-   if(button.id==='tech-dossier-structured'||button.id==='tech-dossier-checklist'||button.id==='tech-dossier-plan'||button.id==='tech-dossier-plan-csv'){
+   if(button.id==='tech-dossier-structured'||button.id==='tech-dossier-checklist'||button.id==='tech-dossier-plan'||button.id==='tech-dossier-plan-csv'||button.id==='tech-dossier-originals'){
     clientId=panel.querySelector('#tech-filter-client')?.value;
     if(!clientId)throw Error('Seleziona un cliente specifico per il fascicolo.');
     const ids=[...panel.querySelectorAll('#tech-list [data-tech-print]')].map(b=>b.dataset.techPrint);
@@ -332,6 +424,20 @@ function install(){
    }
    const api=root.ITETechnicalDrafts;
    const options={groups:api?.structuredGroups||{},review:api?.qualityReport,drawings:state.settings?.cadDrawings,links:state.settings?.cadPracticeLinks,articles:state.articles,movements:state.movements};
+   if(button.id==='tech-dossier-originals'){
+    if(!root.confirm('Il pacchetto ZIP includera copie reali dei documenti originali del cliente selezionato. NON e cifrato e NON e un documento ufficiale. Vuoi scaricarlo sul tuo dispositivo?'))return;
+    button.disabled=true;
+    try{
+     const ZIP=await ensureLocalZip();
+     const result=await buildOriginalPackage(selected,clientId,state.documents||[],base,state,options,{JSZip:ZIP});
+     if(!root.ITEVault?.isUnlocked?.()||root.ITECommerce?.busy?.())throw Error('Archivio bloccato o modificato: ripeti il download.');
+     const url=URL.createObjectURL(result.blob),a=root.document.createElement('a');
+     a.href=url;a.download='ITE_FASCICOLO_ORIGINALI_BOZZA_'+String(clientId).replace(/[^a-z0-9_-]/gi,'_')+'.zip';
+     root.document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+     if(status)status.textContent='Pacchetto ZIP locale NON cifrato scaricato: '+result.originals+' riferimenti originali, '+result.uniqueFiles+' file verificati SHA-256, '+result.checks+' controlli aperti. Nessuna conformita attestata.';
+    }finally{button.disabled=false;}
+    return;
+   }
    const planMode=button.id==='tech-dossier-plan'||button.id==='tech-dossier-plan-csv',csv=button.id==='tech-dossier-checklist'||button.id==='tech-dossier-plan-csv';
    const result=planMode?(csv?dossierPlanCsv(selected,clientId,state.documents||[],base,options):dossierPlanHtml(selected,clientId,state.documents||[],base,options)):(csv?csvReport(selected,clientId,state.documents||[],base,options):build(selected,clientId,state.documents||[],base,options));
    const blob=new Blob([csv?result.csv:result.html],{type:csv?'text/csv;charset=utf-8':'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=root.document.createElement('a');
@@ -342,5 +448,5 @@ function install(){
  });
 }
 if(root?.document){root.addEventListener('ite-vault-ready',install);if(root.ITEVault?.isUnlocked?.())install();}
-root.ITEStructuredDocuments=Object.freeze({validate,assess,materialTrace,inspectionMatrix,csvReport,dossierPlan,dossierPlanCsv,dossierPlanHtml,build});
+root.ITEStructuredDocuments=Object.freeze({validate,assess,materialTrace,inspectionMatrix,csvReport,dossierPlan,dossierPlanCsv,dossierPlanHtml,build,packageOriginalRefs,buildOriginalPackage});
 })(typeof window!=='undefined'?window:globalThis);
