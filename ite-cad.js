@@ -3,14 +3,16 @@
 (function(root){
 'use strict';
 const NS='http://www.w3.org/2000/svg', W=1000,H=650,MAX=200,GRID=10;
-const KINDS=['wall','line','rect','dimension','label'], COLORS=['#173451','#285b84','#b03434','#16805d','#222222'];
+const KINDS=['wall','line','rect','dimension','label','symbol'], COLORS=['#173451','#285b84','#b03434','#16805d','#222222'];
+const SYMBOLS=Object.freeze({presa:'Presa elettrica',interruttore:'Interruttore',quadro:'Quadro elettrico',lavabo:'Lavabo',wc:'WC',radiatore:'Radiatore',caldaia:'Caldaia',split:'Unità interna CDZ',valvola:'Valvola'});
+const validScale=v=>v===undefined||v===null||(typeof v==='number'&&Number.isFinite(v)&&v>=0.01&&v<=100);
 const copy=x=>JSON.parse(JSON.stringify(x)),same=(a,b)=>String(a??'')===String(b??'');
 let serial=0;const uid=p=>p+'_'+(root.crypto?.randomUUID?.()||'00000000-0000-4000-8000-'+String(++serial).padStart(12,'0'));
 const clamp=(v,max)=>Math.max(0,Math.min(max,Math.round(Number(v)/GRID)*GRID));
 const safeText=s=>String(s??'').trim().slice(0,120);
 const finite=(n,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=max;
 function validateElement(e){
- if(!e||typeof e!=='object'||!/^e_[a-zA-Z0-9-]{8,70}$/.test(e.id)||!KINDS.includes(e.kind)||!finite(e.x,W)||!finite(e.y,H)||!finite(e.x2,W)||!finite(e.y2,H)||!COLORS.includes(e.color)||typeof e.text!=='string'||e.text.length>120||!Number.isInteger(e.rotation)||e.rotation<0||e.rotation>270||e.rotation%90)throw Error('Elemento CAD non valido');
+ if(!e||typeof e!=='object'||!/^e_[a-zA-Z0-9-]{8,70}$/.test(e.id)||!KINDS.includes(e.kind)||!finite(e.x,W)||!finite(e.y,H)||!finite(e.x2,W)||!finite(e.y2,H)||!COLORS.includes(e.color)||typeof e.text!=='string'||e.text.length>120||!Number.isInteger(e.rotation)||e.rotation<0||e.rotation>270||e.rotation%90||(e.groupId!==undefined&&!/^g_[a-zA-Z0-9-]{8,70}$/.test(e.groupId))||(e.kind==='symbol'&&!Object.prototype.hasOwnProperty.call(SYMBOLS,e.text)))throw Error('Elemento CAD non valido');
  return true;
 }
 function validateCollection(rows,db){
@@ -18,13 +20,13 @@ function validateCollection(rows,db){
  if(!Array.isArray(rows)||rows.length>300)throw Error('Archivio disegni CAD non valido');
  const ids=new Set();
  for(const r of rows){
-  if(!r||!/^cad_[a-zA-Z0-9-]{8,70}$/.test(r.id)||ids.has(r.id)||typeof r.title!=='string'||!r.title.trim()||r.title.length>120||!Number.isSafeInteger(r.revision)||r.revision<1||typeof r.updated!=='string'||!Number.isFinite(Date.parse(r.updated))||typeof r.archived!=='boolean'||!Array.isArray(r.elements)||r.elements.length>MAX||!Array.isArray(r.history)||r.history.length>30)throw Error('Disegno CAD non valido');
+  if(!r||!/^cad_[a-zA-Z0-9-]{8,70}$/.test(r.id)||ids.has(r.id)||typeof r.title!=='string'||!r.title.trim()||r.title.length>120||!Number.isSafeInteger(r.revision)||r.revision<1||typeof r.updated!=='string'||!Number.isFinite(Date.parse(r.updated))||typeof r.archived!=='boolean'||!Array.isArray(r.elements)||r.elements.length>MAX||!Array.isArray(r.history)||r.history.length>30||!validScale(r.scaleCmPerUnit))throw Error('Disegno CAD non valido');
   ids.add(r.id);
   const client=(db?.clienti||[]).find(x=>same(x.id,r.clientId)),property=(db?.immobili||[]).find(x=>same(x.id,r.propertyId)),site=(db?.cantieri||[]).find(x=>same(x.id,r.siteId)),plant=(db?.impianti||[]).find(x=>same(x.id,r.plantId));
   if(!client||r.propertyId&&(!property||!same(property.client_id,client.id))||r.siteId&&(!site||!same(site.client_id,client.id))||r.plantId&&(!plant||!property||!same(plant.immobile_id,property.id))||site?.immobile_id&&property&&!same(site.immobile_id,property.id))throw Error('Collegamenti CAD incoerenti');
   const eids=new Set();
   for(const e of r.elements){validateElement(e);if(eids.has(e.id))throw Error('Elemento CAD duplicato');eids.add(e.id)}
-  for(const h of r.history){if(!h||!Number.isSafeInteger(h.revision)||h.revision<1||typeof h.at!=='string'||!Number.isFinite(Date.parse(h.at))||!Array.isArray(h.elements)||h.elements.length>MAX)throw Error('Revisione CAD non valida');const seen=new Set();for(const e of h.elements){validateElement(e);if(seen.has(e.id))throw Error('Revisione CAD duplicata');seen.add(e.id)}}
+  for(const h of r.history){if(!h||!Number.isSafeInteger(h.revision)||h.revision<1||typeof h.at!=='string'||!Number.isFinite(Date.parse(h.at))||!Array.isArray(h.elements)||h.elements.length>MAX||!validScale(h.scaleCmPerUnit))throw Error('Revisione CAD non valida');const seen=new Set();for(const e of h.elements){validateElement(e);if(seen.has(e.id))throw Error('Revisione CAD duplicata');seen.add(e.id)}}
  }
  return true;
 }
@@ -32,8 +34,8 @@ function point(x,y){return {x:clamp(x,W),y:clamp(y,H)}}
 function make(kind,a,b,text='',color=COLORS[0]){
  if(!KINDS.includes(kind)||!COLORS.includes(color))throw Error('Strumento CAD non valido');
  const p=point(a.x,a.y),q=point(b.x,b.y);
- if(kind!=='label'&&p.x===q.x&&p.y===q.y)throw Error('Traccia almeno 10 unità');
- const e={id:uid('e'),kind,x:p.x,y:p.y,x2:q.x,y2:q.y,text:safeText(text),color,rotation:0};
+ if(kind!=='label'&&kind!=='symbol'&&p.x===q.x&&p.y===q.y)throw Error('Traccia almeno 10 unità');
+ const e={id:uid('e'),kind,x:p.x,y:p.y,x2:q.x,y2:q.y,text:kind==='symbol'?String(text||'presa'):safeText(text),color,rotation:0};
  validateElement(e);return e;
 }
 function operate(elements,action,id,payload={}){
@@ -41,18 +43,46 @@ function operate(elements,action,id,payload={}){
  const rows=copy(elements);rows.forEach(validateElement);
  const i=rows.findIndex(e=>e.id===id);
  if(action==='add'){if(rows.length>=MAX)throw Error('Limite 200 elementi');const e=payload.element;validateElement(e);if(rows.some(x=>x.id===e.id))throw Error('ID duplicato');rows.push(copy(e))}
+ else if(action==='group'){
+  const ids=payload.ids;if(!Array.isArray(ids)||ids.length<2||ids.length>MAX||new Set(ids).size!==ids.length||ids.some(x=>!rows.some(e=>e.id===x)))throw Error('Seleziona almeno due elementi distinti');
+  const groupId=uid('g');for(const e of rows)if(ids.includes(e.id))e.groupId=groupId;
+ }
  else{
   if(i<0)throw Error('Seleziona un elemento CAD');
+  const members=rows[i].groupId?rows.filter(e=>e.groupId===rows[i].groupId):[rows[i]];
   if(action==='delete')rows.splice(i,1);
-  else if(action==='duplicate'){if(rows.length>=MAX)throw Error('Limite 200 elementi');const e=copy(rows[i]);e.id=uid('e');e.x=clamp(e.x+20,W);e.y=clamp(e.y+20,H);e.x2=clamp(e.x2+20,W);e.y2=clamp(e.y2+20,H);rows.push(e)}
+  else if(action==='duplicate'){
+   if(rows.length+members.length>MAX)throw Error('Limite 200 elementi');
+   const groupId=members.length>1?uid('g'):undefined;
+   for(const original of members){const e=copy(original);e.id=uid('e');if(groupId)e.groupId=groupId;else delete e.groupId;
+    e.x=clamp(e.x+20,W);e.y=clamp(e.y+20,H);e.x2=clamp(e.x2+20,W);e.y2=clamp(e.y2+20,H);rows.push(e)}
+  }
   else if(action==='front'){rows.push(...rows.splice(i,1))}
   else if(action==='back'){rows.unshift(...rows.splice(i,1))}
-  else if(action==='color'){if(!COLORS.includes(payload.color))throw Error('Colore non valido');rows[i].color=payload.color}
+  else if(action==='color'){if(!COLORS.includes(payload.color))throw Error('Colore non valido');for(const e of members)e.color=payload.color}
   else if(action==='rotate')rows[i].rotation=(rows[i].rotation+90)%360;
-  else if(action==='move'){const dx=Number(payload.dx),dy=Number(payload.dy);if(!Number.isFinite(dx)||!Number.isFinite(dy)||Math.abs(dx)>W||Math.abs(dy)>H)throw Error('Spostamento non valido');for(const key of ['x','x2'])rows[i][key]=clamp(rows[i][key]+dx,W);for(const key of ['y','y2'])rows[i][key]=clamp(rows[i][key]+dy,H)}
+  else if(action==='ungroup'){if(!rows[i].groupId)throw Error('Elemento non raggruppato');for(const e of members)delete e.groupId;}
+  else if(action==='move'){const dx=Number(payload.dx),dy=Number(payload.dy);if(!Number.isFinite(dx)||!Number.isFinite(dy)||Math.abs(dx)>W||Math.abs(dy)>H)throw Error('Spostamento non valido');for(const e of members){for(const key of ['x','x2'])e[key]=clamp(e[key]+dx,W);for(const key of ['y','y2'])e[key]=clamp(e[key]+dy,H)}}
   else throw Error('Comando CAD sconosciuto');
  }
  rows.forEach(validateElement);return rows;
+}
+function snapPoint(p,elements,enabled=true,radius=18){
+ const q=point(p.x,p.y);if(!enabled)return q;
+ let best=radius+1,match=null;
+ for(const e of elements){validateElement(e);const ends=e.kind==='symbol'||e.kind==='label'?[{x:e.x,y:e.y}]:[{x:e.x,y:e.y},{x:e.x2,y:e.y2}];
+  for(const end of ends){const d=Math.hypot(q.x-end.x,q.y-end.y);if(d<best){best=d;match=end}}
+ }
+ return best<=radius?{...match}:q;
+}
+function materialSchedule(elements,scale=null){
+ if(!Array.isArray(elements)||elements.length>MAX||!validScale(scale))throw Error('Distinta CAD non valida');
+ const counts=new Map();let wallUnits=0,lineUnits=0;
+ for(const e of elements){validateElement(e);if(e.kind==='symbol')counts.set(e.text,(counts.get(e.text)||0)+1);
+  const len=Math.hypot(e.x2-e.x,e.y2-e.y);if(e.kind==='wall')wallUnits+=len;if(e.kind==='line')lineUnits+=len}
+ const meters=u=>scale==null?null:Math.round(u*scale)/100;
+ return {items:[...counts].sort((a,b)=>a[0].localeCompare(b[0])).map(([code,count])=>({code,label:SYMBOLS[code],count})),
+  wallMeters:meters(wallUnits),lineMeters:meters(lineUnits),calibrated:scale!=null};
 }
 function references(rows,kind,id){
  const fields={clienti:'clientId',immobili:'propertyId',cantieri:'siteId',impianti:'plantId'};
@@ -60,22 +90,30 @@ function references(rows,kind,id){
 }
 function el(tag,text){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n}
 function svgElement(tag,attrs,text){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs||{}))n.setAttribute(k,String(v));if(text!==undefined)n.textContent=text;return n}
-function renderSvg(elements,selected='',draft=true){
+function renderSvg(elements,selected='',draft=true,scale=null){
+ if(!validScale(scale))throw Error('Scala CAD non valida');const chosen=new Set(Array.isArray(selected)?selected:[selected]);
  const svg=svgElement('svg',{xmlns:NS,viewBox:'0 0 '+W+' '+H,width:W,height:H,role:'img','aria-label':'Disegno tecnico CAD in bozza'});
  svg.append(svgElement('rect',{x:0,y:0,width:W,height:H,fill:'#ffffff'}));
  for(let x=0;x<=W;x+=50)svg.append(svgElement('line',{x1:x,y1:0,x2:x,y2:H,stroke:'#e5eaf0','stroke-width':1}));
  for(let y=0;y<=H;y+=50)svg.append(svgElement('line',{x1:0,y1:y,x2:W,y2:y,stroke:'#e5eaf0','stroke-width':1}));
  for(const e of elements){
   const group=svgElement('g',{'data-cad-id':e.id,tabindex:'0',role:'button','aria-label':e.kind+' '+e.id});
-  const stroke=e.color,highlight=e.id===selected?'#f59e0b':stroke;
-  if(e.kind==='rect'){const x=Math.min(e.x,e.x2),y=Math.min(e.y,e.y2),w=Math.abs(e.x2-e.x),h=Math.abs(e.y2-e.y);const rect=svgElement('rect',{x,y,width:w,height:h,fill:'none',stroke:highlight,'stroke-width':e.id===selected?5:3});if(e.rotation)rect.setAttribute('transform','rotate('+e.rotation+' '+((e.x+e.x2)/2)+' '+((e.y+e.y2)/2)+')');group.append(rect)}
+  const stroke=e.color,highlight=chosen.has(e.id)?'#f59e0b':stroke;
+  if(e.kind==='symbol'){
+   const sym=svgElement('g',{transform:'translate('+e.x+' '+e.y+') rotate('+e.rotation+')'});
+   sym.append(svgElement('circle',{cx:0,cy:0,r:18,fill:'#ffffff',stroke:highlight,'stroke-width':3}));
+   sym.append(svgElement('text',{x:0,y:5,'text-anchor':'middle',fill:highlight,'font-size':12,'font-family':'sans-serif','font-weight':'bold'},e.text==='interruttore'?'INT':e.text==='radiatore'?'RAD':e.text==='caldaia'?'CAL':e.text==='quadro'?'QE':e.text==='valvola'?'V':e.text==='lavabo'?'L':e.text==='presa'?'P':e.text==='split'?'CDZ':'WC'));
+   group.append(sym);
+  }
+  else if(e.kind==='rect'){const x=Math.min(e.x,e.x2),y=Math.min(e.y,e.y2),w=Math.abs(e.x2-e.x),h=Math.abs(e.y2-e.y);const rect=svgElement('rect',{x,y,width:w,height:h,fill:'none',stroke:highlight,'stroke-width':e.id===selected?5:3});if(e.rotation)rect.setAttribute('transform','rotate('+e.rotation+' '+((e.x+e.x2)/2)+' '+((e.y+e.y2)/2)+')');group.append(rect)}
   else if(e.kind==='label'){const label=svgElement('text',{x:e.x,y:e.y,fill:highlight,'font-size':18,'font-family':'sans-serif'},e.text||'Etichetta');if(e.rotation)label.setAttribute('transform','rotate('+e.rotation+' '+e.x+' '+e.y+')');group.append(label)}
   else{
    group.append(svgElement('line',{x1:e.x,y1:e.y,x2:e.x2,y2:e.y2,stroke:highlight,'stroke-width':e.kind==='wall'?9:e.kind==='dimension'?2:3,'stroke-linecap':'round'}));
-   if(e.kind==='dimension'){const length=Math.round(Math.hypot(e.x2-e.x,e.y2-e.y));group.append(svgElement('text',{x:(e.x+e.x2)/2,y:(e.y+e.y2)/2-9,fill:highlight,'font-size':16,'font-family':'sans-serif','text-anchor':'middle'},e.text||length+' u'))}
+   if(e.kind==='dimension'){const length=Math.hypot(e.x2-e.x,e.y2-e.y);const measured=scale==null?Math.round(length)+' u':(Math.round(length*scale*10)/10)+' cm';group.append(svgElement('text',{x:(e.x+e.x2)/2,y:(e.y+e.y2)/2-9,fill:highlight,'font-size':16,'font-family':'sans-serif','text-anchor':'middle'},e.text||measured))}
   }
   svg.append(group);
  }
+ if(scale!=null)svg.append(svgElement('text',{x:15,y:24,fill:'#173451','font-size':14,'font-family':'sans-serif'},'Scala di lavoro: 1 u = '+scale+' cm (da verificare)'));
  if(draft)svg.append(svgElement('text',{x:W/2,y:H-12,'text-anchor':'middle',fill:'#b03434','font-size':18,'font-family':'sans-serif'},'I.T.E. 4.0 — BOZZA CAD — quote da verificare'));
  return svg;
 }
