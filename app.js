@@ -1695,6 +1695,27 @@ function missing(r){
  if(!r.fields.scope)out.push('Descrizione lavori');if(r.type.startsWith('Di.Co.')&&!r.fields.materials)out.push('Materiali');if(!r.fields.checks)out.push('Verifiche da documentare');if(!r.linkedDocIds.length)out.push('Originali da acquisire');out.push(...structuredMissing(r));for(const item of CHECKLIST[r.type])if(r.checklistEvidence?.[item]?.status!=='Documentato'&&r.checklistEvidence?.[item]?.status!=='Non applicabile')out.push(item+' — da verificare');return out;
 }
 
+
+/* Controlli di completezza per bozze: mai certificazione ufficiale. */
+function posSections(r){
+ if(r.type!=='POS')return [];
+ return STRUCTURED_GROUPS.POS.map((g,index)=>{const needed=g.fields.filter(f=>f[3]),missing=needed.filter(f=>!String(r.structured?.[f[0]]||'').trim()).map(f=>f[1]);return {index,title:g.title,required:needed.length,filled:needed.length-missing.length,missing}});
+}
+function qualityReport(r){
+ const issues=[],add=(area,label)=>issues.push({area,label});
+ if(!r.clientId)add('Collegamenti','Cliente assente');
+ if(!r.propertyId&&!r.siteId)add('Collegamenti','Sede o cantiere assenti');
+ if(r.type==='POS'&&!r.siteId)add('POS','Cantiere non collegato');
+ if(!String(r.fields?.scope||'').trim())add('Dati generali','Descrizione lavori assente');
+ if(!r.linkedDocIds?.length)add('Originali','Nessun originale collegato');
+ for(const g of STRUCTURED_GROUPS[r.type]||[])for(const f of g.fields)if(f[3]&&!String(r.structured?.[f[0]]||'').trim())add(g.title,f[1]+' da compilare');
+ for(const item of CHECKLIST[r.type]||[]){const v=r.checklistEvidence?.[item];if(!v||!['Documentato','Non applicabile'].includes(v.status)||!String(v.evidence||'').trim())add('Checklist',item+' da verificare');else if(v.documentId&&!r.linkedDocIds?.includes(v.documentId))add('Checklist',item+': fonte non collegata')}
+ if(r.type==='POS'&&r.structured?.inizioLavori&&r.structured?.fineLavori&&r.structured.inizioLavori>r.structured.fineLavori)add('POS','La fine lavori precede l’inizio lavori');
+ if(r.type?.startsWith('Allegato gas')&&!String(r.fields?.pdr||'').trim()&&!String(r.structured?.pdrVerificato||'').trim())add('GAS','PDR da verificare');
+ if(r.status==='Annullata')add('Stato','Pratica annullata');
+ return {issues,open:issues.length,sections:posSections(r),internallyComplete:issues.length===0&&r.status!=='Annullata'};
+}
+
 /* Fascicolo interno: nessun originale binario incorporato o dato inviato. */
 function filterTechnicalDrafts(rows,criteria={}){
  const query=String(criteria.search||'').trim().toLocaleLowerCase('it');
@@ -1760,7 +1781,7 @@ function render(){
  syncTechnicalFilters();
  const selected=filterTechnicalDrafts(all(),currentTechnicalFilters());
  $('tech-list').innerHTML='<p class="hint">Pratiche visualizzate: '+selected.length+' / '+all().length+'. Il fascicolo è una bozza HTML locale, non un documento ufficiale.</p>'+
- (selected.map(r=>'<div class="item"><strong>'+esc(r.type)+' · '+esc(r.fields.reference||'Senza numero')+'</strong><small>'+esc(r.status)+' · revisione '+r.revision+' · '+esc(name('clienti',r.clientId))+'</small><p>'+r.linkedDocIds.length+' originali collegati; '+missing(r).length+' punti da verificare</p><button data-tech-edit="'+esc(r.id)+'">Apri / revisiona</button><button class="secondary" data-tech-print="'+esc(r.id)+'">Scarica bozza</button><button class="secondary" data-tech-history="'+esc(r.id)+'">Confronta revisioni</button>'+(r.status==='Annullata'?'':'<button class="secondary" data-tech-cancel="'+esc(r.id)+'">Annulla pratica</button>')+'</div>').join('')||'<p class="hint">Nessuna pratica corrisponde ai filtri.</p>');
+ (selected.map(r=>'<div class="item"><strong>'+esc(r.type)+' · '+esc(r.fields.reference||'Senza numero')+'</strong><small>'+esc(r.status)+' · revisione '+r.revision+' · '+esc(name('clienti',r.clientId))+'</small><p>'+r.linkedDocIds.length+' originali collegati; '+missing(r).length+' punti da verificare · '+qualityReport(r).open+' controlli interni aperti</p><button type="button" class="secondary" data-tech-review="'+esc(r.id)+'">Verifica completezza</button><button data-tech-edit="'+esc(r.id)+'">Apri / revisiona</button><button class="secondary" data-tech-print="'+esc(r.id)+'">Scarica bozza</button><button class="secondary" data-tech-history="'+esc(r.id)+'">Confronta revisioni</button>'+(r.status==='Annullata'?'':'<button class="secondary" data-tech-cancel="'+esc(r.id)+'">Annulla pratica</button>')+'</div>').join('')||'<p class="hint">Nessuna pratica corrisponde ai filtri.</p>');
 }
 function downloadTechnicalHtml(html,filename){
  const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');
@@ -1773,6 +1794,16 @@ function printTechnicalDossier(){
  downloadTechnicalHtml(html,'ITE_FASCICOLO_BOZZA_'+String(criteria.clientId).replace(/[^a-z0-9_-]/gi,'_')+'.html');
  say('Fascicolo HTML locale scaricato: solo pratiche filtrate e riferimenti agli originali, nessun PDF incorporato.');
 }
+
+function showQualityReview(id){
+ const r=all().find(x=>x.id===id);if(!r)return;
+ const report=qualityReport(r),overlay=document.createElement('div');overlay.id='tech-review-overlay';overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:#102a3dc9;display:flex;align-items:center;justify-content:center;padding:12px';
+ const card=document.createElement('div');card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');card.setAttribute('aria-label','Verifica completezza pratica');card.style.cssText='background:white;color:#20313c;border-radius:12px;padding:20px;max-width:780px;max-height:90vh;overflow:auto;width:100%';
+ const sections=report.sections.length?'<h4>POS — avanzamento dei 12 blocchi</h4><ol>'+report.sections.map(s=>'<li>'+esc(s.title)+': '+s.filled+'/'+s.required+' campi essenziali compilati'+(s.missing.length?' — '+esc(s.missing.join(', ')):'')+'</li>').join('')+'</ol>':'';
+ card.innerHTML='<h3>Controllo completezza · '+esc(r.type)+'</h3><p><b>'+report.open+' controlli aperti</b> · Revisione '+esc(r.revision)+'</p><p class="hint">Controllo interno di compilazione, non certificazione, firma o prova di conformità. Anche senza punti aperti è obbligatorio verificare gli originali e usare il modello ufficiale.</p>'+sections+'<h4>Elementi da verificare</h4><ul>'+(report.issues.map(x=>'<li><b>'+esc(x.area)+'</b>: '+esc(x.label)+'</li>').join('')||'<li>Nessuna lacuna rilevata automaticamente; controlli professionali e firme ancora necessari.</li>')+'</ul><button type="button" id="tech-review-close">Chiudi verifica</button>';
+ overlay.append(card);document.body.append(overlay);card.querySelector('#tech-review-close').onclick=()=>overlay.remove();
+}
+
 function showTechnicalHistory(id){
  const r=all().find(x=>x.id===id);if(!r)return;
  const snapshots=[...r.history.map(h=>h.before),r],last=snapshots.slice(-11);
@@ -1813,12 +1844,24 @@ function editor(row=null,context={}){
  const db=core(),r=row||{type:'Di.Co. elettrica',status:'Bozza',clientId:context.clientId||'',propertyId:context.propertyId||'',plantId:context.plantId||'',deviceId:context.deviceId||'',siteId:context.siteId||'',interventionId:context.interventionId||'',date:'',fields:{},linkedDocIds:[]},f=r.fields||{},host=$('tech-editor');
  host.hidden=false;host.dataset.id=row?.id||'';
  const fields=[['reference','Riferimento / numero','input'],['scope','Descrizione lavori','textarea'],['materials','Materiali','textarea'],['checks','Verifiche e prove (da documentare)','textarea'],['pdr','PDR (non dedotto)','input'],['risks','Rischi / misure','textarea'],['ppe','DPI / attrezzature','textarea'],['notes','Note','textarea']];
- host.innerHTML='<h3>'+esc(row?'Revisione pratica':'Nuova pratica')+'</h3><p class="hint">Compila solo informazioni verificate. Non sostituisce il modulo ufficiale.</p><form id="tech-form"><div class="grid"><label>Tipo<select name="type">'+Object.keys(CHECKLIST).map(t=>'<option '+(t===r.type?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select></label><label>Stato<select name="status"><option>Bozza</option><option>Da verificare</option></select></label><label>Cliente<select name="clientId" required>'+opts(db.clienti,r.clientId,'— Cliente —')+'</select></label><label>Sede<select name="propertyId"></select></label><label>Impianto<select name="plantId"></select></label><label>Apparecchiatura<select name="deviceId"></select></label><label>Cantiere<select name="siteId"></select></label><label>Intervento / appuntamento<select name="interventionId"></select></label><label>Data<input name="date" type="date" value="'+esc(r.date||'')+'"></label></div>'+fields.map(([k,label,type])=>'<label>'+esc(label)+(type==='input'?'<input name="'+k+'" maxlength="4000" value="'+esc(f[k]||'')+'">':'<textarea name="'+k+'" rows="3" maxlength="4000">'+esc(f[k]||'')+'</textarea>')+'</label>').join('')+'<h4>Compilazione guidata per sezioni</h4><p class="hint">I campi non compilati restano da verificare. Nessuna prova o firma viene attestata automaticamente.</p><div id="tech-structured"></div><p class="hint">I suggerimenti provengono dalle schede locali: controlla committente, indirizzo, PDR e descrizioni prima dell’uso. Non sono verifiche certificate.</p><button type="button" id="tech-autofill" class="secondary">Riprendi dati da anagrafica e intervento</button><button type="button" id="tech-original-reference" class="secondary">Riprendi numero da originale selezionato</button><button type="button" id="tech-original-proposals" class="secondary">Leggi campi dagli originali selezionati</button><div id="tech-original-preview" role="status"></div><h4>Allegati e controlli previsti</h4><ul id="tech-checklist"></ul><h4>Originali tecnici già importati</h4><div id="tech-docs"></div><div class="actions"><button type="submit">Salva con backup e storico</button><button type="button" id="tech-close" class="secondary">Chiudi senza salvare</button></div></form>';
+ host.innerHTML='<h3>'+esc(row?'Revisione pratica':'Nuova pratica')+'</h3><p class="hint">Compila solo informazioni verificate. Non sostituisce il modulo ufficiale.</p><form id="tech-form"><div class="grid"><label>Tipo<select name="type">'+Object.keys(CHECKLIST).map(t=>'<option '+(t===r.type?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select></label><label>Stato<select name="status"><option>Bozza</option><option>Da verificare</option></select></label><label>Cliente<select name="clientId" required>'+opts(db.clienti,r.clientId,'— Cliente —')+'</select></label><label>Sede<select name="propertyId"></select></label><label>Impianto<select name="plantId"></select></label><label>Apparecchiatura<select name="deviceId"></select></label><label>Cantiere<select name="siteId"></select></label><label>Intervento / appuntamento<select name="interventionId"></select></label><label>Data<input name="date" type="date" value="'+esc(r.date||'')+'"></label></div>'+fields.map(([k,label,type])=>'<label>'+esc(label)+(type==='input'?'<input name="'+k+'" maxlength="4000" value="'+esc(f[k]||'')+'">':'<textarea name="'+k+'" rows="3" maxlength="4000">'+esc(f[k]||'')+'</textarea>')+'</label>').join('')+'<h4>Compilazione guidata per sezioni</h4><p class="hint">I campi non compilati restano da verificare. Nessuna prova o firma viene attestata automaticamente.</p><div id="tech-pos-nav" role="group" aria-label="Navigazione POS"></div><div id="tech-structured"></div><p class="hint">I suggerimenti provengono dalle schede locali: controlla committente, indirizzo, PDR e descrizioni prima dell’uso. Non sono verifiche certificate.</p><button type="button" id="tech-autofill" class="secondary">Riprendi dati da anagrafica e intervento</button><button type="button" id="tech-original-reference" class="secondary">Riprendi numero da originale selezionato</button><button type="button" id="tech-original-proposals" class="secondary">Leggi campi dagli originali selezionati</button><div id="tech-original-preview" role="status"></div><h4>Allegati e controlli previsti</h4><ul id="tech-checklist"></ul><h4>Originali tecnici già importati</h4><div id="tech-docs"></div><div class="actions"><button type="submit">Salva con backup e storico</button><button type="button" id="tech-close" class="secondary">Chiudi senza salvare</button></div></form>';
  const form=$('tech-form'),detailsCache=Object.create(null),autoFilled=new Map(),originalPrefill=new Map(Object.entries(r.originalPrefill||{}));form._iteOriginalPrefill=originalPrefill;detailsCache[r.type]=copy(r.structured||{});
  let previousType=r.type;
  const snapshotDetails=()=>Object.fromEntries([...form.querySelectorAll('[data-tech-detail]')].map(el=>[el.dataset.techDetail,String(el.value||'').trim()]));
- const drawDetails=()=>$('tech-structured').innerHTML=renderStructured(form.elements.type.value,detailsCache[form.elements.type.value]||{});
+
+ let posStep=0;
+ function updatePosNav(){
+  const nav=$('tech-pos-nav');if(!nav)return;
+  if(form.elements.type.value!=='POS'){nav.hidden=true;nav.replaceChildren();return}
+  nav.hidden=false;const sections=posSections({type:'POS',structured:snapshotDetails()});posStep=Math.min(Math.max(0,posStep),11);
+  const s=sections[posStep];nav.innerHTML='<p><b>POS — sezione '+(posStep+1)+' di 12</b> · '+esc(s.title)+'</p><p class="hint">'+s.filled+'/'+s.required+' campi essenziali compilati in questa sezione.</p><div class="actions"><button type="button" class="secondary" data-pos-prev '+(posStep===0?'disabled':'')+'>Precedente</button><button type="button" class="secondary" data-pos-next '+(posStep===11?'disabled':'')+'>Successiva</button><button type="button" class="secondary" data-pos-missing>Prima sezione incompleta</button></div>';
+  const move=i=>{posStep=i;form.querySelectorAll('[data-tech-section]').forEach((el,j)=>{el.open=j===i});updatePosNav();form.querySelectorAll('[data-tech-section]')[i]?.scrollIntoView({block:'nearest'})};
+  nav.querySelector('[data-pos-prev]').onclick=()=>move(Math.max(0,posStep-1));nav.querySelector('[data-pos-next]').onclick=()=>move(Math.min(11,posStep+1));
+  nav.querySelector('[data-pos-missing]').onclick=()=>{const next=sections.find(s=>s.missing.length);if(next)move(next.index);else say('Campi essenziali compilati: verificare comunque originali, checklist e firme.')};
+ }
+ const drawDetails=()=>{$('tech-structured').innerHTML=renderStructured(form.elements.type.value,detailsCache[form.elements.type.value]||{});posStep=0;updatePosNav()};
  drawDetails();
+ form.addEventListener('input',e=>{if(e.target.matches('[data-tech-detail]'))updatePosNav()});
  form.elements.status.value=r.status==='Annullata'?'Bozza':r.status;form.elements.clientId.value=String(r.clientId||'');cascade(r.checklistEvidence||{});
  for(const k of ['propertyId','plantId','deviceId','siteId']){form.elements[k].value=String(r[k]||'');cascade();}
  form.elements.interventionId.value=String(r.interventionId||'');cascade(r.checklistEvidence||{});
@@ -1938,13 +1981,13 @@ function interventionButton(){
 }
 panel.addEventListener('input',e=>{if(e.target.id==='tech-filter-search')render()});
 panel.addEventListener('change',e=>{if(e.target.closest('#tech-filters')){if(e.target.id==='tech-filter-client'){$('tech-filter-property').value='';$('tech-filter-site').value=''}render()}});
-panel.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.techEdit||b.dataset.techPrint||b.dataset.techCancel||b.dataset.techHistory;if(b.id==='tech-new')editor();else if(b.id==='tech-refresh')render();else if(b.id==='tech-dossier'){try{printTechnicalDossier()}catch(err){say('Fascicolo non esportato: '+err.message)}}else if(b.dataset.techEdit)editor(all().find(x=>x.id===id));else if(b.dataset.techPrint)printDraft(id);else if(b.dataset.techHistory)showTechnicalHistory(id);else if(b.dataset.techCancel)cancel(id).catch(err=>say(err.message))});
+panel.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.techEdit||b.dataset.techPrint||b.dataset.techCancel||b.dataset.techHistory;if(b.id==='tech-new')editor();else if(b.id==='tech-refresh')render();else if(b.id==='tech-dossier'){try{printTechnicalDossier()}catch(err){say('Fascicolo non esportato: '+err.message)}}else if(b.dataset.techReview)showQualityReview(b.dataset.techReview);else if(b.dataset.techEdit)editor(all().find(x=>x.id===id));else if(b.dataset.techPrint)printDraft(id);else if(b.dataset.techHistory)showTechnicalHistory(id);else if(b.dataset.techCancel)cancel(id).catch(err=>say(err.message))});
 function siteButton(){const host=$('worksite-detail');if(!host||ITERouter.current()!=='scheda-cantiere'||host.querySelector('[data-tech-site]'))return;const id=host.querySelector('[data-work-edit]')?.dataset.workEdit,site=core().cantieri.find(x=>same(x.id,id));if(!site)return;const b=document.createElement('button');b.className='secondary';b.type='button';b.dataset.techSite=id;b.textContent='+ Pratica tecnica per questo cantiere';b.onclick=()=>openFor({clientId:site.client_id,propertyId:site.immobile_id||'',siteId:id});host.append(b)}
 new MutationObserver(()=>siteButton()).observe($('worksite-detail'),{childList:true});
 new MutationObserver(()=>interventionButton()).observe($('appointment-detail'),{childList:true});
 window.addEventListener('ite-pagechange',()=>{if(ITERouter.current()==='importazioni')render();if(ITERouter.current()==='scheda-cantiere')siteButton();if(ITERouter.current()==='scheda-intervento')interventionButton()});
 const previousRemove=ITE.remove;ITE.remove=(k,id)=>{const keys={clienti:'clientId',immobili:'propertyId',impianti:'plantId',apparecchiature:'deviceId',cantieri:'siteId',interventi:'interventionId'};if(keys[k]&&all().some(r=>same(r[keys[k]],id)))return alert('Scheda collegata a pratiche tecniche: cancellazione bloccata.');return previousRemove(k,id)};
-window.ITETechnicalDrafts={originalCandidates,originalSuggestions,validate:validateDrafts,missing,structuredGroups:STRUCTURED_GROUPS,openFor,render,contextForIntervention,suggestions,filterTechnicalDrafts,technicalDossierHtml,revisionChanges};try{validateDrafts(commerce(),core());render()}catch(e){say('Archivio pratiche non valido: '+e.message+'. Conserva il backup; modifiche bloccate.');$('tech-new').disabled=true;$('tech-refresh').disabled=true;}
+window.ITETechnicalDrafts={qualityReport,posSections,originalCandidates,originalSuggestions,validate:validateDrafts,missing,structuredGroups:STRUCTURED_GROUPS,openFor,render,contextForIntervention,suggestions,filterTechnicalDrafts,technicalDossierHtml,revisionChanges};try{validateDrafts(commerce(),core());render()}catch(e){say('Archivio pratiche non valido: '+e.message+'. Conserva il backup; modifiche bloccate.');$('tech-new').disabled=true;$('tech-refresh').disabled=true;}
 })();
 /* ITE_TECHNICAL_DRAFTS_END */
 

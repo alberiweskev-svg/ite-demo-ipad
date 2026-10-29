@@ -46,6 +46,8 @@ jobs:
         run: node dev/test_400_quotes.cjs
       - name: Test integrated Di.Co. Di.Ri. GAS POS technical drafts and intervention prefill
         run: node dev/test_400_technical_drafts.cjs
+      - name: Test POS navigation and technical completeness assessment
+        run: node dev/test_400_technical_review.cjs
       - name: Test technical dossier, filters and revision comparisons
         run: node dev/test_400_technical_dossier.cjs
       - name: Test technical PDF bytes, privacy, pagination and client isolation

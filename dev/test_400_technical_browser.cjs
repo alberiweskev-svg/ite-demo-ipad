@@ -66,6 +66,10 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.locator('#tech-new').click();
  await page.locator('#tech-form [name="type"]').selectOption('POS');
  assert.equal(await page.locator('[data-tech-section]').count(),12,'POS must expose twelve guided sections');
+  assert.match(await page.locator('#tech-pos-nav').innerText(),/sezione 1 di 12/);
+  await page.locator('[data-pos-next]').click();
+  assert.match(await page.locator('#tech-pos-nav').innerText(),/sezione 2 di 12/);
+  await page.locator('[data-pos-prev]').click();
  await page.locator('#tech-form [name="clientId"]').selectOption('1');
  await page.locator('#tech-form [name="propertyId"]').selectOption('1');
  await page.locator('#tech-form [name="reference"]').fill('POS-TEST-001');
@@ -80,6 +84,10 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(pos.draft.structured.inizioLavori,'2026-10-29');
  assert.equal(pos.draft.structured.rischi,'Rischi fittizi da verificare');
  assert.equal(pos.backup,2,'Full backup lost one of the technical drafts');
+  await page.locator('[data-tech-review]').last().click();
+  assert.match(await page.locator('#tech-review-overlay').innerText(),/12 blocchi/);
+  assert.match(await page.locator('#tech-review-overlay').innerText(),/controlli aperti/);
+  await page.locator('#tech-review-close').click();
 
 
  // Collegamento da intervento fittizio: cliente, sede, impianto, apparecchio e dati suggeriti.
