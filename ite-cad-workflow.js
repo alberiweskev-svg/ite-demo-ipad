@@ -85,7 +85,7 @@ function mount(){
  const vat=select('IVA da verificare');for(const v of [10,22])vat.append(new Option(v+'%',String(v)));
  const buttons=document.createElement('div');buttons.className='actions';panel.append(buttons);
  const button=(label,handler)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=handler;buttons.append(b);return b};
- const status=document.createElement('p');status.setAttribute('role','status');status.className='hint';panel.append(status);
+ const status=document.createElement('p');status.setAttribute('aria-live','polite');status.className='hint';panel.append(status);
  const info=document.createElement('div');panel.append(info);
  const say=s=>{status.textContent=s};
  const fill=(el,rows,placeholder)=>{const prev=el.value;el.replaceChildren(new Option(placeholder,''));for(const [id,name] of rows)el.append(new Option(name,String(id)));if([...el.options].some(o=>o.value===prev))el.value=prev};
