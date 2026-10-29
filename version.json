@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-29",
-  "notes": "Milestone 23: schede PDF AcroForm modificabili per Di.Co. elettrica/idrica, Di.Ri., GAS H40/I40/A12/B12 e POS, con precompilazione da pratiche, campi strutturati, paginazione, isolamento cliente/sede, avvertenze di bozza e test sintetici. Non sono modelli ufficiali; modifiche al PDF non si sincronizzano nel gestionale. main 3.0.74 e Windows 2.7.5 preservati."
+  "notes": "Milestone 24: importazione controllata dei PDF AcroForm compilati con metadati di pratica e revisione, confronto differenze, scelta esplicita sovrascritture, validazione, backup preventivo, storico revisioni e audit. PDF non ufficiali e non firmati. Test sintetici; collaudo Safari fisico e modelli originali 2.7.5 ancora da completare. main 3.0.74 invariato."
 }
