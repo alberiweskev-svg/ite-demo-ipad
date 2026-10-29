@@ -56,6 +56,7 @@ jobs:
         run: |
           node --check ite-cad.js
           node dev/test_400_cad.cjs
+          node dev/test_400_cad_advanced.cjs
       - name: Test technical dossier, filters and revision comparisons
         run: node dev/test_400_technical_dossier.cjs
       - name: Test technical PDF bytes, privacy, pagination and client isolation
