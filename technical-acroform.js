@@ -124,7 +124,7 @@ function previewImport(row,values,groups){
    throw Error('Campo PDF non riconosciuto o non valido: '+name);
  }
  for(const key of metadataKeys){
-  const name='system.'+key,expectedValue=text(row[key]);
+  const name='system.'+key,expectedValue=key==='practiceId'?text(row.id):text(row[key]);
   if(!Object.hasOwn(values,name)||values[name]!==expectedValue)
    throw Error('PDF di altra pratica, revisione superata o collegamenti non corrispondenti: '+key);
  }
