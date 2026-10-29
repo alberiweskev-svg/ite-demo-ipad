@@ -45,7 +45,7 @@ function compose(rows,clientId,docs,base){
    out.push({text:[d.type,d.number,d.date,d.sourceName].filter(Boolean).map(safe).join(' | ')||'Originale '+safe(id)});
   }
   const provenance=Object.entries(r.originalPrefill||{});
-  if(provenance.length){out.push({text:'PROVENIENZA DEI CAMPI PRECOMPILATI'});for(const [k,v] of provenance)out.push({text:label(k)+' = '+safe(v?.value)+' (originale '+safe(v?.documentId)+')'});}
+  if(provenance.length){out.push({text:'PROVENIENZA DEI CAMPI PRECOMPILATI'});for(const [k,v] of provenance){const source=find(docs,v?.documentId);out.push({text:source&&same(source.clientId,clientId)?label(k)+' = '+safe(v?.value)+' (originale '+safe(v?.documentId)+')':label(k)+': fonte non verificabile, valore escluso'});}}
   out.push({text:'VERIFICHE APERTE: le voci non documentate richiedono controllo umano.'});
   out.push({text:'Questo fascicolo non attesta prove, conformita, firme o invii.'});
  }
