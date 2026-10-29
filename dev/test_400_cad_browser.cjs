@@ -20,8 +20,8 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.locator('#ite-cad input[placeholder="Titolo del disegno"]').fill('Schema sintetico TEST');
  await page.getByRole('button',{name:'Muro',exact:true}).click();
  const svg=page.locator('#ite-cad svg'),box=await svg.boundingBox();assert(box);
- await page.mouse.move(box.x+box.width*.1,box.y+box.height*.1);await page.mouse.down();
- await page.mouse.move(box.x+box.width*.55,box.y+box.height*.1);await page.mouse.up();
+ await page.mouse.move(box.x+box.width*.35,box.y+box.height*.1);await page.mouse.down();
+ await page.mouse.move(box.x+box.width*.65,box.y+box.height*.1);await page.mouse.up();
  assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),1,'CAD drawing failed: '+await page.locator('#ite-cad [role=status]').innerText()+' | errors '+errors.join('; '));
  await page.getByRole('button',{name:'Salva con backup e revisione'}).click();
  await page.waitForFunction(()=>ITECommerce.snapshot().settings.cadDrawings?.[0]?.revision===1,{timeout:60000});
@@ -29,7 +29,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(result.drawings.length,1);assert.equal(result.backup.length,1);assert.equal(result.drawings[0].elements.length,1);
  assert(result.history.some(x=>x.includes('Prima modifica CAD')));
  await page.getByRole('button',{name:'Seleziona / sposta'}).click();
- await page.mouse.click(box.x+box.width*.3,box.y+box.height*(70/650));
+ await page.mouse.click(box.x+box.width*.5,box.y+box.height*(70/650));
  await page.getByRole('button',{name:'Duplica'}).click();
  assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),2);
  await page.getByRole('button',{name:'Annulla',exact:true}).click();
