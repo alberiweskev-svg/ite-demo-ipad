@@ -16,9 +16,10 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.evaluate(async()=>{
   const raw=new TextEncoder().encode('ORIGINALE TECNICO FITTIZIO: NESSUNA FIRMA O PROVA');
   const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',raw))].map(x=>x.toString(16).padStart(2,'0')).join('');
+  const fileId='file_'+hash;
   await ITECommerce.mutate(next=>{
-   next.files.push({id:'file_tech_test',base64:btoa(String.fromCharCode(...raw)),size:raw.length,hash});
-   next.documents.push({id:'doc_tech_test',type:'Di.Co. elettrica',fileId:'file_tech_test',clientId:'1',propertyId:'1',siteId:'',lines:[],number:'DICO-ORIG-TEST-007',sourceName:'dico_fittizia.txt',date:'2026-10-28'});
+   next.files.push({id:fileId,base64:btoa(String.fromCharCode(...raw)),size:raw.length,hash});
+   next.documents.push({id:'doc_tech_test',type:'Di.Co. elettrica',fileId,clientId:'1',propertyId:'1',siteId:'',lines:[],number:'DICO-ORIG-TEST-007',sourceName:'dico_fittizia.txt',date:'2026-10-28'});
   });
  });
  await page.locator('#tech-new').click();
