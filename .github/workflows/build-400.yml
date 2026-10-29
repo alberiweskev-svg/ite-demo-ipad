@@ -16,6 +16,8 @@ on:
       - 'ite-cad.js'
       - 'ite-cad-workflow.js'
       - 'technical-structured-docs.js'
+      - 'technical-pdf.js'
+      - 'dev/test_400_technical_pdf.cjs'
       - 'dev/test_400_structured_docs.cjs'
       - 'dev/test_400_structured_docs_browser.cjs'
       - 'dev/test_400_cad_workflow.cjs'
@@ -71,6 +73,10 @@ jobs:
         run: |
           node --check technical-structured-docs.js
           node dev/test_400_structured_docs.cjs
+      - name: Contextual technical PDF validation and isolation tests
+        run: |
+          node --check technical-pdf.js
+          node dev/test_400_technical_pdf.cjs
       - name: Verify generated script integrity without pushing
         run: |
           node dev/sync_sri.cjs --write
