@@ -44,6 +44,10 @@ jobs:
         run: |
           node --check ite-financial-desk.js
           node dev/test_400_financial_desk.cjs
+      - name: Test invoice attribution to approved quotes, partial extras and SAL (synthetic)
+        run: |
+          node --check ite-contract-billing.js
+          node dev/test_400_contract_billing.cjs
       - name: Test warehouse stock and references
         run: node dev/test_400_warehouse.cjs
       - name: Test itemized quotes and supply/install separation
@@ -151,6 +155,7 @@ jobs:
           test -s "$RUNNER_TEMP/ite-4-preview/ite-cad-workflow.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-maintenance-planner.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-financial-desk.js"
+          test -s "$RUNNER_TEMP/ite-4-preview/ite-contract-billing.js"
           test -s "$RUNNER_TEMP/ite-4-preview/vault.js"
           test -s "$RUNNER_TEMP/ite-4-preview/version.json"
           test -s "$RUNNER_TEMP/ite-4-preview/AVVIA_ANTEPRIMA_WINDOWS.bat"
@@ -256,6 +261,12 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_financial_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Chromium worksite quote/extra to invoice allocation and reversal (synthetic)
+        run: node dev/test_400_contract_billing_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit worksite quote/extra to invoice allocation and reversal (synthetic)
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_contract_billing_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Browser accounting import, backup and encrypted reopen (synthetic invoice)
         run: node dev/test_400_accounting_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Upload tested development preview

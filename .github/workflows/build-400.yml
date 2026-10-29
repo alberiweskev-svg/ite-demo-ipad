@@ -13,6 +13,8 @@ on:
       - 'dev/test_400_posted_documents.cjs'
       - 'dev/test_400_linked_views.cjs'
       - 'app.js'
+      - 'ite-contract-billing.js'
+      - 'dev/test_400_contract_billing.cjs'
       - 'ite-cad.js'
       - 'ite-cad-workflow.js'
       - 'technical-structured-docs.js'
@@ -59,6 +61,10 @@ jobs:
         run: node dev/test_400_backup.cjs
       - name: Encrypted legacy import regression tests
         run: node dev/test_400_core_import.cjs
+      - name: Contract billing attribution and SAL regression tests
+        run: |
+          node --check ite-contract-billing.js
+          node dev/test_400_contract_billing.cjs
       - name: Warehouse stock regression tests
         run: node dev/test_400_warehouse.cjs
       - name: Posted stock document immutability tests
