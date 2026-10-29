@@ -74,6 +74,37 @@ const server=http.createServer((req,res)=>{try{
   assert.match(await page.locator('#tech-status').innerText(),/attività/);
   assert.equal(await page.evaluate(()=>JSON.stringify(ITECommerce.snapshot().settings.technicalDrafts)),before);
   assert.deepEqual(errors,[]);
+  // One original synthetic PDF is saved to the encrypted test vault; ZIP export stays local.
+  await page.evaluate(async()=>{
+   const bytes=new TextEncoder().encode('%PDF-1.4\nDOCUMENTO SINTETICO - NON VALIDO\n');
+   const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(b=>b.toString(16).padStart(2,'0')).join('');
+   const encoded=btoa(String.fromCharCode(...bytes));
+   await ITECommerce.mutate(next=>{
+    next.files.push({id:'file_'+hash,hash,name:'originale_fittizio.pdf',size:bytes.length,base64:encoded});
+    next.documents.push({id:'doc_originale_fittizio',fileId:'file_'+hash,type:'Di.Co. idrica / termica',
+     clientId:'1',subjectId:'1',propertyId:'1',siteId:'',lines:[],number:'TEST-ORIG-1',sourceName:'originale_fittizio.pdf'});
+    const row=next.settings.technicalDrafts.find(p=>p.fields.reference==='STRUCT-TEST-001');
+    if(!row)throw Error('Missing synthetic draft');
+    row.linkedDocIds=['doc_originale_fittizio'];
+   });
+   ITETechnicalDrafts.render();
+  });
+  await page.locator('#tech-dossier-originals').waitFor({state:'visible'});
+  page.once('dialog',dialog=>dialog.accept());
+  const zipDownload=page.waitForEvent('download');
+  await page.locator('#tech-dossier-originals').click();
+  const archive=await zipDownload;
+  assert.match(archive.suggestedFilename(),/^ITE_FASCICOLO_ORIGINALI_BOZZA_.*\.zip$/);
+  const JSZip=require(path.join(root,'vendor/jszip.min.js'));
+  const z=await JSZip.loadAsync(fs.readFileSync(await archive.path()));
+  const manifest=JSON.parse(await z.file('manifest.json').async('string'));
+  assert.equal(manifest.format,'ITE-4-TECHNICAL-EVIDENCE-1');
+  assert.equal(manifest.documents.length,1);
+  assert.equal(manifest.documents[0].number,'TEST-ORIG-1');
+  assert.match(await z.file(manifest.documents[0].filePath).async('string'),/DOCUMENTO SINTETICO/);
+  assert.match(await z.file('FASCICOLO_BOZZA.html').async('string'),/STRUCT-TEST-001/);
+  assert.match(await page.locator('#tech-status').innerText(),/SHA-256/);
+  assert.equal((await page.evaluate(()=>ITECommerce.snapshot().settings.technicalDrafts)).length,1);
   console.log('OK: '+engine.name()+' structured A4 document and filtered dossier, vault guard, no archive mutation');
  }finally{await browser.close();server.close()}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1});
