@@ -93,6 +93,25 @@ function mount(){
    const input=element('input');input.type='text';input.maxLength=MAX_PART;input.style.width='100%';
    wrapper.append(input);grid.append(wrapper);return input;
   });
+  if(cfg.key==='personale'&&root.ITE?.snapshot){
+   const roles=new Set(['Dipendente','Tecnico','Titolare','Operatore','Collaboratore esterno']);
+   const workers=(root.ITE.snapshot().clienti||[]).filter(x=>Array.isArray(x.roles)&&x.roles.some(role=>roles.has(role)));
+   if(workers.length){
+    const source=element('label');source.append(element('span','Riprendi un nominativo dall’anagrafica (facoltativo)'));
+    const picker=element('select');picker.append(new Option('— Seleziona —',''));
+    workers.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'it')).forEach(x=>picker.append(new Option(String(x.name||'Senza nominativo'),String(x.id))));
+    source.append(picker);
+    picker.addEventListener('change',()=>{
+     const worker=workers.find(x=>String(x.id)===picker.value);
+     if(!worker)return;
+     inputs[0].value=String(worker.name||'').slice(0,MAX_PART);
+     inputs[1].value=String(worker.job_role||'').slice(0,MAX_PART);
+     inputs[2].value='';
+     status.textContent='Nominativo ripreso dall’anagrafica. Verifica mansione e abilitazioni; nessuna formazione è attestata automaticamente.';
+    });
+    details.append(source);
+   }
+  }
   const controls=element('div');controls.className='actions';
   const add=element('button','Aggiungi riga');add.type='button';
   const reset=element('button','Annulla modifica','secondary');reset.type='button';reset.hidden=true;
