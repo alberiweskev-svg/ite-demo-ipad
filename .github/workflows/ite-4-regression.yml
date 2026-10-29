@@ -40,6 +40,10 @@ jobs:
         run: node dev/test_400_persist.cjs
       - name: Test posted accounting documents remain immutable
         run: node dev/test_400_posted_documents.cjs
+      - name: Test integrated financial settlements and TD04 credit notes (synthetic)
+        run: |
+          node --check ite-financial-desk.js
+          node dev/test_400_financial_desk.cjs
       - name: Test warehouse stock and references
         run: node dev/test_400_warehouse.cjs
       - name: Test itemized quotes and supply/install separation
@@ -146,6 +150,7 @@ jobs:
           test -s "$RUNNER_TEMP/ite-4-preview/ite-cad.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-cad-workflow.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-maintenance-planner.js"
+          test -s "$RUNNER_TEMP/ite-4-preview/ite-financial-desk.js"
           test -s "$RUNNER_TEMP/ite-4-preview/vault.js"
           test -s "$RUNNER_TEMP/ite-4-preview/version.json"
           test -s "$RUNNER_TEMP/ite-4-preview/AVVIA_ANTEPRIMA_WINDOWS.bat"
