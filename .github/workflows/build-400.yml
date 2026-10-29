@@ -13,6 +13,9 @@ on:
       - 'dev/test_400_posted_documents.cjs'
       - 'dev/test_400_linked_views.cjs'
       - 'app.js'
+      - 'ite-cad.js'
+      - 'dev/test_400_cad_catalog.cjs'
+      - 'dev/test_400_cad_browser.cjs'
       - 'index.html'
       - 'vault.js'
       - '.github/workflows/build-400.yml'
@@ -46,6 +49,12 @@ jobs:
         run: node dev/test_400_posted_documents.cjs
       - name: Linked site and customer views tests
         run: node dev/test_400_linked_views.cjs
+      - name: CAD catalog and metric drawing regression tests
+        run: |
+          node --check ite-cad.js
+          node dev/test_400_cad.cjs
+          node dev/test_400_cad_advanced.cjs
+          node dev/test_400_cad_catalog.cjs
       - name: Verify generated script integrity without pushing
         run: |
           node dev/sync_sri.cjs
