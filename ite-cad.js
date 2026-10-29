@@ -106,7 +106,7 @@ function catalogSchedule(elements,scale,articles=[],movements=[]){
   let stock=0;
   for(const m of related){const q=typeof m.quantity==='number'?m.quantity:typeof m.quantity==='string'&&m.quantity.trim()?Number(m.quantity):NaN;if(!Number.isFinite(q)){stock=null;break}stock+=q}
   const valid=!!article&&compatible;
-  const warning=!article?'Articolo non associato o non più presente':!compatible?'Unità non compatibile con il conteggio pezzi':stock===null?'Giacenza non verificabile':price===null?'Prezzo archivio mancante':'';
+  const warning=!article?'Articolo non associato o non più presente':!compatible?'Unità non compatibile con il conteggio pezzi':stock===null?'Giacenza non verificabile':stock<row.count?'Giacenza inferiore ai simboli (nessuna prenotazione)':price===null?'Prezzo archivio mancante':'';
   return {...row,label:SYMBOLS[row.symbol],articleCode:String(article?.code||''),description:String(article?.description||''),unit,price:valid?price:null,priceRole:String(article?.priceRole||'non specificato'),stock:valid?stock:null,shortage:valid&&stock!==null?Math.max(0,row.count-stock):null,estimated:valid&&price!==null?Math.round(row.count*price*100)/100:null,warning};
  });
  const allPriced=items.length>0&&items.every(x=>x.estimated!==null);
