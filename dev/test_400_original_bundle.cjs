@@ -55,6 +55,6 @@ const rows=[p],commerce={files:[file]},before=JSON.stringify({rows,docs,base,com
  await assert.rejects(invalid(file,[{...p,clientId:'2'}]),/cliente diverso/);
  await assert.rejects(invalid(file,[{...p,propertyId:'s2'}]),/Collegamenti/);
  await assert.rejects(invalid(file,[p,p]),/duplicata/);
- assert.throws(()=>api.packageOriginalRefs(Array.from({length:31},(_,i)=>({...p,id:'p'+i,linkedDocIds:['d1']})),'1',docs,base),/1 a 50|duplicata|Nessun/); // 31 practices, one unique original: still safe
+ assert.equal(api.packageOriginalRefs(Array.from({length:31},(_,i)=>({...p,id:'p'+i,linkedDocIds:['d1']})),'1',docs,base).length,1,'Same original shared across practices is deduplicated');
  console.log('OK: ZIP technical originals SHA-256, dedup, manifest, A4+CSV, anti-path-traversal, client isolation and read-only');
 })().catch(e=>{console.error(e);process.exitCode=1});
