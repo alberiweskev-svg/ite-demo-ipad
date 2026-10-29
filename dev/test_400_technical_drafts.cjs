@@ -20,6 +20,14 @@ assert.equal(context.validateDrafts({settings:{},documents:[]},base),true);
 
 const checked={...row,checklistEvidence:{'Schema impianto':{status:'Documentato',evidence:'Schema sintetico TEST-001'},'Progetto se richiesto':{status:'Non applicabile',evidence:'Caso sintetico: motivazione da verificare'}}};
 assert.equal(context.validateDrafts({settings:{technicalDrafts:[checked]},documents:[doc]},base),true);
+const sourced={...checked,checklistEvidence:{'Schema impianto':{status:'Documentato',evidence:'Schema TEST',documentId:'doc_TEST'}}};
+assert.equal(context.validateDrafts({settings:{technicalDrafts:[sourced]},documents:[doc]},base),true);
+for(const invalid of [
+ {...sourced,linkedDocIds:[]},
+ {...sourced,checklistEvidence:{'Schema impianto':{status:'Documentato',evidence:'TEST',documentId:'doc_UNKNOWN'}}},
+ {...sourced,checklistEvidence:{'Schema impianto':{status:'Da verificare',evidence:'TEST',documentId:'doc_TEST'}}},
+ {...sourced,checklistEvidence:{'Schema impianto':{status:'Documentato',evidence:'TEST',documentId:7}}}
+])assert.throws(()=>context.validateDrafts({settings:{technicalDrafts:[invalid]},documents:[doc]},base));
 assert(!context.missing(checked).includes('Schema impianto — da verificare'));
 assert(context.missing(checked).includes('Materiali — da verificare'));
 for(const checklistEvidence of [
@@ -55,6 +63,10 @@ assert.match(s,/structuredRows/);
 assert.match(s,/checklistEvidence:Object\.fromEntries/);
 assert.match(s,/validateDrafts\(\{settings:\{technicalDrafts:/);
 assert.match(s,/checklistRows/);
+assert.match(s,/data-tech-source/);
+assert.match(s,/tech-original-reference/);
+assert.match(s,/Registro originali tecnici collegati/);
+assert.match(app,/date:d\.date/);
 
 assert.match(s,/ITEHistory\.create\('Prima revisione pratica tecnica'\)/);assert.match(s,/ITECommerce\.mutate/);
 assert.match(s,/BOZZA DI LAVORO · NON VALIDA · NON FIRMATA/);assert.match(app,/ITETechnicalDrafts\.validate\(value,core\)/);

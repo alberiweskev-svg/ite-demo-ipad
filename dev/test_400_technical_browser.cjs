@@ -13,12 +13,23 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
  await page.evaluate(()=>ITERouter.show('importazioni','push'));
  assert.equal(await page.locator('#technical-drafts-panel').isVisible(),true);
+ await page.evaluate(async()=>{
+  const raw=new TextEncoder().encode('ORIGINALE TECNICO FITTIZIO: NESSUNA FIRMA O PROVA');
+  const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',raw))].map(x=>x.toString(16).padStart(2,'0')).join('');
+  await ITECommerce.mutate(next=>{
+   next.files.push({id:'file_tech_test',base64:btoa(String.fromCharCode(...raw)),size:raw.length,hash});
+   next.documents.push({id:'doc_tech_test',type:'Di.Co. elettrica',fileId:'file_tech_test',clientId:'1',propertyId:'1',siteId:'',lines:[],number:'DICO-ORIG-TEST-007',sourceName:'dico_fittizia.txt',date:'2026-10-28'});
+  });
+ });
  await page.locator('#tech-new').click();
  await page.locator('#tech-form [name="type"]').selectOption('Di.Co. elettrica');
  await page.locator('#tech-form [name="clientId"]').selectOption('1');
  await page.locator('#tech-form [name="propertyId"]').selectOption('1');
  await page.locator('#tech-form [name="plantId"]').selectOption('1');
  await page.locator('#tech-form [name="deviceId"]').selectOption('1');
+ await page.locator('[data-tech-doc][value="doc_tech_test"]').check();
+ await page.locator('#tech-original-reference').click();
+ assert.equal(await page.locator('#tech-form [name="reference"]').inputValue(),'DICO-ORIG-TEST-007');
  await page.locator('#tech-form [name="reference"]').fill('DICO-TEST-001');
  await page.locator('#tech-form [name="scope"]').fill('Impianto elettrico sintetico');
  await page.locator('#tech-form [name="materials"]').fill('Materiali fittizi');
@@ -32,20 +43,21 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.locator('[data-tech-detail="descrizioneImpianto"]').fill('Circuiti elettrici fittizi');
  await page.locator('[data-tech-check]').first().selectOption('Documentato');
  await page.locator('[data-tech-evidence]').first().fill('Schema sintetico fittizio TEST-001');
+ await page.locator('[data-tech-source]').first().selectOption('doc_tech_test');
  await page.locator('#tech-form button[type="submit"]').click();
  await page.waitForFunction(()=>ITECommerce.snapshot().settings.technicalDrafts?.length===1,{timeout:30000});
  const first=await page.evaluate(async()=>({draft:ITECommerce.snapshot().settings.technicalDrafts[0],backups:(await ITEHistory.list()).map(x=>x.reason),saved:(await ITEBackup.pack()).commerce.settings.technicalDrafts.length}));
- assert.equal(first.draft.type,'Di.Co. elettrica');assert.equal(first.draft.structured.committente,'Committente TEST fittizio');assert.equal(first.draft.structured.descrizioneImpianto,'Circuiti elettrici fittizi');assert.equal(first.draft.checklistEvidence['Schema impianto'].status,'Documentato');assert.equal(first.draft.checklistEvidence['Schema impianto'].evidence,'Schema sintetico fittizio TEST-001');assert.equal(first.draft.revision,1);assert.equal(first.draft.propertyId,'1');assert.equal(first.draft.plantId,'1');assert.equal(first.saved,1);assert(first.backups.includes('Prima revisione pratica tecnica'));
+ assert.equal(first.draft.type,'Di.Co. elettrica');assert.equal(first.draft.structured.committente,'Committente TEST fittizio');assert.equal(first.draft.structured.descrizioneImpianto,'Circuiti elettrici fittizi');assert.equal(first.draft.checklistEvidence['Schema impianto'].status,'Documentato');assert.equal(first.draft.checklistEvidence['Schema impianto'].evidence,'Schema sintetico fittizio TEST-001');assert.equal(first.draft.checklistEvidence['Schema impianto'].documentId,'doc_tech_test');assert.deepEqual(first.draft.linkedDocIds,['doc_tech_test']);assert.equal(first.draft.revision,1);assert.equal(first.draft.propertyId,'1');assert.equal(first.draft.plantId,'1');assert.equal(first.saved,1);assert(first.backups.includes('Prima revisione pratica tecnica'));
  await page.locator('[data-tech-edit]').first().click();
  await page.locator('#tech-form [name="notes"]').fill('Revisione sintetica n. 2');
  await page.locator('#tech-form button[type="submit"]').click();
  await page.waitForFunction(()=>ITECommerce.snapshot().settings.technicalDrafts?.[0]?.revision===2,{timeout:30000});
  const second=await page.evaluate(()=>ITECommerce.snapshot().settings.technicalDrafts[0]);
- assert.equal(second.structured.committente,'Committente TEST fittizio');assert.equal(second.checklistEvidence['Schema impianto'].status,'Documentato');assert.equal(second.history.length,1);assert.equal(second.history[0].action,'REVISIONE');assert.equal(second.history[0].before.revision,1);
+ assert.equal(second.structured.committente,'Committente TEST fittizio');assert.equal(second.checklistEvidence['Schema impianto'].status,'Documentato');assert.equal(second.checklistEvidence['Schema impianto'].documentId,'doc_tech_test');assert.equal(second.history.length,1);assert.equal(second.history[0].action,'REVISIONE');assert.equal(second.history[0].before.revision,1);
  const downloadPromise=page.waitForEvent('download');
  await page.locator('[data-tech-print]').first().click();
  const download=await downloadPromise;assert.match(download.suggestedFilename(),/^ITE_BOZZA_/);
- const printText=fs.readFileSync(await download.path(),'utf8');assert.match(printText,/NON VALIDA · NON FIRMATA/);assert.match(printText,/Schema sintetico fittizio TEST-001/);assert.match(printText,/Committente TEST fittizio/);assert.match(printText,/Circuiti elettrici fittizi/);assert.match(printText,/Cliente dimostrativo/);
+ const printText=fs.readFileSync(await download.path(),'utf8');assert.match(printText,/NON VALIDA · NON FIRMATA/);assert.match(printText,/Schema sintetico fittizio TEST-001/);assert.match(printText,/Committente TEST fittizio/);assert.match(printText,/Circuiti elettrici fittizi/);assert.match(printText,/Registro originali tecnici collegati/);assert.match(printText,/DICO-ORIG-TEST-007/);assert.match(printText,/dico_fittizia\.txt/);assert.match(printText,/Cliente dimostrativo/);
  
  // Una seconda pratica POS usa lo stesso archivio, senza alterare la Di.Co. salvata.
  await page.locator('#tech-new').click();
