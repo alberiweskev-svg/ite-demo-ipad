@@ -53,7 +53,7 @@ assert(detailed.includes('Via Esempio 3'),'Sede from hierarchy must appear');
 assert(detailed.includes('Rete idrica TEST'),'Plant from hierarchy must appear');
 assert(detailed.includes('TEST 24'),'Device from hierarchy must appear');
 assert(detailed.includes('Intervento di prova'),'Intervention from hierarchy must appear');
-assert(detailed.includes('Identificazione committente'),'Structured group must appear');
+assert(detailed.includes('IDENTIFICAZIONE COMMITTENTE'),'Structured group must appear');
 assert(detailed.includes('OBBLIGATORIO DA VERIFICARE'),'Missing required group field must appear');
 assert(detailed.includes('TEST-PZ'),'CAD preliminary material must appear');
 assert(detailed.includes('Prova di continuità da verificare'),'Technical review must appear');
