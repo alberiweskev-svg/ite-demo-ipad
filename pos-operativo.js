@@ -83,7 +83,7 @@ function mount(){
  for(const cfg of CONFIG){
   const textarea=host.querySelector('[data-tech-detail="'+cfg.key+'"]');
   if(!textarea)continue;
-  const details=element('details');details.className='panel';
+  const details=element('details');details.className='panel';details.dataset.posRegister=cfg.key;
   const summary=element('summary',cfg.title);details.append(summary);
   const list=element('ul');list.style.paddingLeft='22px';
   const status=element('p','','hint');status.setAttribute('role','status');
