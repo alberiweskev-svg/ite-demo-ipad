@@ -48,6 +48,10 @@ jobs:
         run: node dev/test_400_technical_drafts.cjs
       - name: Test technical dossier, filters and revision comparisons
         run: node dev/test_400_technical_dossier.cjs
+      - name: Test technical PDF bytes, privacy, pagination and client isolation
+        run: |
+          node --check technical-pdf.js
+          node dev/test_400_technical_pdf.cjs
       - name: Test worksite labor and financial summaries
         run: node dev/test_400_worksite.cjs
       - name: Test linked document and worksite view refresh
@@ -123,6 +127,12 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_technical_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Chromium technical PDF download (synthetic data)
+        run: node dev/test_400_technical_pdf_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit technical PDF download (synthetic data)
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_technical_pdf_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Chromium smoke test of encrypted vault and tablet layout
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit smoke test of encrypted vault and tablet layout (Safari engine)
