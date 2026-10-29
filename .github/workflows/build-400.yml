@@ -19,6 +19,7 @@ on:
       - 'technical-pdf.js'
       - 'technical-acroform.js'
       - 'dev/test_400_acroform.cjs'
+      - 'dev/test_400_acroform_pdfjs.mjs'
       - 'dev/test_400_technical_pdf.cjs'
       - 'dev/test_400_structured_docs.cjs'
       - 'dev/test_400_structured_docs_browser.cjs'
@@ -65,6 +66,7 @@ jobs:
         run: |
           node --check technical-acroform.js
           node dev/test_400_acroform.cjs
+          node dev/test_400_acroform_pdfjs.mjs
       - name: CAD catalog and metric drawing regression tests
         run: |
           node --check ite-cad.js
