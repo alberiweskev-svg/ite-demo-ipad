@@ -62,6 +62,14 @@ const detailedPdf=Buffer.from(build([linkedRow],'1',docs,linkedBase,linkedOption
 assert(detailedPdf.includes('Via Esempio 3')&&detailedPdf.includes('TEST-PZ'));
 assert.throws(()=>compose([{...linkedRow,propertyId:'33'}],'1',docs,linkedBase),/incoerenti/);
 assert.throws(()=>compose([{...linkedRow,deviceId:'999'}],'1',docs,linkedBase),/incoerenti/);
+
+const foreignInterventionBase={...linkedBase,
+ impianti:[...linkedBase.impianti,{id:50,immobile_id:'33',name:'Impianto riservato'}],
+ apparecchiature:[...linkedBase.apparecchiature,{id:60,impianto_id:'50',model:'DISPOSITIVO SEGRETO'}],
+ interventi:[...linkedBase.interventi,{id:88,apparecchiatura_id:'60',description:'INTERVENTO SEGRETO'}]};
+assert.throws(()=>compose([{...linkedRow,interventionId:'88',deviceId:''}],'1',docs,foreignInterventionBase),/incoerenti/,
+ 'Intervention without selected device must still be checked against client hierarchy');
+
 const mismatchedSource=compose([{...linkedRow,structured:{committente:'Modificato manualmente'}}],'1',docs,linkedBase).map(x=>x.text||'').join('\n');
 assert(mismatchedSource.includes('fonte non verificabile'),'Stale prefill provenance must be rejected');
 assert(!mismatchedSource.includes('originale ORIG-FITTIZIO'),'Stale provenance must not be attributed');
