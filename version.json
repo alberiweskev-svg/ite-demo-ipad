@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-29",
-  "notes": "Anteprima I.T.E. 4.0 isolata: fascicolo tecnico A4, registro verifiche e piano completamento, con pacchetto ZIP locale degli originali tecnici collegati, verificati SHA-256 e manifest. ZIP NON cifrato, nessuna pubblicazione di PDF clienti, nessuna attestazione automatica. CAD, POS, preventivi, archivio e backup cifrati integrati. Modelli ufficiali, firme, parità Windows 2.7.5 e Safari iPad fisico non completati. Main 3.0.74 invariato."
+  "notes": "Milestone 21: PDF tecnici locali contestualizzati con anagrafiche, sede/impianto/apparecchiatura/intervento, campi strutturati e obbligatori, distinta CAD, controlli e provenienza verificata degli originali. Bozze non ufficiali e non cifrate. Modelli ufficiali, firme, parità Windows 2.7.5 e Safari iPad fisico restano da completare; main 3.0.74 invariato."
 }

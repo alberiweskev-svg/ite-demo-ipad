@@ -7,6 +7,70 @@ const safe=v=>String(v??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u00
 const label=s=>safe(s).replace(/([a-zà-ÿ])([A-Z])/g,'$1 $2').replace(/[_-]/g,' ').replace(/^./,c=>c.toUpperCase());
 const find=(list,id)=>(Array.isArray(list)?list:[]).find(x=>same(x.id,id));
 const value=v=>safe(v).trim()||'Da compilare / verificare';
+
+const arr=v=>Array.isArray(v)?v:[];
+const belongs=(d,r,clientId)=>!!d&&same(d.clientId||d.subjectId,clientId)&&
+ (!d.propertyId||!r.propertyId||same(d.propertyId,r.propertyId))&&
+ (!d.siteId||!r.siteId||same(d.siteId,r.siteId));
+function context(r,clientId,base){
+ const property=r.propertyId?find(base.immobili,r.propertyId):null;
+ const site=r.siteId?find(base.cantieri,r.siteId):null;
+ const plant=r.plantId?find(base.impianti,r.plantId):null;
+ const device=r.deviceId?find(base.apparecchiature,r.deviceId):null;
+ const job=r.interventionId?find(base.interventi,r.interventionId):null;
+ if(r.propertyId&&(!property||!same(property.client_id,clientId))||
+    r.siteId&&(!site||!same(site.client_id,clientId))||
+    r.plantId&&(!plant||!property||!same(plant.immobile_id,property.id))||
+    r.deviceId&&(!device||!plant||!same(device.impianto_id,plant.id))||
+    property&&site?.immobile_id&&!same(site.immobile_id,property.id)||
+    r.interventionId&&(!job||job.client_id&&!same(job.client_id,clientId)||
+      job.apparecchiatura_id&&r.deviceId&&!same(job.apparecchiatura_id,r.deviceId)))
+  throw Error('Collegamenti cliente, sede, impianto o intervento incoerenti: PDF bloccato.');
+ const desc=o=>o?.name||[o?.brand,o?.model,o?.serial].filter(Boolean).join(' ')||'Non collegato';
+ return [
+  ['Sede',property?[desc(property),property.city,property.province].filter(Boolean).join(' - '):'Non collegata'],
+  ['Cantiere',desc(site)],['Impianto',desc(plant)],['Apparecchiatura',desc(device)],
+  ['Intervento',job?[job.date,job.kind,job.description].filter(Boolean).join(' - '):'Non collegato']
+ ];
+}
+function detailsForPdf(r,options){
+ const out=[],seen=new Set(),groups=arr(options.groups?.[r.type]);
+ for(const group of groups){
+  out.push({text:'  '+safe(group.title||'Sezione tecnica').toUpperCase()});
+  for(const field of arr(group.fields)){
+   const [key,title,,required]=field;
+   if(!key||seen.has(key))continue;
+   seen.add(key);
+   const current=r.structured?.[key];
+   out.push({text:'  '+safe(title||label(key))+': '+value(current)+(required&&!String(current??'').trim()?' [OBBLIGATORIO DA VERIFICARE]':'')});
+  }
+ }
+ const extra=Object.entries(r.structured||{}).filter(([k])=>!seen.has(k));
+ if(!groups.length&&!extra.length)out.push({text:'Nessun campo strutturato compilato'});
+ for(const [k,v] of extra)out.push({text:label(k)+': '+value(v)});
+ return out;
+}
+function cadForPdf(r,clientId,options){
+ const out=[],links=arr(options.links).filter(x=>same(x.practiceId,r.id));
+ if(!links.length)return [{text:'Nessuna tavola CAD collegata'}];
+ for(const link of links){
+  const drawing=find(options.drawings,link.drawingId);
+  if(!drawing||drawing.archived||!same(drawing.clientId,clientId)||
+     !same(drawing.revision,link.drawingRevision)){
+   out.push({text:'Tavola CAD non utilizzabile: mancante, archiviata o revisione superata'});
+   continue;
+  }
+  out.push({text:'Schema '+value(drawing.title||drawing.id)+' - revisione '+value(drawing.revision)+' (da verificare)'});
+ }
+ if(typeof root.ITEStructuredDocuments?.materialTrace==='function'){
+  const trace=root.ITEStructuredDocuments.materialTrace(r,clientId,options);
+  for(const item of trace.rows)out.push({text:'  '+value(item.code||item.symbol)+' | '+value(item.description||item.symbol)+
+   ' | '+value(item.quantity)+' '+value(item.unit||'pz')+' | '+value(item.status)});
+  for(const warning of trace.warnings)out.push({text:'  VERIFICARE: '+safe(warning)});
+ }
+ return out;
+}
+
 function validate(rows,clientId,base){
  if(!clientId)throw Error('Seleziona esplicitamente un cliente per il PDF.');
  if(!find(base?.clienti,clientId))throw Error('Cliente non presente in anagrafica.');
@@ -16,7 +80,7 @@ function validate(rows,clientId,base){
  for(const r of rows){if(!r||!TYPES.has(r.type)||!r.id||ids.has(String(r.id))||!same(r.clientId,clientId))throw Error('Pratiche incompatibili, duplicate o di un altro cliente.');ids.add(String(r.id));}
  return rows;
 }
-function compose(rows,clientId,docs,base){
+function compose(rows,clientId,docs,base,options={}){
  validate(rows,clientId,base);
  const client=find(base.clienti,clientId);
  const out=[{text:'I.T.E. 4.0 - FASCICOLO TECNICO DI LAVORO'}, {text:'BOZZA - NON VALIDA - NON FIRMATA - NON SOSTITUISCE I MODELLI UFFICIALI'}, {text:'Cliente: '+value(client.name)+' | Pratiche: '+rows.length}, {text:'Esportazione locale. Il PDF non e cifrato: conservarlo in luogo sicuro.'}, {text:'Gli originali sono solo citati: nessun file o firma e incorporato.'}, {text:''}];
@@ -25,13 +89,11 @@ function compose(rows,clientId,docs,base){
   out.push({text:'PRATICA '+(i+1)+' / '+rows.length+' - '+r.type});
   out.push({text:'Riferimento: '+value(r.fields?.reference)+' | Stato: '+value(r.status)+' | Revisione: '+value(r.revision)});
   out.push({text:'Data: '+value(r.date)+' | Sede ID: '+value(r.propertyId)+' | Impianto ID: '+value(r.plantId)});
-  out.push({text:'Cantiere ID: '+value(r.siteId)+' | Apparecchiatura ID: '+value(r.deviceId)+' | Intervento ID: '+value(r.interventionId)});
+  for(const [name,detail] of context(r,clientId,base))out.push({text:name+': '+value(detail)});
   out.push({text:'DATI GENERALI'});
   for(const [k,v] of Object.entries(r.fields||{}))out.push({text:label(k)+': '+value(v)});
-  out.push({text:'COMPILAZIONE GUIDATA'});
-  const details=Object.entries(r.structured||{});
-  if(!details.length)out.push({text:'Nessun campo strutturato compilato'});
-  for(const [k,v] of details)out.push({text:label(k)+': '+value(v)});
+  out.push({text:'COMPILAZIONE TECNICA PER SEZIONI - DATI DA VERIFICARE'});
+  out.push(...detailsForPdf(r,options));
   out.push({text:'CHECKLIST ED EVIDENZE - NON SONO CERTIFICAZIONI'});
   const checks=Object.entries(r.checklistEvidence||{});
   if(!checks.length)out.push({text:'Checklist da verificare'});
@@ -41,11 +103,28 @@ function compose(rows,clientId,docs,base){
   if(!originals.length)out.push({text:'Nessun originale collegato'});
   for(const id of originals){
    const d=find(docs,id);
-   if(!d||!same(d.clientId,clientId)){out.push({text:'Originale non verificabile: '+safe(id)});continue;}
+   if(!belongs(d,r,clientId)){out.push({text:'Originale non verificabile: riferimento escluso'});continue;}
    out.push({text:[d.type,d.number,d.date,d.sourceName].filter(Boolean).map(safe).join(' | ')||'Originale '+safe(id)});
   }
   const provenance=Object.entries(r.originalPrefill||{});
-  if(provenance.length){out.push({text:'PROVENIENZA DEI CAMPI PRECOMPILATI'});for(const [k,v] of provenance){const source=find(docs,v?.documentId);out.push({text:source&&same(source.clientId,clientId)?label(k)+' = '+safe(v?.value)+' (originale '+safe(v?.documentId)+')':label(k)+': fonte non verificabile, valore escluso'});}}
+  if(provenance.length){
+   out.push({text:'PROVENIENZA DEI CAMPI PRECOMPILATI - CONFRONTO CON ORIGINALI'});
+   for(const [k,v] of provenance){
+    const d=find(docs,v?.documentId),linked=originals.some(id=>same(id,v?.documentId));
+    const current=k.startsWith('detail:')?r.structured?.[k.slice(7)]:
+     k.startsWith('field:')?r.fields?.[k.slice(6)]:r.structured?.[k];
+    const valid=linked&&belongs(d,r,clientId)&&same(current,v?.value);
+    out.push({text:valid?label(k)+' = '+safe(current)+' (originale '+safe(d.number||d.sourceName||d.id)+')':
+     label(k)+': fonte non verificabile, valore escluso'});
+   }
+  }
+  out.push({text:'TAVOLE CAD E DISTINTA PRELIMINARE - POSA NON INCLUSA'});
+  out.push(...cadForPdf(r,clientId,options));
+  const review=typeof options.review==='function'?options.review(r):null;
+  if(review?.issues?.length){
+   out.push({text:'CONTROLLI INTERNI APERTI - NON CERTIFICATIVI'});
+   for(const issue of review.issues.slice(0,100))out.push({text:'  Da verificare: '+safe(issue.label||String(issue))});
+  }
   out.push({text:'VERIFICHE APERTE: le voci non documentate richiedono controllo umano.'});
   out.push({text:'Questo fascicolo non attesta prove, conformita, firme o invii.'});
  }
@@ -91,7 +170,7 @@ function pdfBytes(entries){
  for(const chunk of chunks){const part=bytes(chunk);result.set(part,at);at+=part.length;}
  return result;
 }
-function build(rows,clientId,docs,base){return pdfBytes(compose(rows,clientId,docs,base));}
+function build(rows,clientId,docs,base,options={}){return pdfBytes(compose(rows,clientId,docs,base,options));}
 function download(data,name){const url=URL.createObjectURL(new Blob([data],{type:'application/pdf'}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 function install(){
  const panel=document.getElementById('technical-drafts-panel');if(!panel||panel.dataset.itePdfInstalled)return;
@@ -118,7 +197,11 @@ function install(){
     selected=[find(rows,button.dataset.techPdf)].filter(Boolean);clientId=selected[0]?.clientId;
     filename='ITE_PRATICA_BOZZA_'+String(button.dataset.techPdf).replace(/[^a-z0-9_-]/gi,'_')+'.pdf';
    }
-   download(build(selected,clientId,state.documents||[],core),filename);
+   const draftApi=root.ITETechnicalDrafts;
+   const options={groups:draftApi?.structuredGroups||{},review:draftApi?.qualityReport,
+    drawings:state.settings?.cadDrawings,links:state.settings?.cadPracticeLinks,
+    articles:state.articles,movements:state.movements};
+   download(build(selected,clientId,state.documents||[],core,options),filename);
    const status=panel.querySelector('#tech-status');if(status)status.textContent='PDF bozza locale scaricato. Non firmato, non ufficiale e non cifrato: conservarlo in modo sicuro.';
   }catch(error){const status=panel.querySelector('#tech-status');if(status)status.textContent='PDF non generato: '+error.message;}
  });
