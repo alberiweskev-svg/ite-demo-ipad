@@ -51,7 +51,7 @@ const many=Array.from({length:35},(_,i)=>['field'+i,'Campo '+i,'textarea',i%2===
 const manyGroups={POS:[{title:'Blocco operativo',fields:many}]};
 const longPdf=toLatin(api.build(pos,'1',[],base,{groups:manyGroups}));
 assert((longPdf.match(/\/Type \/Page \/Parent/g)||[]).length>3,'POS must paginate');
-assert((longPdf.match(/\/Subtype \/Widget/g)||[]).length===41,'All fields must remain editable');
+assert((longPdf.match(/\/Subtype \/Widget/g)||[]).length===50,'All data fields and nine read-only origin fields must be present');
 
 const roundTripRow={...row,id:'td_00000000-0000-4000-8000-000000000001',revision:3,
  date:'2026-10-29',fields:{...row.fields,notes:''}};
