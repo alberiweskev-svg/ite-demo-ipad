@@ -53,7 +53,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),3,'Symbol placement failed');
  const scaleInput=page.locator('#ite-cad input[type=number]');
  await scaleInput.fill('2');await scaleInput.press('Tab');
- assert.match(await page.locator('#ite-cad svg').innerText(),/Scala di lavoro/);
+ assert.match(await page.locator('#ite-cad svg').textContent(),/Scala di lavoro/);
  assert.match(await page.locator('#ite-cad [aria-label="Distinta materiali indicativa"]').innerText(),/Presa elettrica/);
  await page.getByRole('button',{name:'Salva con backup e revisione'}).click();
  await page.waitForFunction(()=>ITECommerce.snapshot().settings.cadDrawings?.[0]?.revision===3,{timeout:60000});
