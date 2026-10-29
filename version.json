@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-29",
-  "notes": "Milestone 22: PDF A4 tecnici impaginati con indice per pratica, conteggio campi obbligatori e originali verificabili, sezioni tipografiche, numerazione pagine e spazio di verifica manuale. Bozze non ufficiali, non firmate e non cifrate; modelli ufficiali e collaudo Safari fisico ancora mancanti. main 3.0.74 preservato."
+  "notes": "Milestone 23: schede PDF AcroForm modificabili per Di.Co. elettrica/idrica, Di.Ri., GAS H40/I40/A12/B12 e POS, con precompilazione da pratiche, campi strutturati, paginazione, isolamento cliente/sede, avvertenze di bozza e test sintetici. Non sono modelli ufficiali; modifiche al PDF non si sincronizzano nel gestionale. main 3.0.74 e Windows 2.7.5 preservati."
 }
