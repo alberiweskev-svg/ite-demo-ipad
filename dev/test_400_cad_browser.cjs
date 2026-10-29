@@ -29,7 +29,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(result.drawings.length,1);assert.equal(result.backup.length,1);assert.equal(result.drawings[0].elements.length,1);
  assert(result.history.some(x=>x.includes('Prima modifica CAD')));
  await page.getByRole('button',{name:'Seleziona / sposta'}).click();
- await page.mouse.click(box.x+box.width*.3,box.y+box.height*.1);
+ await page.mouse.click(box.x+box.width*.3,box.y+box.height*(70/650));
  await page.getByRole('button',{name:'Duplica'}).click();
  assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),2);
  await page.getByRole('button',{name:'Annulla',exact:true}).click();
