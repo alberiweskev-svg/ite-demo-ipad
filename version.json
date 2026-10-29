@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-29",
-  "notes": "Milestone 26: scadenziario manutenzioni integrato con gerarchia Cliente>Sede>Impianto>Apparecchiatura>Interventi, ultima manutenzione completata, scadenze indicative configurabili, appuntamenti collegati, filtri e CSV protetto. Restano aperti modelli ufficiali 2.7.5, firme, crash WebKit al ricaricamento e Safari iPad fisico. main 3.0.74 invariato."
+  "notes": "Milestone 27: registro economico integrato con fatture vendita/acquisto, proforme e note TD04; incassi, pagamenti, rimborsi e compensazioni manuali, storni tracciati, scadenze, anomalie, filtri e CSV sicuro. Da collaudare su Safari iPad fisico; crash WebKit ricaricamento e modelli ufficiali 2.7.5 ancora aperti. main 3.0.74 invariato."
 }
