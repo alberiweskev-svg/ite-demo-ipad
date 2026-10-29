@@ -40,7 +40,7 @@ html=html.replace(flowPattern,'<script src="./ite-cad-workflow.js?v=4.0.0" integ
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
 else assert.equal(fs.readFileSync('index.html','utf8'),html,'CAD workflow SRI is outdated; run node dev/sync_sri.cjs --write');
 const structuredHash=digest('technical-structured-docs.js');
-const structuredPattern=/<script src="\\.\\/technical-structured-docs\\.js\\?v=4\\.0\\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\\/script>/;
+const structuredPattern=/<script src="\.\/technical-structured-docs\.js\?v=4\.0\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\/script>/;
 assert(structuredPattern.test(html),'Cannot find structured technical document script tag');
 html=html.replace(structuredPattern,'<script src="./technical-structured-docs.js?v=4.0.0" integrity="'+structuredHash+'" crossorigin="anonymous"></script>');
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
