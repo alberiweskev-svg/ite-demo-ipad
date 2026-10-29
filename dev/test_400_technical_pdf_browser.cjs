@@ -24,7 +24,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.locator('[data-tech-pdf]').first().waitFor();
  const singlePromise=page.waitForEvent('download');await page.locator('[data-tech-pdf]').first().click();
  const single=await singlePromise;assert.match(single.suggestedFilename(),/^ITE_PRATICA_BOZZA_.*\.pdf$/);
- const pdf=fs.readFileSync(await single.path());assert.equal(pdf.subarray(0,8).toString(),'%PDF-1.4');assert(pdf.includes(Buffer.from('DICO-PDF-TEST-001')));
+ const pdf=fs.readFileSync(await single.path());assert.equal(pdf.subarray(0,8).toString(),'%PDF-1.4');assert(pdf.includes(Buffer.from('DICO-PDF-TEST-001')));assert(pdf.includes(Buffer.from('INDICE OPERATIVO')));assert(pdf.includes(Buffer.from('Verificato da:')));
  await page.locator('#tech-dossier-pdf').click();
  assert.match(await page.locator('#tech-status').innerText(),/Seleziona un cliente/);
  await page.locator('#tech-filter-client').selectOption('1');

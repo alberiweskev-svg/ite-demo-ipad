@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-29",
-  "notes": "Milestone 21: PDF tecnici locali contestualizzati con anagrafiche, sede/impianto/apparecchiatura/intervento, campi strutturati e obbligatori, distinta CAD, controlli e provenienza verificata degli originali. Bozze non ufficiali e non cifrate. Modelli ufficiali, firme, parità Windows 2.7.5 e Safari iPad fisico restano da completare; main 3.0.74 invariato."
+  "notes": "Milestone 22: PDF A4 tecnici impaginati con indice per pratica, conteggio campi obbligatori e originali verificabili, sezioni tipografiche, numerazione pagine e spazio di verifica manuale. Bozze non ufficiali, non firmate e non cifrate; modelli ufficiali e collaudo Safari fisico ancora mancanti. main 3.0.74 preservato."
 }

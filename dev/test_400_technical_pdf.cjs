@@ -78,3 +78,26 @@ const otherSite=compose([{...linkedRow,linkedDocIds:['doc-site'],originalPrefill
  '1',[...docs,unrelatedDoc],linkedBase).map(x=>x.text||'').join('\n');
 assert(!otherSite.includes('SEGRETO-ALTRA-SEDE'),'Original of another site must be excluded');
 console.log('OK: PDF context hierarchy, grouped fields, CAD materials, review, source provenance, cross-site and cross-client isolation');
+
+
+/* Milestone 22: indice, quadro di compilazione, firme non apposte e layout A4. */
+const reviewRows=sandbox.ITETechnicalPDF.audit([linkedRow],'1',docs,linkedBase,linkedOptions);
+assert.equal(reviewRows.length,1);
+assert.equal(reviewRows[0].missing.length,1,'Missing mandatory field must be counted');
+assert.equal(reviewRows[0].originals,1,'Only verified originals are counted');
+assert.equal(reviewRows[0].excluded,1,'Foreign original must be excluded');
+const formEntries=compose([linkedRow],'1',docs,linkedBase,linkedOptions);
+const formText=formEntries.map(x=>x.text||'').join('\n');
+assert(formText.includes('INDICE OPERATIVO E STATO DI COMPILAZIONE'));
+assert(formText.includes('QUADRO CAMPI OBBLIGATORI E VERIFICA MANUALE'));
+assert(formText.includes('SPAZIO DI CONTROLLO INTERNO'));
+assert(formText.includes('[ DA COMPILARE ]'));
+assert(formEntries.some(x=>x.pageBreak),'Index must be separate from technical practice');
+const styled=Buffer.from(build([linkedRow],'1',docs,linkedBase,linkedOptions)).toString('latin1');
+assert(styled.includes('/BaseFont /Helvetica-Bold'),'Styled A4 renderer must include bold font');
+assert(styled.includes('0.93 g 40'),'Technical sections must be visually distinguished');
+assert(styled.includes('Pagina 1 / '),'Pages must be numbered');
+assert(styled.includes('Verificato da:'));
+assert(!styled.includes('SEGRETO-ALTRO-CLIENTE'));
+assert(!styled.includes('/AcroForm'),'No false digitally signed official form');
+console.log('OK: structured A4 PDF index, missing fields, manual review, safe original counts and styled pages');

@@ -16,6 +16,7 @@ html=html.replace(vaultPattern,(_,a,b)=>a+vaultHash+b);
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
 else assert.equal(fs.readFileSync('index.html','utf8'),html,'vault.js SRI is outdated; run node dev/sync_sri.cjs --write');
 const pdfHash=digest('technical-pdf.js');
+console.log('TECHNICAL_PDF_SRI='+pdfHash);
 const pdfPattern=/(src="\.\/technical-pdf\.js\?v=4\.0\.0" integrity=")[^"]+(")/;
 assert(pdfPattern.test(html),'Cannot find technical-pdf.js SRI reference');
 html=html.replace(pdfPattern,(_,a,b)=>a+pdfHash+b);

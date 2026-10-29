@@ -85,10 +85,40 @@ function validate(rows,clientId,base){
  for(const r of rows){if(!r||!TYPES.has(r.type)||!r.id||ids.has(String(r.id))||!same(r.clientId,clientId))throw Error('Pratiche incompatibili, duplicate o di un altro cliente.');ids.add(String(r.id));}
  return rows;
 }
+
+function audit(rows,clientId,docs,base,options={}){
+ validate(rows,clientId,base);
+ return rows.map(r=>{
+  context(r,clientId,base);
+  const missing=[],seen=new Set();
+  for(const group of arr(options.groups?.[r.type])){
+   for(const field of arr(group.fields)){
+    const [key,title,,required]=field;
+    if(!key||!required||seen.has(key))continue;
+    seen.add(key);
+    if(!String(r.structured?.[key]??'').trim())missing.push(safe(group.title||'Sezione')+' - '+safe(title||label(key)));
+   }
+  }
+  const linked=arr(r.linkedDocIds),verified=linked.filter(id=>belongs(find(docs,id),r,clientId));
+  return {id:r.id,type:r.type,reference:safe(r.fields?.reference||r.id),status:safe(r.status||'Bozza'),
+   missing,originals:verified.length,excluded:linked.length-verified.length};
+ });
+}
+
 function compose(rows,clientId,docs,base,options={}){
  validate(rows,clientId,base);
  const client=find(base.clienti,clientId);
+ const overview=audit(rows,clientId,docs,base,options);
  const out=[{text:'I.T.E. 4.0 - FASCICOLO TECNICO DI LAVORO'}, {text:'BOZZA - NON VALIDA - NON FIRMATA - NON SOSTITUISCE I MODELLI UFFICIALI'}, {text:'Cliente: '+value(client.name)+' | Pratiche: '+rows.length}, {text:'Esportazione locale. Il PDF non e cifrato: conservarlo in luogo sicuro.'}, {text:'Gli originali sono solo citati: nessun file o firma e incorporato.'}, {text:''}];
+ out.push({text:'INDICE OPERATIVO E STATO DI COMPILAZIONE',kind:'section'});
+ for(const [i,item] of overview.entries()){
+  out.push({text:(i+1)+'. '+safe(item.type)+' | '+safe(item.reference)+' | '+safe(item.status),kind:'subsection'});
+  out.push({text:'   Campi obbligatori da completare: '+item.missing.length+
+   ' | Originali collegati verificabili: '+item.originals+
+   ' | Riferimenti esclusi: '+item.excluded});
+ }
+ out.push({text:'Indice e verifiche sono indicativi; nessun documento e certificato o firmato.',kind:'warning'});
+ out.push({pageBreak:true});
  for(const [i,r] of rows.entries()){
   if(i)out.push({pageBreak:true});
   out.push({text:'PRATICA '+(i+1)+' / '+rows.length+' - '+r.type});
@@ -131,6 +161,15 @@ function compose(rows,clientId,docs,base,options={}){
    for(const issue of review.issues.slice(0,100))out.push({text:'  Da verificare: '+safe(issue.label||String(issue))});
   }
   out.push({text:'VERIFICHE APERTE: le voci non documentate richiedono controllo umano.'});
+  const item=overview[i];
+  out.push({text:'QUADRO CAMPI OBBLIGATORI E VERIFICA MANUALE',kind:'section'});
+  if(item.missing.length)for(const field of item.missing)out.push({text:'[ DA COMPILARE ] '+field,kind:'warning'});
+  else out.push({text:'Campi obbligatori presenti; contenuto, prove e allegati ancora da verificare.'});
+  if(item.excluded)out.push({text:'ATTENZIONE: '+item.excluded+' riferimento/i a originali esclusi per mancanza o incoerenza.',kind:'warning'});
+  out.push({text:'SPAZIO DI CONTROLLO INTERNO - NON E UNA FIRMA DI CONFORMITA',kind:'section'});
+  out.push({text:'Verificato da: __________________________________    Data: ____ / ____ / ______',kind:'signature'});
+  out.push({text:'Note di verifica: __________________________________________________________',kind:'signature'});
+  out.push({text:'Firme, prove e attestazioni ufficiali devono essere predisposte sui modelli applicabili.',kind:'warning'});
   out.push({text:'Questo fascicolo non attesta prove, conformita, firme o invii.'});
  }
  if(out.reduce((n,x)=>n+(x.text?.length||0),0)>850000)throw Error('Contenuto troppo esteso per un PDF locale: restringi i filtri.');
@@ -145,24 +184,64 @@ function wrapText(value,width=86){
  for(const original of safe(value).split('\n')){let rest=original.trim();if(!rest){lines.push('');continue;}while(rest.length>width){let at=rest.lastIndexOf(' ',width);if(at<width/3)at=width;lines.push(rest.slice(0,at).trim());rest=rest.slice(at).trimStart();}lines.push(rest);}
  return lines;
 }
+
+function kindOf(entry){
+ if(entry.kind)return entry.kind;
+ const text=safe(entry.text);
+ if(/^I\.T\.E\. 4\.0 - FASCICOLO|^PRATICA \d+ \/ /.test(text))return 'title';
+ if(/^(BOZZA -|ATTENZIONE:|VERIFICHE APERTE:)/.test(text))return 'warning';
+ if(/^(DATI GENERALI|COMPILAZIONE TECNICA|CHECKLIST ED EVIDENZE|ORIGINALI COLLEGATI|PROVENIENZA DEI CAMPI|TAVOLE CAD E DISTINTA|CONTROLLI INTERNI APERTI)/.test(text))return 'section';
+ return 'body';
+}
 function paginate(entries){
- const pages=[[]];let current=pages[0];
- for(const entry of entries){if(entry.pageBreak){if(current.length){current=[];pages.push(current);}continue;}for(const line of wrapText(entry.text)){if(current.length>=49){current=[];pages.push(current);}current.push(line);}}
+ const pages=[[]];let current=pages[0],used=0;
+ for(const entry of entries){
+  if(entry.pageBreak){if(current.length){current=[];pages.push(current);used=0;}continue;}
+  const kind=kindOf(entry),width=kind==='title'?64:kind==='section'?77:kind==='warning'?85:92;
+  for(const [i,line] of wrapText(entry.text,width).entries()){
+   const lineKind=i&&kind==='section'?'body':kind;
+   const height=lineKind==='title'?25:lineKind==='section'?21:lineKind==='subsection'?17:
+    lineKind==='warning'?17:lineKind==='signature'?19:13;
+   if(used+height>690&&current.length){current=[];pages.push(current);used=0;}
+   current.push({text:line,kind:lineKind,height});used+=height;
+  }
+ }
  if(pages.length>180)throw Error('PDF troppo lungo: restringi i filtri.');
  return pages;
 }
 function pdfBytes(entries){
- const pages=paginate(entries),objects=[null,null,null];
+ const pages=paginate(entries),objects=[null,null,null,null];
  objects[0]='<< /Type /Catalog /Pages 2 0 R >>';
- objects[2]='<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>';
+ objects[2]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+ objects[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
  const kids=[];
  for(const [i,lines] of pages.entries()){
   const pageNum=objects.length+1,contentNum=pageNum+1;kids.push(pageNum+' 0 R');
-  const commands=['BT /F1 9.5 Tf 42 788 Td 13 TL','('+escapePdf('I.T.E. 4.0 | BOZZA TECNICA - NON VALIDA / NON FIRMATA')+') Tj','0 -26 Td'];
-  for(const line of lines){commands.push('('+escapePdf(line)+') Tj','T*');}
-  commands.push('ET','BT /F1 8 Tf 42 31 Td ('+escapePdf('Documento locale non cifrato | Pagina '+(i+1)+' / '+pages.length)+') Tj ET');
+  const commands=[
+   '0.15 g',
+   'BT /F2 11 Tf 42 808 Td ('+escapePdf('I.T.E. di Merkaj Alban | GESTIONALE 4.0')+') Tj ET',
+   '0.55 G 0.7 w 42 795 m 553 795 l S',
+   '0.28 g',
+   'BT /F1 8 Tf 42 782 Td ('+escapePdf('SCHEDA PREPARATORIA - BOZZA NON VALIDA - NON FIRMATA')+') Tj ET'
+  ];
+  let y=758;
+  for(const line of lines){
+   const k=line.kind,hasText=!!line.text;
+   if(k==='section'){
+    commands.push('0.93 g 40 '+(y-5)+' 515 18 re f','0.1 g');
+   }else if(k==='warning')commands.push('0.37 g');
+   else commands.push('0.13 g');
+   const font=k==='title'?'/F2 14':k==='section'?'/F2 10.5':
+    k==='subsection'?'/F2 10':k==='warning'?'/F2 9':'/F1 9.2';
+   if(hasText)commands.push('BT '+font+' Tf 44 '+y+' Td ('+escapePdf(line.text)+') Tj ET');
+   y-=line.height;
+  }
+  commands.push('0.55 G 0.7 w 42 49 m 553 49 l S');
+  commands.push('0.35 g BT /F1 7.5 Tf 42 35 Td ('+
+   escapePdf('Documento locale non cifrato - conservare in luogo protetto')+') Tj ET');
+  commands.push('0.35 g BT /F2 8 Tf 478 35 Td ('+escapePdf('Pagina '+(i+1)+' / '+pages.length)+') Tj ET');
   const stream=commands.join('\n')+'\n';
-  objects.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents '+contentNum+' 0 R >>');
+  objects.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+contentNum+' 0 R >>');
   objects.push('<< /Length '+bytes(stream).length+' >>\nstream\n'+stream+'endstream');
  }
  objects[1]='<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+pages.length+' >>';
@@ -182,8 +261,8 @@ function install(){
  panel.dataset.itePdfInstalled='true';
  const refresh=()=>{
   const dossier=panel.querySelector('#tech-dossier');
-  if(dossier&&!panel.querySelector('#tech-dossier-pdf')){const b=document.createElement('button');b.id='tech-dossier-pdf';b.type='button';b.className='secondary';b.textContent='Scarica fascicolo filtrato (PDF bozza)';dossier.insertAdjacentElement('afterend',b);}
-  for(const button of panel.querySelectorAll('[data-tech-print]')){if(button.nextElementSibling?.matches('[data-tech-pdf]'))continue;const b=document.createElement('button');b.type='button';b.className='secondary';b.dataset.techPdf=button.dataset.techPrint;b.textContent='PDF bozza';button.insertAdjacentElement('afterend',b);}
+  if(dossier&&!panel.querySelector('#tech-dossier-pdf')){const b=document.createElement('button');b.id='tech-dossier-pdf';b.type='button';b.className='secondary';b.textContent='Fascicolo A4 impaginato (PDF bozza)';dossier.insertAdjacentElement('afterend',b);}
+  for(const button of panel.querySelectorAll('[data-tech-print]')){if(button.nextElementSibling?.matches('[data-tech-pdf]'))continue;const b=document.createElement('button');b.type='button';b.className='secondary';b.dataset.techPdf=button.dataset.techPrint;b.textContent='Scheda A4 (PDF bozza)';button.insertAdjacentElement('afterend',b);}
  };
  refresh();new MutationObserver(refresh).observe(panel,{childList:true,subtree:true});
  panel.addEventListener('click',event=>{
@@ -212,5 +291,5 @@ function install(){
  });
 }
 if(root&&root.document){root.addEventListener('ite-vault-ready',install);if(root.ITEVault?.isUnlocked?.())install();}
-root.ITETechnicalPDF=Object.freeze({build,compose,paginate,validate});
+root.ITETechnicalPDF=Object.freeze({build,compose,paginate,validate,audit});
 })(typeof window!=='undefined'?window:globalThis);
