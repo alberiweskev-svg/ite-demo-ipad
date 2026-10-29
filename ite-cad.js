@@ -198,8 +198,10 @@ function mount(){
  action('Esporta SVG (bozza)',()=>{const xml=new XMLSerializer().serializeToString(renderSvg(state.elements,'',true,state.scale));download(xml,'ITE-CAD-bozza.svg','image/svg+xml')});
  action('Esporta JSON',()=>{const data={format:'ITE-CAD-DRAFT',schema:2,title:title.value,scaleCmPerUnit:state.scale,elements:state.elements};download(JSON.stringify(data,null,2),'ITE-CAD-bozza.json','application/json')});
  action('Esporta distinta CSV (indicativa)',()=>{
-  const summary=materialSchedule(state.elements,state.scale),lines=['Codice;Descrizione;Quantita'];
-  for(const item of summary.items)lines.push([item.code,item.label,String(item.count)].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';'));
+  const summary=materialSchedule(state.elements,state.scale),lines=['Codice;Descrizione;Quantita;Unita'];
+  const csvRow=fields=>fields.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';');
+  for(const item of summary.items)lines.push(csvRow([item.code,item.label,item.count,'pz']));
+  if(summary.calibrated){lines.push(csvRow(['MURI','Lunghezza totale muri',summary.wallMeters,'m']));lines.push(csvRow(['LINEE','Lunghezza totale linee',summary.lineMeters,'m']))}
   download('\uFEFF'+lines.join('\r\n'),'ITE-CAD-distinta-bozza.csv','text/csv;charset=utf-8');
  });
  const upload=el('input');upload.type='file';upload.accept='.json,application/json';const uploadLabel=el('label','Importa disegno JSON in bozza');uploadLabel.append(upload);host.append(uploadLabel);
