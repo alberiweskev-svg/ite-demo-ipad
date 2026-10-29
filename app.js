@@ -1694,15 +1694,99 @@ function missing(r){
  const out=[];if(!r.clientId)out.push('Cliente');if(!r.propertyId&&r.type!=='POS')out.push('Sede');if(!r.plantId&&r.type!=='POS')out.push('Impianto');if(r.type==='POS'&&!r.siteId)out.push('Cantiere');if(r.type.startsWith('Allegato gas')&&!r.fields.pdr)out.push('PDR');
  if(!r.fields.scope)out.push('Descrizione lavori');if(r.type.startsWith('Di.Co.')&&!r.fields.materials)out.push('Materiali');if(!r.fields.checks)out.push('Verifiche da documentare');if(!r.linkedDocIds.length)out.push('Originali da acquisire');out.push(...structuredMissing(r));for(const item of CHECKLIST[r.type])if(r.checklistEvidence?.[item]?.status!=='Documentato'&&r.checklistEvidence?.[item]?.status!=='Non applicabile')out.push(item+' — da verificare');return out;
 }
+
+/* Fascicolo interno: nessun originale binario incorporato o dato inviato. */
+function filterTechnicalDrafts(rows,criteria={}){
+ const query=String(criteria.search||'').trim().toLocaleLowerCase('it');
+ return rows.filter(r=>(!criteria.clientId||same(r.clientId,criteria.clientId))&&
+ (!criteria.propertyId||same(r.propertyId,criteria.propertyId))&&
+ (!criteria.siteId||same(r.siteId,criteria.siteId))&&
+ (!criteria.type||r.type===criteria.type)&&(!criteria.status||r.status===criteria.status)&&
+ (!criteria.progress||(criteria.progress==='complete'?missing(r).length===0:missing(r).length>0))&&
+ (!query||[r.type,r.status,r.fields?.reference,r.fields?.scope,r.fields?.notes,r.date,r.interventionId].some(x=>String(x||'').toLocaleLowerCase('it').includes(query))));
+}
+function revisionChanges(before,after){
+ const paths=['status','clientId','propertyId','plantId','deviceId','siteId','interventionId','date','fields','structured','checklistEvidence','linkedDocIds','originalPrefill'];
+ const out=[];
+ for(const path of paths){
+  const old=before?.[path],now=after?.[path];
+  if(['fields','structured','checklistEvidence','originalPrefill'].includes(path)){
+   const keys=new Set([...Object.keys(old||{}),...Object.keys(now||{})]);
+   for(const key of keys)if(JSON.stringify(old?.[key]??null)!==JSON.stringify(now?.[key]??null))out.push({field:path+'.'+key,before:old?.[key]??null,after:now?.[key]??null});
+  }else if(JSON.stringify(old??null)!==JSON.stringify(now??null))out.push({field:path,before:old??null,after:now??null});
+ }
+ return out;
+}
+function technicalDossierHtml(rows,criteria,docs,base){
+ if(!criteria?.clientId)throw Error('Seleziona esplicitamente un cliente prima di creare il fascicolo.');
+ const client=record(base,'clienti',criteria.clientId);
+ if(!client)throw Error('Cliente non presente in anagrafica.');
+ const selected=filterTechnicalDrafts(rows,criteria);
+ if(!selected.length)throw Error('Nessuna pratica per i filtri selezionati.');
+ if(selected.length>100)throw Error('Troppi documenti: restringi il filtro (massimo 100 pratiche).');
+ const docById=new Map(docs.map(d=>[d.id,d]));
+ const nameFor=(key,id)=>record(base,key,id)?.name||String(id||'—');
+ const rowsHtml=selected.map((r,index)=>{
+  const issues=missing(r),originals=r.linkedDocIds.map(id=>docById.get(id)).filter(Boolean);
+  const fields=FIELD_NAMES.map(k=>'<li><b>'+esc(k)+'</b>: '+esc(r.fields?.[k]||'Da compilare')+'</li>').join('');
+  const structured=STRUCTURED_GROUPS[r.type].map(g=>'<h4>'+esc(g.title)+'</h4><ul>'+g.fields.map(f=>'<li><b>'+esc(f[1])+'</b>: '+esc(r.structured?.[f[0]]||'Da compilare')+'</li>').join('')+'</ul>').join('');
+  const checks=CHECKLIST[r.type].map(k=>{const v=r.checklistEvidence?.[k]||{status:'Da verificare',evidence:''};return '<li>'+esc(k)+': <b>'+esc(v.status)+'</b> · '+esc(v.evidence||'Senza evidenza')+(v.documentId?' · fonte '+esc(docById.get(v.documentId)?.number||v.documentId):'')+'</li>'}).join('');
+  const sources=originals.map(d=>'<li>'+esc(d.type)+' · '+esc(d.number||d.sourceName||d.id)+(d.date?' · '+esc(d.date):'')+(d.sourceName?' · '+esc(d.sourceName):'')+'</li>').join('')||'<li>Nessun originale collegato</li>';
+  return '<section class="practice"><h2>'+esc(index+1+'. '+r.type+' — '+(r.fields?.reference||'Senza riferimento'))+'</h2><p>Stato: '+esc(r.status)+' · revisione '+r.revision+' · aggiornamento '+esc(r.updated||'non disponibile')+'</p><p>Sede: '+esc(nameFor('immobili',r.propertyId))+' · impianto: '+esc(nameFor('impianti',r.plantId))+' · apparecchiatura: '+esc(nameFor('apparecchiature',r.deviceId))+' · cantiere: '+esc(nameFor('cantieri',r.siteId))+'</p><p>Intervento: '+esc(r.interventionId||'Non collegato')+'</p><h3>Dati di lavoro</h3><ul>'+fields+'</ul>'+structured+'<h3>Checklist</h3><ul>'+checks+'</ul><h3>Originali collegati (solo riferimenti)</h3><ul>'+sources+'</ul><h3>Elementi da verificare ('+issues.length+')</h3><ul>'+(issues.map(x=>'<li>'+esc(x)+'</li>').join('')||'<li>Verificare comunque prove, qualifiche, firme e modelli ufficiali.</li>')+'</ul></section>';
+ }).join('');
+ const complete=selected.filter(r=>missing(r).length===0).length;
+ return '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fascicolo tecnico I.T.E. — bozza</title><style>body{font:13px Arial,sans-serif;line-height:1.45;color:#24343d;max-width:900px;margin:22px auto;padding:0 14px}h1{color:#008c45}h2{color:#17633d}section.practice{border-top:2px solid #bbb;margin-top:24px;padding-top:12px;break-before:page}li{overflow-wrap:anywhere;margin:4px 0}.warning{border:2px solid #a33;padding:12px;color:#822}@media print{body{margin:12mm}section.practice{page-break-before:always}}</style></head><body><h1>I.T.E. — FASCICOLO TECNICO DI LAVORO — NON VALIDO · NON FIRMATO</h1><div class="warning">Documento interno preparatorio, non è una Di.Co., Di.Ri., allegato GAS o POS ufficiale. Non attesta verifiche, firme o conformità. Gli originali non sono incorporati.</div><p>Cliente: '+esc(client.name||client.id)+'</p><p>Pratiche incluse: '+selected.length+' · senza punti aperti nella checklist interna: '+complete+' · con punti aperti: '+(selected.length-complete)+'</p><p>Filtri: '+esc([criteria.type||'Tutti i tipi',criteria.status||'Tutti gli stati',criteria.propertyId?'Sede '+criteria.propertyId:'Tutte le sedi',criteria.siteId?'Cantiere '+criteria.siteId:'Tutti i cantieri'].join(' · '))+'</p>'+rowsHtml+'<p>Fine fascicolo di lavoro — nessun dato trasmesso a servizi esterni.</p></body></html>';
+}
+
 const panel=document.createElement('div');panel.id='technical-drafts-panel';panel.className='panel';
-panel.innerHTML='<h2>Pratiche tecniche — bozze integrate</h2><p class="hint">Di.Co., Di.Ri., GAS e POS. Dati condivisi con anagrafiche, impianti e originali importati. Checklist tracciata per tipologia, con prova o motivazione obbligatoria per le voci dichiarate documentate/non applicabili. Nessuna firma o prova viene inventata: le bozze non sono documenti ufficiali.</p><div class="actions"><button id="tech-new" type="button">+ Nuova pratica</button><button id="tech-refresh" class="secondary" type="button">Aggiorna</button></div><p id="tech-status" role="status"></p><div id="tech-list"></div><div id="tech-editor" class="panel" hidden></div>';
+panel.innerHTML='<h2>Pratiche tecniche — bozze integrate</h2><p class="hint">Di.Co., Di.Ri., GAS e POS. Dati condivisi con anagrafiche, impianti e originali importati. Checklist tracciata per tipologia, con prova o motivazione obbligatoria per le voci dichiarate documentate/non applicabili. Nessuna firma o prova viene inventata: le bozze non sono documenti ufficiali.</p><div class="actions"><button id="tech-new" type="button">+ Nuova pratica</button><button id="tech-refresh" class="secondary" type="button">Aggiorna</button></div><div class="grid" id="tech-filters"><label>Cliente fascicolo<select id="tech-filter-client"><option value="">— Tutti —</option></select></label><label>Sede<select id="tech-filter-property"><option value="">— Tutte —</option></select></label><label>Cantiere<select id="tech-filter-site"><option value="">— Tutti —</option></select></label><label>Tipo<select id="tech-filter-type"><option value="">— Tutti —</option>'+Object.keys(CHECKLIST).map(t=>'<option>'+esc(t)+'</option>').join('')+'</select></label><label>Stato<select id="tech-filter-status"><option value="">— Tutti —</option><option>Bozza</option><option>Da verificare</option><option>Annullata</option></select></label><label>Completezza<select id="tech-filter-progress"><option value="">— Tutte —</option><option value="pending">Con punti aperti</option><option value="complete">Nessun punto aperto</option></select></label><label>Cerca riferimento<input id="tech-filter-search" type="search" placeholder="Numero, descrizione, intervento"></label></div><div class="actions"><button type="button" class="secondary" id="tech-dossier">Scarica fascicolo filtrato (HTML)</button></div><p id="tech-status" role="status"></p><div id="tech-list"></div><div id="tech-editor" class="panel" hidden></div>';
 $('importazioni').insertBefore(panel,$('importazioni').firstChild);
 const say=s=>$('tech-status').textContent=s;
 const name=(k,id)=>{const r=(core()[k]||[]).find(x=>same(x.id,id));return r?.name||[r?.brand,r?.model,r?.serial].filter(Boolean).join(' ')||''};
 const opts=(items,value,empty)=>'<option value="">'+esc(empty)+'</option>'+items.map(r=>'<option value="'+esc(r.id)+'" '+(same(r.id,value)?'selected':'')+'>'+esc(r.name||[r.brand,r.model,r.serial].filter(Boolean).join(' ')||'ID '+r.id)+'</option>').join('');
-function render(){
- $('tech-list').innerHTML=all().map(r=>'<div class="item"><strong>'+esc(r.type)+' · '+esc(r.fields.reference||'Senza numero')+'</strong><small>'+esc(r.status)+' · revisione '+r.revision+' · '+esc(name('clienti',r.clientId))+'</small><p>'+r.linkedDocIds.length+' originali collegati; '+missing(r).length+' punti da verificare</p><button data-tech-edit="'+esc(r.id)+'">Apri / revisiona</button><button class="secondary" data-tech-print="'+esc(r.id)+'">Scarica bozza</button>'+(r.status==='Annullata'?'':'<button class="secondary" data-tech-cancel="'+esc(r.id)+'">Annulla pratica</button>')+'</div>').join('')||'<p class="hint">Nessuna pratica. Crea una bozza collegata a un cliente e a una sede o cantiere.</p>';
+function currentTechnicalFilters(){
+ return {clientId:$('tech-filter-client').value,propertyId:$('tech-filter-property').value,siteId:$('tech-filter-site').value,type:$('tech-filter-type').value,status:$('tech-filter-status').value,progress:$('tech-filter-progress').value,search:$('tech-filter-search').value};
 }
+function syncTechnicalFilters(){
+ const db=core(),client=$('tech-filter-client'),previous=client.value;
+ client.innerHTML=opts(db.clienti,previous,'— Tutti i clienti —');
+ const id=client.value;
+ for(const [field,key,placeholder] of [['tech-filter-property','immobili','— Tutte le sedi —'],['tech-filter-site','cantieri','— Tutti i cantieri —']]){
+  const select=$(field),old=select.value,records=db[key].filter(r=>!id||same(r.client_id,id));
+  select.innerHTML=opts(records,old,placeholder);
+ }
+}
+function render(){
+ syncTechnicalFilters();
+ const selected=filterTechnicalDrafts(all(),currentTechnicalFilters());
+ $('tech-list').innerHTML='<p class="hint">Pratiche visualizzate: '+selected.length+' / '+all().length+'. Il fascicolo è una bozza HTML locale, non un documento ufficiale.</p>'+
+ (selected.map(r=>'<div class="item"><strong>'+esc(r.type)+' · '+esc(r.fields.reference||'Senza numero')+'</strong><small>'+esc(r.status)+' · revisione '+r.revision+' · '+esc(name('clienti',r.clientId))+'</small><p>'+r.linkedDocIds.length+' originali collegati; '+missing(r).length+' punti da verificare</p><button data-tech-edit="'+esc(r.id)+'">Apri / revisiona</button><button class="secondary" data-tech-print="'+esc(r.id)+'">Scarica bozza</button><button class="secondary" data-tech-history="'+esc(r.id)+'">Confronta revisioni</button>'+(r.status==='Annullata'?'':'<button class="secondary" data-tech-cancel="'+esc(r.id)+'">Annulla pratica</button>')+'</div>').join('')||'<p class="hint">Nessuna pratica corrisponde ai filtri.</p>');
+}
+function downloadTechnicalHtml(html,filename){
+ const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');
+ a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+function printTechnicalDossier(){
+ const criteria=currentTechnicalFilters();
+ if(!criteria.clientId)throw Error('Seleziona un cliente specifico per esportare il fascicolo.');
+ const html=technicalDossierHtml(all(),criteria,commerce().documents,core());
+ downloadTechnicalHtml(html,'ITE_FASCICOLO_BOZZA_'+String(criteria.clientId).replace(/[^a-z0-9_-]/gi,'_')+'.html');
+ say('Fascicolo HTML locale scaricato: solo pratiche filtrate e riferimenti agli originali, nessun PDF incorporato.');
+}
+function showTechnicalHistory(id){
+ const r=all().find(x=>x.id===id);if(!r)return;
+ const snapshots=[...r.history.map(h=>h.before),r],last=snapshots.slice(-11);
+ const sections=last.slice(1).map((entry,i)=>{
+  const before=last[i],changes=revisionChanges(before,entry);
+  return '<details class="panel"><summary>Revisione '+esc(before.revision)+' → '+esc(entry.revision)+' · '+changes.length+' cambiamenti</summary><ul>'+
+  (changes.map(c=>'<li><b>'+esc(c.field)+'</b><p>Prima: '+esc(JSON.stringify(c.before).slice(0,350))+'</p><p>Dopo: '+esc(JSON.stringify(c.after).slice(0,350))+'</p></li>').join('')||'<li>Nessuna differenza nei campi confrontati</li>')+'</ul></details>';
+ }).join('');
+ const overlay=document.createElement('div');overlay.id='tech-history-overlay';overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:#102a3dc9;display:flex;align-items:center;justify-content:center;padding:12px';
+ const card=document.createElement('div');card.style.cssText='background:white;color:#20313c;border-radius:12px;padding:20px;max-width:800px;max-height:90vh;overflow:auto;width:100%';
+ card.innerHTML='<h3>Storico pratica · '+esc(r.fields.reference||r.type)+'</h3><p class="hint">Confronto in sola lettura delle ultime 10 revisioni. I documenti originali non sono modificati.</p>'+sections+'<button type="button" id="tech-history-close">Chiudi</button>';
+ overlay.append(card);document.body.append(overlay);card.querySelector('#tech-history-close').onclick=()=>overlay.remove();
+}
+
 function cascade(seed={}){
  const form=$('tech-form');if(!form)return;const val=k=>form.elements[k].value,db=core();
  const fill=(k,items,empty)=>{const old=val(k);form.elements[k].innerHTML=opts(items,old,empty);if(!items.some(r=>same(r.id,old)))form.elements[k].value=''};
@@ -1852,13 +1936,15 @@ function interventionButton(){
  const ctx=contextForIntervention(job,core());if(!ctx)return;
  const b=document.createElement('button');b.type='button';b.className='secondary';b.dataset.techIntervention=ctx.interventionId;b.textContent='+ Pratica tecnica da questo intervento';b.onclick=()=>openFor(ctx);host.append(b);
 }
-panel.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.techEdit||b.dataset.techPrint||b.dataset.techCancel;if(b.id==='tech-new')editor();else if(b.id==='tech-refresh')render();else if(b.dataset.techEdit)editor(all().find(x=>x.id===id));else if(b.dataset.techPrint)printDraft(id);else if(b.dataset.techCancel)cancel(id).catch(err=>say(err.message))});
+panel.addEventListener('input',e=>{if(e.target.id==='tech-filter-search')render()});
+panel.addEventListener('change',e=>{if(e.target.closest('#tech-filters')){if(e.target.id==='tech-filter-client'){$('tech-filter-property').value='';$('tech-filter-site').value=''}render()}});
+panel.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.techEdit||b.dataset.techPrint||b.dataset.techCancel||b.dataset.techHistory;if(b.id==='tech-new')editor();else if(b.id==='tech-refresh')render();else if(b.id==='tech-dossier'){try{printTechnicalDossier()}catch(err){say('Fascicolo non esportato: '+err.message)}}else if(b.dataset.techEdit)editor(all().find(x=>x.id===id));else if(b.dataset.techPrint)printDraft(id);else if(b.dataset.techHistory)showTechnicalHistory(id);else if(b.dataset.techCancel)cancel(id).catch(err=>say(err.message))});
 function siteButton(){const host=$('worksite-detail');if(!host||ITERouter.current()!=='scheda-cantiere'||host.querySelector('[data-tech-site]'))return;const id=host.querySelector('[data-work-edit]')?.dataset.workEdit,site=core().cantieri.find(x=>same(x.id,id));if(!site)return;const b=document.createElement('button');b.className='secondary';b.type='button';b.dataset.techSite=id;b.textContent='+ Pratica tecnica per questo cantiere';b.onclick=()=>openFor({clientId:site.client_id,propertyId:site.immobile_id||'',siteId:id});host.append(b)}
 new MutationObserver(()=>siteButton()).observe($('worksite-detail'),{childList:true});
 new MutationObserver(()=>interventionButton()).observe($('appointment-detail'),{childList:true});
 window.addEventListener('ite-pagechange',()=>{if(ITERouter.current()==='importazioni')render();if(ITERouter.current()==='scheda-cantiere')siteButton();if(ITERouter.current()==='scheda-intervento')interventionButton()});
 const previousRemove=ITE.remove;ITE.remove=(k,id)=>{const keys={clienti:'clientId',immobili:'propertyId',impianti:'plantId',apparecchiature:'deviceId',cantieri:'siteId',interventi:'interventionId'};if(keys[k]&&all().some(r=>same(r[keys[k]],id)))return alert('Scheda collegata a pratiche tecniche: cancellazione bloccata.');return previousRemove(k,id)};
-window.ITETechnicalDrafts={originalCandidates,originalSuggestions,validate:validateDrafts,missing,structuredGroups:STRUCTURED_GROUPS,openFor,render,contextForIntervention,suggestions};try{validateDrafts(commerce(),core());render()}catch(e){say('Archivio pratiche non valido: '+e.message+'. Conserva il backup; modifiche bloccate.');$('tech-new').disabled=true;$('tech-refresh').disabled=true;}
+window.ITETechnicalDrafts={originalCandidates,originalSuggestions,validate:validateDrafts,missing,structuredGroups:STRUCTURED_GROUPS,openFor,render,contextForIntervention,suggestions,filterTechnicalDrafts,technicalDossierHtml,revisionChanges};try{validateDrafts(commerce(),core());render()}catch(e){say('Archivio pratiche non valido: '+e.message+'. Conserva il backup; modifiche bloccate.');$('tech-new').disabled=true;$('tech-refresh').disabled=true;}
 })();
 /* ITE_TECHNICAL_DRAFTS_END */
 

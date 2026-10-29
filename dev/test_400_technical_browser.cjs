@@ -133,6 +133,32 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.deepEqual(saved.draft.linkedDocIds,['doc_tech_prefill']);
  assert(saved.backup.some(x=>x.id===saved.draft.id&&x.originalPrefill?.['detail:committente']?.documentId==='doc_tech_prefill'));
 
+
+ // Registro e fascicolo: filtri coerenti, storico revisioni e download solo locale.
+ await page.locator('#tech-filter-client').selectOption('1');
+ await page.locator('#tech-filter-type').selectOption('POS');
+ assert.equal(await page.locator('[data-tech-edit]').count(),1);
+ await page.locator('#tech-filter-type').selectOption('');
+ assert.equal(await page.locator('[data-tech-edit]').count(),4);
+ await page.locator('[data-tech-history]').first().click();
+ assert.equal(await page.locator('#tech-history-overlay').isVisible(),true);
+ assert.match(await page.locator('#tech-history-overlay').innerText(),/Revisione 1 → 2/);
+ await page.locator('#tech-history-close').click();
+ const dossierDownload=page.waitForEvent('download');
+ await page.locator('#tech-dossier').click();
+ const dossier=await dossierDownload;
+ assert.match(dossier.suggestedFilename(),/^ITE_FASCICOLO_BOZZA_/);
+ const dossierText=fs.readFileSync(await dossier.path(),'utf8');
+ assert.match(dossierText,/FASCICOLO TECNICO DI LAVORO/);
+ assert.match(dossierText,/POS-TEST-001/);
+ assert.match(dossierText,/DICO-TEST-001/);
+ assert.match(dossierText,/originale_prefill_fittizio\.txt/);
+ assert.match(dossierText,/NON VALIDO/);
+ assert.equal((await page.evaluate(()=>ITECommerce.snapshot().settings.technicalDrafts)).length,4);
+ await page.locator('#tech-filter-client').selectOption('');
+ await page.locator('#tech-dossier').click();
+ assert.match(await page.locator('#tech-status').innerText(),/Seleziona un cliente specifico/);
+
  assert.deepEqual(errors,[],'Browser errors: '+errors.join(' | '));
  console.log('OK: technical Di.Co. structured fields, POS 12 sections, encrypted persistence, backup, revision history and non-official printable draft');
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());

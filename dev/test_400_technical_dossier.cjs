@@ -1,0 +1,36 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const app=fs.readFileSync('app.js','utf8'),begin=app.indexOf('/* ITE_TECHNICAL_DRAFTS_BEGIN'),end=app.indexOf('/* ITE_TECHNICAL_DRAFTS_END');
+assert(begin>=0&&end>begin,'Integrated module not found');
+const src=app.slice(begin,end);
+function declaration(prefix){const i=src.indexOf(prefix);assert(i>=0,prefix);const j=src.indexOf(';\n',i);assert(j>i);return src.slice(i,j+1)}
+function extract(name){const i=src.indexOf('function '+name+'(');assert(i>=0,name);const b=src.indexOf('{',i);let depth=0,q='',escaped=false;for(let p=b;p<src.length;p++){const c=src[p];if(q){if(escaped){escaped=false;continue}if(c==='\\'){escaped=true;continue}if(c===q)q='';continue}if(c==="'"||c==='"'||c===String.fromCharCode(96)){q=c;continue}if(c==='{')depth++;else if(c==='}'&&!--depth)return src.slice(i,p+1)}throw Error('Unclosed '+name)}
+const context={Date,Array,Set,Map,String,Number,Error,Object};vm.createContext(context);
+vm.runInContext([declaration('const CHECKLIST='),declaration('const FIELD_NAMES='),declaration('const CHECK_STATES='),declaration('const STRUCTURED_GROUPS='),declaration('const validDate='),declaration('const isTechnical='),declaration('const record='),declaration('const esc='),declaration('const same='),extract('structuredMissing'),extract('missing'),extract('filterTechnicalDrafts'),extract('revisionChanges'),extract('technicalDossierHtml'),'this.exports={filterTechnicalDrafts,revisionChanges,technicalDossierHtml};'].join('\n'),context);
+const {filterTechnicalDrafts,revisionChanges,technicalDossierHtml}=context.exports;
+const base={clienti:[{id:1,name:'Cliente Fittizio <script>alert(1)</script>'},{id:2,name:'Altro Cliente'}],immobili:[{id:3,client_id:'1',name:'Sede prova'}],impianti:[],apparecchiature:[],cantieri:[]};
+const a={id:'td_test1',type:'Di.Co. elettrica',status:'Bozza',clientId:'1',propertyId:'3',siteId:'',plantId:'',deviceId:'',interventionId:'',date:'2026-10-29',revision:2,updated:'2026-10-29T00:00:00Z',fields:{reference:'DICO-TEST-001',scope:'Lavoro sintetico',materials:'',checks:''},structured:{},linkedDocIds:['doc1'],checklistEvidence:{},history:[]};
+const b={...a,id:'td_test2',type:'POS',status:'Annullata',fields:{reference:'POS-TEST-002',scope:'POS sintetico'},linkedDocIds:[]};
+const c={...a,id:'td_test3',clientId:'2',propertyId:'',fields:{reference:'DICO-OTHER',scope:'Non esportare'}};
+const docs=[{id:'doc1',type:'Di.Co. elettrica',number:'ORIG-001',sourceName:'fittizio.txt'}];
+assert.equal(filterTechnicalDrafts([a,b,c],{clientId:'1'}).length,2);
+assert.equal(filterTechnicalDrafts([a,b,c],{clientId:'1',type:'POS'}).length,1);
+assert.equal(filterTechnicalDrafts([a,b,c],{clientId:'1',status:'Annullata'}).length,1);
+assert.equal(filterTechnicalDrafts([a,b,c],{clientId:'1',propertyId:'3',search:'dico-test'}).length,1);
+assert.equal(filterTechnicalDrafts([a,b,c],{clientId:'1',progress:'pending'}).length,2);
+assert.equal(filterTechnicalDrafts([a,b,c],{clientId:'1',progress:'complete'}).length,0);
+const diffs=revisionChanges({...a,fields:{reference:'OLD'},structured:{committente:'Prima'}},{...a,fields:{reference:'NEW'},structured:{committente:'Dopo'}});
+assert.equal(diffs.length,2);assert(diffs.some(d=>d.field==='fields.reference'));assert(diffs.some(d=>d.field==='structured.committente'));
+assert.equal(revisionChanges(a,a).length,0);
+assert.throws(()=>technicalDossierHtml([a,b,c],{},docs,base),/cliente/);
+assert.throws(()=>technicalDossierHtml([a,b,c],{clientId:'9'},docs,base),/Cliente/);
+assert.throws(()=>technicalDossierHtml([a,b,c],{clientId:'1',type:'Di.Ri.'},docs,base),/Nessuna/);
+const html=technicalDossierHtml([a,b,c],{clientId:'1',type:'Di.Co. elettrica'},docs,base);
+assert.match(html,/FASCICOLO TECNICO DI LAVORO/);
+assert.match(html,/DICO-TEST-001/);assert.match(html,/ORIG-001/);
+assert.doesNotMatch(html,/POS-TEST-002/);assert.doesNotMatch(html,/DICO-OTHER/);
+assert.doesNotMatch(html,/<script>alert/);assert.match(html,/&lt;script&gt;/);
+assert.match(html,/NON VALIDO/);assert.match(html,/non sono incorporati/);
+assert.equal(a.revision,2,'Dossier must not mutate archive');
+assert.throws(()=>technicalDossierHtml(Array.from({length:101},(_,i)=>({...a,id:'td_'+i})),{clientId:'1'},docs,base),/massimo 100/);
+console.log('OK: technical register filters, revision diff, escaped local dossier, isolation, no archive mutation');
