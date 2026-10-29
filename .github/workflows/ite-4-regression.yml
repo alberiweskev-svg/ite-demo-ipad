@@ -72,6 +72,8 @@ jobs:
         run: |
           node --check technical-structured-docs.js
           node dev/test_400_structured_docs.cjs
+      - name: Test cross-practice technical completion plan (synthetic)
+        run: node dev/test_400_dossier_plan.cjs
       - name: Test worksite labor and financial summaries
         run: node dev/test_400_worksite.cjs
       - name: Test linked document and worksite view refresh

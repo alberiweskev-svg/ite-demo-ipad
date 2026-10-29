@@ -150,10 +150,91 @@ function csvReport(rows,clientId,docs,base,options={}){
  return {csv:'\uFEFF'+lines.join('\r\n')+'\r\n',counts};
 }
 
+
+/* Piano di completamento del fascicolo: operativo, non certificativo.
+   I controlli fra pratiche sono limitati al cliente esplicitamente selezionato. */
+function dossierPlan(rows,clientId,docs,base,options={}){
+ validate(rows,clientId,docs,base);
+ const actions=[],seen=new Set(),references=new Map(),gasBySite=new Map();
+ const push=(p,priority,section,task,reason)=>{
+  const key=[p.id,section,task].join('|');
+  if(seen.has(key))return;
+  seen.add(key);
+  actions.push({practiceId:String(p.id),type:p.type,reference:clean(p.fields?.reference)||String(p.id),
+   priority,section,task,reason:clean(reason)});
+  if(actions.length>4000)throw Error('Piano troppo esteso: restringi il fascicolo.');
+ };
+ for(const p of rows){
+  for(const item of inspectionMatrix(p,docs,clientId,options)){
+   if(item.status==='Da verificare')push(p,
+    item.section==='Originali'||item.section==='Identificazione'?'Prioritaria':'Operativa',
+    item.section,item.item,item.note);
+  }
+  for(const issue of assess(p,docs,options)){
+   push(p,'Operativa','Controlli pratica',issue,'Completare o motivare il controllo nella scheda originale');
+  }
+  if(p.status==='Annullata')push(p,'Prioritaria','Stato','Pratica annullata','Escludere dal fascicolo da consegnare');
+  const ref=clean(p.fields?.reference).toLocaleLowerCase('it');
+  if(ref){
+   const k=p.type+'|'+ref;
+   if(references.has(k)){
+    const prior=references.get(k);
+    push(p,'Prioritaria','Numerazione','Riferimento duplicato','Coincide con un’altra pratica dello stesso tipo nel fascicolo');
+    push(prior,'Prioritaria','Numerazione','Riferimento duplicato','Coincide con un’altra pratica dello stesso tipo nel fascicolo');
+   }else references.set(k,p);
+  }
+  if(p.type.startsWith('Allegato gas')){
+   const pdr=clean(p.structured?.pdrVerificato);
+   const siteKey=p.siteId?'cantiere:'+p.siteId:p.propertyId?'sede:'+p.propertyId:'';
+   if(siteKey&&pdr){
+    const earlier=gasBySite.get(siteKey);
+    if(earlier&&earlier.pdr!==pdr){
+     push(p,'Prioritaria','Coerenza GAS','PDR discordante','PDR diversi su pratiche gas della stessa sede/cantiere: confrontare gli originali');
+     push(earlier.practice,'Prioritaria','Coerenza GAS','PDR discordante','PDR diversi su pratiche gas della stessa sede/cantiere: confrontare gli originali');
+    }else if(!earlier)gasBySite.set(siteKey,{pdr,practice:p});
+   }
+  }
+  push(p,'Esterna','Modello e sottoscrizioni','Confronto modello originale e firme',
+   'Verificare modello applicabile, allegati richiesti, prove e sottoscrizioni fuori dalla bozza: non attestati dal gestionale');
+ }
+ const rank={'Prioritaria':0,'Operativa':1,'Esterna':2};
+ actions.sort((a,b)=>(rank[a.priority]??9)-(rank[b.priority]??9)||a.type.localeCompare(b.type,'it')||a.reference.localeCompare(b.reference,'it'));
+ const summary={practices:rows.length,total:actions.length,priority:actions.filter(x=>x.priority==='Prioritaria').length,
+  operational:actions.filter(x=>x.priority==='Operativa').length,external:actions.filter(x=>x.priority==='Esterna').length};
+ return {actions,summary};
+}
+function dossierPlanCsv(rows,clientId,docs,base,options={}){
+ const plan=dossierPlan(rows,clientId,docs,base,options);
+ const lines=[['Priorità','Pratica','Tipo','Riferimento','Area','Attività','Motivo'].map(csvCell).join(';')];
+ for(const item of plan.actions)lines.push([item.priority,item.practiceId,item.type,item.reference,item.section,item.task,item.reason].map(csvCell).join(';'));
+ const csv='\uFEFF'+lines.join('\r\n')+'\r\n';
+ if(csv.length>900000)throw Error('Piano CSV troppo esteso: restringi le pratiche.');
+ return {csv,summary:plan.summary};
+}
+function dossierPlanHtml(rows,clientId,docs,base,options={}){
+ const plan=dossierPlan(rows,clientId,docs,base,options),client=find(base.clienti,clientId);
+ const rowsHtml=plan.actions.map(x=>'<tr><td>'+esc(x.priority)+'</td><td>'+esc(x.type)+' · '+esc(x.reference)+
+  '</td><td>'+esc(x.section)+'</td><td>'+esc(x.task)+'</td><td>'+esc(x.reason)+'</td></tr>').join('');
+ const html='<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+  '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; base-uri \'none\'; form-action \'none\'">'+
+  '<title>I.T.E. — piano completamento tecnico (bozza)</title><style>'+
+  '@page{size:A4 landscape;margin:12mm}body{font:12px/1.4 Arial,sans-serif;color:#243c32}h1{color:#08653a}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #b9cbbf;padding:5px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#edf4ef}thead{display:table-header-group}tr{break-inside:avoid}p.warning{border:2px solid #a33;padding:9px;color:#822;font-weight:bold}</style></head><body>'+
+  '<h1>Piano di completamento del fascicolo tecnico — I.T.E. 4.0</h1>'+
+  '<p class="warning">BOZZA OPERATIVA NON VALIDA / NON FIRMATA. Non sostituisce i modelli ufficiali, prove o verifiche normative. Esportazione locale non cifrata.</p>'+
+  table([['Cliente',display(client)],['Pratiche selezionate',plan.summary.practices],
+   ['Attività prioritarie',plan.summary.priority],['Attività operative',plan.summary.operational],
+   ['Verifiche esterne obbligatorie da svolgere',plan.summary.external]])+
+  '<h2>Attività da esaminare</h2><table><thead><tr><th>Priorità</th><th>Pratica</th><th>Area</th><th>Attività</th><th>Motivo</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'+
+  '<p>Nessuna attività viene chiusa automaticamente. Controllare gli originali prima di qualsiasi utilizzo ufficiale.</p></body></html>';
+ if(html.length>900000)throw Error('Piano HTML troppo esteso: restringi le pratiche.');
+ return {html,summary:plan.summary};
+}
+
 function build(rows,clientId,docs,base,options={}){
  validate(rows,clientId,docs,base);
  const client=find(base.clienti,clientId),docMap=new Map(arr(docs).map(d=>[String(d.id),d]));
  const annexes=[],sections=[],issuesByPractice=[];
+ const plan=dossierPlan(rows,clientId,docs,base,options);
  const drawings=arr(options.drawings),links=arr(options.links);
  for(const [i,p] of rows.entries()){
   const issues=assess(p,docs,options),trace=materialTrace(p,clientId,options),matrix=inspectionMatrix(p,docs,clientId,options);
@@ -201,8 +282,9 @@ function build(rows,clientId,docs,base,options={}){
   '@page{size:A4;margin:16mm 13mm 17mm}*{box-sizing:border-box}body{font:12px/1.4 Arial,sans-serif;color:#233b31;margin:0 auto;max-width:920px;padding:20px}h1,h2{color:#08653a}h3{color:#17563b;margin:18px 0 7px}h1{font-size:23px}h2{font-size:18px}h3{font-size:13px}.notice{border:2px solid #a03c3c;color:#853232;padding:9px;font-weight:bold}.practice{page-break-before:always;break-before:page;padding-top:6px}.group{break-inside:avoid-page}table{border-collapse:collapse;width:100%;table-layout:fixed;margin:7px 0 12px}th,td{border:1px solid #c7d6cf;padding:6px;vertical-align:top;text-align:left;overflow-wrap:anywhere}th{width:34%;background:#eef5f0}.subhead{color:#537566;border-bottom:2px solid #08653a;padding-bottom:6px}.foot{margin-top:25px;border-top:1px solid #aaa;padding-top:8px;color:#666}.watermark{position:fixed;top:45%;left:20%;font-size:56px;transform:rotate(-30deg);opacity:.055;pointer-events:none;z-index:-1}.cover{padding-top:28px}li{margin:5px 0;overflow-wrap:anywhere}@media print{body{padding:0;max-width:none}.foot{position:relative}}'+
   '</style></head><body><div class="watermark">I.T.E. · BOZZA</div><section class="cover"><h1>I.T.E. — fascicolo di preparazione tecnica</h1>'+
   '<p class="notice">DOCUMENTAZIONE DI LAVORO — NON VALIDA / NON FIRMATA. Non riproduce i modelli ministeriali o del distributore. Non certifica prove, requisiti, conformità o invii.</p>'+
-  table([['Cliente',display(client)],['Numero pratiche',rows.length],['Pratiche con verifiche aperte',issuesByPractice.filter(x=>x.issues.length).length],['Originali indicizzati',uniqueAnnexes.length]])+
+  table([['Cliente',display(client)],['Numero pratiche',rows.length],['Pratiche con verifiche aperte',issuesByPractice.filter(x=>x.issues.length).length],['Originali indicizzati',uniqueAnnexes.length],['Attività prioritarie del piano',plan.summary.priority],['Controlli operativi del piano',plan.summary.operational]])+
   '<h3>Indice delle pratiche</h3>'+table(rows.map((p,i)=>['Scheda '+(i+1),p.type+' — '+(p.fields?.reference||p.id)]))+
+  '<h3>Piano di completamento (prime 20 attività; scaricare il piano per l’elenco completo)</h3>'+table(plan.actions.slice(0,20).map(a=>[a.priority+' · '+a.section,a.type+' · '+a.reference+' — '+a.task+' — '+a.reason]))+
   '<h3>Indice allegati originali (solo riferimenti)</h3>'+index+
   '<p>Esportazione locale HTML non cifrata. Custodire il file in luogo sicuro. Non sono inclusi file originali, immagini, firme o dati di altri clienti.</p></section>'+
   sections.join('')+'<div class="foot">I.T.E. 4.0 — bozza preparatoria, nessuna validità certificativa · Fine fascicolo</div></body></html>';
@@ -222,6 +304,11 @@ function install(){
   if(structured&&!panel.querySelector('#tech-dossier-checklist')){
    const b=root.document.createElement('button');b.id='tech-dossier-checklist';b.type='button';b.className='secondary';b.textContent='Registro verifiche CSV (bozza)';structured.insertAdjacentElement('afterend',b);
   }
+  const checklist=panel.querySelector('#tech-dossier-checklist');
+  if(checklist&&!panel.querySelector('#tech-dossier-plan')){
+   const b=root.document.createElement('button');b.id='tech-dossier-plan';b.type='button';b.className='secondary';b.textContent='Piano completamento A4 (bozza)';checklist.insertAdjacentElement('afterend',b);
+   const c=root.document.createElement('button');c.id='tech-dossier-plan-csv';c.type='button';c.className='secondary';c.textContent='Attività da verificare CSV';b.insertAdjacentElement('afterend',c);
+  }
   for(const original of panel.querySelectorAll('[data-tech-print]')){
    if(original.parentElement?.querySelector('[data-tech-structured="'+original.dataset.techPrint+'"]'))continue;
    const b=root.document.createElement('button');b.type='button';b.className='secondary';b.dataset.techStructured=original.dataset.techPrint;b.textContent='Scheda A4 (bozza)';original.insertAdjacentElement('afterend',b);
@@ -229,13 +316,13 @@ function install(){
  };
  refresh();new MutationObserver(refresh).observe(panel,{childList:true,subtree:true});
  panel.addEventListener('click',event=>{
-  const button=event.target.closest('[data-tech-structured],#tech-dossier-structured,#tech-dossier-checklist');if(!button||!panel.contains(button))return;
+  const button=event.target.closest('[data-tech-structured],#tech-dossier-structured,#tech-dossier-checklist,#tech-dossier-plan,#tech-dossier-plan-csv');if(!button||!panel.contains(button))return;
   const status=panel.querySelector('#tech-status');
   try{
    if(!root.ITEVault?.isUnlocked?.()||root.ITECommerce?.busy?.())throw Error('Archivio non sbloccato o salvataggio in corso.');
    const base=root.ITE.snapshot(),state=root.ITECommerce.snapshot(),rows=state.settings?.technicalDrafts||[];
    let selected,clientId;
-   if(button.id==='tech-dossier-structured'||button.id==='tech-dossier-checklist'){
+   if(button.id==='tech-dossier-structured'||button.id==='tech-dossier-checklist'||button.id==='tech-dossier-plan'||button.id==='tech-dossier-plan-csv'){
     clientId=panel.querySelector('#tech-filter-client')?.value;
     if(!clientId)throw Error('Seleziona un cliente specifico per il fascicolo.');
     const ids=[...panel.querySelectorAll('#tech-list [data-tech-print]')].map(b=>b.dataset.techPrint);
@@ -245,14 +332,15 @@ function install(){
    }
    const api=root.ITETechnicalDrafts;
    const options={groups:api?.structuredGroups||{},review:api?.qualityReport,drawings:state.settings?.cadDrawings,links:state.settings?.cadPracticeLinks,articles:state.articles,movements:state.movements};
-   const csv=button.id==='tech-dossier-checklist',result=csv?csvReport(selected,clientId,state.documents||[],base,options):build(selected,clientId,state.documents||[],base,options);
+   const planMode=button.id==='tech-dossier-plan'||button.id==='tech-dossier-plan-csv',csv=button.id==='tech-dossier-checklist'||button.id==='tech-dossier-plan-csv';
+   const result=planMode?(csv?dossierPlanCsv(selected,clientId,state.documents||[],base,options):dossierPlanHtml(selected,clientId,state.documents||[],base,options)):(csv?csvReport(selected,clientId,state.documents||[],base,options):build(selected,clientId,state.documents||[],base,options));
    const blob=new Blob([csv?result.csv:result.html],{type:csv?'text/csv;charset=utf-8':'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=root.document.createElement('a');
-   a.href=url;a.download=(csv?'ITE_REGISTRO_VERIFICHE_BOZZA_':'ITE_SCHEDE_TECNICHE_BOZZA_')+String(clientId).replace(/[^a-z0-9_-]/gi,'_')+(csv?'.csv':'.html');root.document.body.append(a);a.click();a.remove();
+   a.href=url;a.download=(planMode?(csv?'ITE_PIANO_ATTIVITA_BOZZA_':'ITE_PIANO_COMPLETAMENTO_BOZZA_'):(csv?'ITE_REGISTRO_VERIFICHE_BOZZA_':'ITE_SCHEDE_TECNICHE_BOZZA_'))+String(clientId).replace(/[^a-z0-9_-]/gi,'_')+(csv?'.csv':'.html');root.document.body.append(a);a.click();a.remove();
    setTimeout(()=>URL.revokeObjectURL(url),60000);
-   if(status)status.textContent=csv?'Registro CSV non cifrato scaricato: '+result.counts.toVerify+' controlli da verificare su '+result.counts.total+'. Non certificativo.':'Fascicolo strutturato A4 scaricato (HTML locale non cifrato). Verifiche aperte: '+result.issuesByPractice.reduce((n,x)=>n+x.issues.length,0)+'. Nessuna firma o conformità attestata.';
+   if(status)status.textContent=planMode?'Piano di completamento scaricato (file locale non cifrato): '+result.summary.total+' attività, di cui '+result.summary.priority+' prioritarie. Nessuna verifica attestata.':csv?'Registro CSV non cifrato scaricato: '+result.counts.toVerify+' controlli da verificare su '+result.counts.total+'. Non certificativo.':'Fascicolo strutturato A4 scaricato (HTML locale non cifrato). Verifiche aperte: '+result.issuesByPractice.reduce((n,x)=>n+x.issues.length,0)+'. Nessuna firma o conformità attestata.';
   }catch(e){if(status)status.textContent='Scheda A4 non generata: '+e.message;}
  });
 }
 if(root?.document){root.addEventListener('ite-vault-ready',install);if(root.ITEVault?.isUnlocked?.())install();}
-root.ITEStructuredDocuments=Object.freeze({validate,assess,materialTrace,inspectionMatrix,csvReport,build});
+root.ITEStructuredDocuments=Object.freeze({validate,assess,materialTrace,inspectionMatrix,csvReport,dossierPlan,dossierPlanCsv,dossierPlanHtml,build});
 })(typeof window!=='undefined'?window:globalThis);
