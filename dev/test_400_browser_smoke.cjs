@@ -387,9 +387,18 @@ const server=http.createServer((req,res)=>{
     // handlers must not run during the idle-lock check.
     Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});
     Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});
-    const now=Date.now();
+    const originalNow=Date.now,now=originalNow();
     Date.now=()=>now+5*60*60*1000;
-    setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),50);
+    setTimeout(()=>{
+      try{document.dispatchEvent(new Event('visibilitychange'));}
+      finally{
+        // A simulated five-hour suspension must not leave a fake clock or
+        // visibility override active while Chromium performs a real reload.
+        Date.now=originalNow;
+        delete document.hidden;
+        delete document.visibilityState;
+      }
+    },50);
   });
   await page.locator('#vault-gate').waitFor({state:'visible',timeout:30000});
   assert.equal(await page.locator('#app-shell').isVisible(),false,'Idle timeout left sensitive data visible behind an open form');
@@ -405,9 +414,12 @@ const server=http.createServer((req,res)=>{
   // On a suspended iPad, the first touch can arrive before the minute timer
   // resumes. The touch must not reset an expired inactivity deadline.
   await page.evaluate(()=>{
-    const now=Date.now();
+    const originalNow=Date.now,now=originalNow();
     Date.now=()=>now+5*60*60*1000;
-    setTimeout(()=>document.dispatchEvent(new Event('pointerdown',{bubbles:true})),50);
+    setTimeout(()=>{
+      try{document.dispatchEvent(new Event('pointerdown',{bubbles:true}));}
+      finally{Date.now=originalNow;}
+    },50);
   });
   await page.locator('#vault-gate').waitFor({state:'visible',timeout:30000});
   assert.equal(await page.locator('#app-shell').isVisible(),false,'First touch after long suspension kept the archive unlocked');
