@@ -124,6 +124,30 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),5);
  const afterVertical=await page.evaluate(()=>{const nodes=[...document.querySelectorAll('#ite-cad [data-cad-id]')];return nodes[nodes.length-1]?.querySelector('line')?.getAttribute('x1')===nodes[nodes.length-1]?.querySelector('line')?.getAttribute('x2')});
  assert(afterVertical,'Vertical quota geometry');
+ // Milestone 43: livelli integrati, protezione geometrica, visibilità e backup.
+ await page.locator('#ite-cad label').filter({hasText:'Livello CAD attivo'}).locator('select').selectOption('gas');
+ await page.getByRole('button',{name:'Assegna livello alla selezione'}).click();
+ assert.equal(await page.locator('#ite-cad [data-cad-layer="gas"]').count(),1);
+ await page.getByRole('button',{name:'Blocca selezione'}).click();
+ await page.getByRole('button',{name:'Ruota gruppo / elemento 90°'}).click();
+ assert.match(await page.locator('#ite-cad [role=status]').innerText(),/bloccato/);
+ await page.getByRole('button',{name:'Salva con backup e revisione'}).click();
+ await page.waitForFunction(()=>ITECommerce.snapshot().settings.cadDrawings?.[0]?.revision===5,{timeout:60000});
+ const locked=await page.evaluate(async()=>({saved:ITECommerce.snapshot().settings.cadDrawings[0],backup:(await ITEBackup.pack()).commerce.settings.cadDrawings[0]}));
+ assert(locked.saved.elements.some(x=>x.layer==='gas'&&x.locked===true));
+ assert(locked.backup.elements.some(x=>x.layer==='gas'&&x.locked===true));
+ await page.getByRole('button',{name:'Sblocca selezione'}).click();
+ await page.getByRole('button',{name:'Mostra / nascondi livello attivo'}).click();
+ assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),4,'Hidden layer excluded only from editor');
+ const layerDownload=page.waitForEvent('download');
+ await page.getByRole('button',{name:'Esporta riepilogo livelli CSV (bozza)'}).click();
+ const layerFile=await layerDownload;assert.match(fs.readFileSync(await layerFile.path(),'utf8'),/Gas/);
+ await page.getByRole('button',{name:'Mostra tutti i livelli'}).click();
+ assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),5);
+ await page.getByRole('button',{name:'Salva con backup e revisione'}).click();
+ await page.waitForFunction(()=>ITECommerce.snapshot().settings.cadDrawings?.[0]?.revision===6,{timeout:60000});
+ assert((await page.evaluate(()=>ITECommerce.snapshot().settings.cadDrawings[0].elements)).some(x=>x.layer==='gas'&&x.locked===false));
+
  assert.equal(errors.length,0,'JavaScript errors: '+errors.join('; '));
  console.log('OK: '+(process.env.ITE_TEST_BROWSER||'chromium')+' CAD save, backup, revision, undo/redo, SVG, references');
 }finally{await browser.close();server.close()}})().catch(e=>{console.error(e);server.close();process.exitCode=1});
