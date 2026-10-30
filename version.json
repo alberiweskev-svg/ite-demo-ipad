@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 36: riferimenti espliciti e tracciati dalle prove tecniche degli interventi alle bozze Di.Co./Di.Ri./GAS, con controllo cliente/intervento, revisione, revoca, audit, backup, registro A4/CSV e matrice del fascicolo. Nessuna prova di conformità, firma o modello ufficiale generato. Versione 3.0.74 e Windows 2.7.5 invariati."
+  "notes": "Milestone 37: indice allegati tecnici originali gia importati, riferiti alle bozze Di.Co./Di.Ri./GAS con SHA-256, verifica cliente/sede, revisioni, revoca, backup, audit e A4/CSV. Non genera modelli ufficiali; Safari iPad fisico non collaudato. 3.0.74 e Windows 2.7.5 invariati."
 }
