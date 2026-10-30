@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 34: fascicolo intervento collegato a cliente, sede, impianto, apparecchiatura, cantiere, operatori, accessi, materiali, revisioni e pratiche; controlli, A4 e CSV. Solo bozze, nessun costo interno. 3.0.74 e Windows 2.7.5 invariati."
+  "notes": "Milestone 35: registro prove tecniche e misure per intervento con operatore, storico apparecchiatura, storni motivati, audit e backup; integrato nel fascicolo A4/CSV e nella validazione archivio. Solo dati descrittivi, nessuna certificazione automatica. 3.0.74 e Windows 2.7.5 invariati."
 }
