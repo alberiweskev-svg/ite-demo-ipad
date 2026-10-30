@@ -187,7 +187,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.match(packageHtmlText,/DICO-TEST-001/);
  await page.locator('#tech-filter-client').selectOption('');
  await page.locator('[data-package-action="csv"]').click();
- assert.match(await page.locator('#ite-package-output').innerText(),/Cliente cambiato/);
+ assert.match(await page.locator('#ite-package-output').innerText(),/Aggiornare quadro/);
 
  // Registro e fascicolo: filtri coerenti, storico revisioni e download solo locale.
  await page.locator('#tech-filter-client').selectOption('1');
