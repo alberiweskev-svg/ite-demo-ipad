@@ -128,7 +128,7 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  await page.locator('#ite-cad label').filter({hasText:'Livello CAD attivo'}).locator('select').selectOption('gas');
  await page.getByRole('button',{name:'Assegna livello alla selezione'}).click();
  assert.equal(await page.locator('#ite-cad [data-cad-layer="gas"]').count(),1);
- await page.getByRole('button',{name:'Blocca selezione'}).click();
+ await page.getByRole('button',{name:'Blocca selezione',exact:true}).click();
  await page.getByRole('button',{name:'Ruota gruppo / elemento 90°'}).click();
  assert.match(await page.locator('#ite-cad [role=status]').innerText(),/bloccato/);
  await page.getByRole('button',{name:'Salva con backup e revisione'}).click();
