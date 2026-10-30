@@ -27,6 +27,10 @@ function manifest(practice,core,state){
  const proofs=arr(state.settings?.technicalEvidenceLinks).filter(x=>same(x.practiceId,practice.id)&&!x.removedAt).map(x=>{
   const check=find(state.settings?.fieldChecks,x.checkId);
   if(check&&!same(check.clientId,practice.clientId))throw Error('Prova di altro cliente.');
+  if(check&&practice.interventionId&&!same(check.jobId,practice.interventionId))
+   throw Error('Prova riferita a intervento differente.');
+  if(check&&practice.deviceId&&check.deviceId&&!same(check.deviceId,practice.deviceId))
+   throw Error('Prova riferita ad apparecchiatura differente.');
   return {checkId:String(x.checkId),revision:x.practiceRevision,status:!check?'PROVA ASSENTE':
    check.voidedAt?'PROVA STORNATA':!same(x.practiceRevision,practice.revision)?'REVISIONE SUPERATA':'DA VERIFICARE'};
  });
@@ -37,6 +41,22 @@ function manifest(practice,core,state){
   issues:report.issues,proposals:report.proposals,blocking,review:report.summary.review,
   state:blocking?'BLOCCATA': 'DA VERIFICARE MANUALMENTE',
   disclaimer:'BOZZA INTERNA. Nessuna firma, attestazione o certificazione generata.'};
+}
+// Quadro operativo per consegna interna: nessuna firma o documento ufficiale.
+function readiness(practices,clientId,core,state){
+ const reports=bundle(practices,clientId,core,state);
+ const groups={};let blocked=0,review=0,originals=0,proofs=0;
+ for(const r of reports){
+  const key=r.type||'Non classificata';
+  if(!groups[key])groups[key]={count:0,blocked:0,review:0,originals:0,proofs:0};
+  const g=groups[key];g.count++;
+  if(r.state==='BLOCCATA'){g.blocked++;blocked++;}else{g.review++;review++;}
+  g.originals+=r.originals.length;g.proofs+=r.proofs.length;
+  originals+=r.originals.length;proofs+=r.proofs.length;
+ }
+ return {clientId:String(clientId),count:reports.length,blocked,review,originals,proofs,
+  groups,reports,releaseAllowed:false,
+  warning:'SOLO PREPARAZIONE INTERNA: il sistema non autorizza firma, rilascio o dichiarazione di conformita.'};
 }
 function bundle(practices,clientId,core,state){
  if(!Array.isArray(practices)||!practices.length||practices.length>50)throw Error('Selezionare da 1 a 50 pratiche.');
@@ -65,7 +85,7 @@ function html(reports){
  '<h3>Controlli</h3><ul>'+r.issues.map(x=>'<li>'+esc(x.level)+' / '+esc(x.area)+': '+esc(x.message)+'</li>').join('')+'</ul></section>').join('');
  return '<!doctype html><html lang="it"><head><meta charset="utf-8"><title>ITE fascicolo interno</title><style>@page{size:A4;margin:15mm}body{font:12px Arial}section{break-after:page}li{overflow-wrap:anywhere}</style></head><body><h1>I.T.E. — Indice fascicolo tecnico</h1><p><b>BOZZA INTERNA NON FIRMATA. NON SOSTITUISCE DOCUMENTI ORIGINALI O DICHIARAZIONI.</b></p>'+sections+'</body></html>';
 }
-const api=Object.freeze({manifest,bundle,csv,html});
+const api=Object.freeze({manifest,bundle,readiness,csv,html});
 root.ITETechnicalPackage=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
