@@ -52,6 +52,10 @@ jobs:
         run: |
           node --check ite-job-materials.js
           node dev/test_400_job_materials.cjs
+      - name: Test integrated site material costing and approved supply allocation (synthetic)
+        run: |
+          node --check ite-site-costing.js
+          node dev/test_400_site_costing.cjs
       - name: Test warehouse stock and references
         run: node dev/test_400_warehouse.cjs
       - name: Test itemized quotes and supply/install separation
@@ -161,6 +165,7 @@ jobs:
           test -s "$RUNNER_TEMP/ite-4-preview/ite-financial-desk.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-contract-billing.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-job-materials.js"
+          test -s "$RUNNER_TEMP/ite-4-preview/ite-site-costing.js"
           test -s "$RUNNER_TEMP/ite-4-preview/vault.js"
           test -s "$RUNNER_TEMP/ite-4-preview/version.json"
           test -s "$RUNNER_TEMP/ite-4-preview/AVVIA_ANTEPRIMA_WINDOWS.bat"

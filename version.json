@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 29: registro consumi materiali per intervento da calendario, scarico giacenza verificata, storno con movimento compensativo, audit e backup, riepilogo cantiere e CSV protetto da formule. Versione 3.0.74 e moduli Windows 2.7.5 preservati; Safari iPad fisico e modelli ufficiali ancora da collaudare."
+  "notes": "Milestone 30: consuntivo materiali cantiere, attribuzioni manuali alle sole Forniture approvate, controlli quantità, storni, audit, backup e CSV. Non determina margini. 3.0.74 e 2.7.5 preservati."
 }

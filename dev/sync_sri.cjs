@@ -84,3 +84,11 @@ console.log('ACROFORM_SRI='+acroHash);
 console.log('STRUCTURED_DOCS_SRI='+structuredHash);
 console.log('CAD_WORKFLOW_SRI='+flowHash);
 console.log('OK: app.js, vault.js, technical-pdf.js, pos-operativo.js, ite-cad.js CAD workflow structured document, AcroForm and maintenance planner SRI hashes match');
+
+const siteCostHash=digest('ite-site-costing.js');
+const siteCostPattern=/<script src="\.\/ite-site-costing\.js\?v=4\.0\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\/script>/;
+assert(siteCostPattern.test(html),'Cannot find site costing script tag');
+html=html.replace(siteCostPattern,'<script src="./ite-site-costing.js?v=4.0.0" integrity="'+siteCostHash+'" crossorigin="anonymous"></script>');
+if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
+else assert.equal(fs.readFileSync('index.html','utf8'),html,'Site costing SRI is outdated; run node dev/sync_sri.cjs --write');
+console.log('SITE_COSTING_SRI='+siteCostHash);
