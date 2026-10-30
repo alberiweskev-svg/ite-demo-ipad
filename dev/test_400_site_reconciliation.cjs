@@ -42,6 +42,8 @@ assert.ok(incomplete.alerts.some(x=>x.message.includes('senza costo')));
 s.settings.jobMaterialUsage[0].unitCostCents=300;
 s.documents[0].clientId='2';
 assert.equal(api.analyze(site,core,s).invoices.length,0);
+assert.equal(api.analyze(site,core,s).collectedGross,0);
+assert.equal(api.analyze(site,core,s).outstandingGross,0);
 assert.ok(api.analyze(site,core,s).alerts.some(x=>x.message.includes('cliente da verificare')));
 const wrong=structuredClone(core);wrong.cantieri[0].client_id=2;
 assert.throws(()=>api.analyze(site,wrong,state()),/cliente/);
