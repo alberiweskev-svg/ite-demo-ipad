@@ -37,9 +37,10 @@ test('proof of different intervention is never included',()=>{
  assert.throws(()=>api.manifest(practice,core,state),/intervento differente/);
 });
 test('proof of different equipment is never included',()=>{
- const practice={...p(),deviceId:'device1'};
+ const practice={...p(),plantId:'plant1',deviceId:'device1'};
+ const localCore={...core,impianti:[{id:'plant1',immobile_id:'10'}],apparecchiature:[{id:'device1',impianto_id:'plant1'}]};
  const state=s();
  state.settings.fieldChecks=[{id:'check1',clientId:'1',deviceId:'device2'}];
  state.settings.technicalEvidenceLinks=[{practiceId:'draft1',checkId:'check1',practiceRevision:2,removedAt:''}];
- assert.throws(()=>api.manifest(practice,core,state),/apparecchiatura differente/);
+ assert.throws(()=>api.manifest(practice,localCore,state),/apparecchiatura differente/);
 });
