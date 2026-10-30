@@ -75,9 +75,9 @@ assert.equal(api.annexReport(annexStale,core,p.id).annexes[0].status,'Revisione 
 const annexMissing=clone(annex);annexMissing.files=[];
 assert.equal(api.annexReport(annexMissing,core,p.id).annexes[0].status,'Originale mancante');
 const annexInjection=clone(annex);annexInjection.documents[0].sourceName='<script>danger</script>';
-annexInjection.settings.technicalAnnexLinks[0].note='=1+2';
+annexInjection.settings.technicalAnnexLinks[0].note='=1+2+3+4';
 assert.doesNotMatch(api.annexHtml(api.annexReport(annexInjection,core,p.id)),/<script>/);
-assert.match(api.annexCsv(api.annexReport(annexInjection,core,p.id)),/"'=1\+2"/);
+assert.match(api.annexCsv(api.annexReport(annexInjection,core,p.id)),/"'=1\+2\+3\+4"/);
 assert.throws(()=>api.revokeAnnex(annex,core,{linkId:linked.id,reviewer:'Tecnico TEST',reason:'Breve'}),/motivazione/i);
 api.revokeAnnex(annex,core,{linkId:linked.id,reviewer:'Tecnico TEST',reason:'Originale sostituito da nuova versione'});
 assert.equal(api.annexReport(annex,core,p.id).annexes[0].status,'Revocato');
