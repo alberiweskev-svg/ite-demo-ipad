@@ -99,7 +99,21 @@ const server=http.createServer((req,res)=>{
   await page.locator('#vault-password').fill('WRONG-SYNTHETIC-PASSWORD');
   // Il controllo credenziali puo' generare navigazioni di ripristino: attendiamo l'esito visibile, non il navigation event.
   await page.locator('#vault-submit').click({noWaitAfter:true});
-  await page.waitForFunction(()=>/Password errata o archivio danneggiato|Password non valida/.test(document.getElementById('vault-message').textContent),{timeout:30000});
+  try {
+    await page.waitForFunction(
+      ()=>/Password errata o archivio danneggiato|Password non valida/.test(document.getElementById('vault-message')?.textContent||''),
+      null, {timeout:30000}
+    );
+  } catch (error) {
+    const diagnostic = await page.evaluate(()=>({
+      message:document.getElementById('vault-message')?.textContent||'',
+      gateVisible:getComputedStyle(document.getElementById('vault-gate')).display!=='none',
+      appVisible:getComputedStyle(document.getElementById('app-shell')).display!=='none',
+      submitDisabled:document.getElementById('vault-submit')?.disabled,
+      ready:window.ITEVault?.isUnlocked?.()
+    })).catch(e=>({error:String(e)}));
+    throw new Error('Wrong-password rejection timeout (synthetic test): '+JSON.stringify(diagnostic),{cause:error});
+  }
   assert.equal(await page.locator('#app-shell').isVisible(),false,'Wrong password unlocked archive');
   await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
   // La riapertura puo' ricaricare la pagina: attendere lo stato visibile, non il navigation event.
