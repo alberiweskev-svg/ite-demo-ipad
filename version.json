@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 40: controllo incrociato anagrafiche, originali, allegati, prove, revisioni CAD, PDR GAS e checklist; precompilazione non distruttiva in editor esistente e report A4/CSV. Test sintetici e regressione GitHub da verificare. 3.0.74 e Windows 2.7.5 invariati; Safari/iPad fisico non collaudato."
+  "notes": "Milestone 41: CAD avanzato integrato con rotazione geometrica di gruppi, ridimensionamento, copia/incolla in memoria locale, sostituzione simboli con rimozione del collegamento materiale obsoleto, ordine e cancellazione gruppi, controlli limiti foglio e test sintetici. Build/regressione da verificare. 3.0.74 e Windows 2.7.5 invariati; Safari/iPad fisico non collaudato."
 }
