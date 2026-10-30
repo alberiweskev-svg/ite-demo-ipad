@@ -48,6 +48,7 @@ on:
       - 'dev/test_400_cad_catalog.cjs'
       - 'dev/test_400_cad_browser.cjs'
       - 'dev/test_400_cad_snap.cjs'
+      - 'dev/test_400_cad_layers.cjs'
       - 'pos-audit.js'
       - 'dev/test_400_pos_audit.cjs'
       - 'dev/test_400_pos_audit_browser.cjs'
@@ -104,6 +105,7 @@ jobs:
           node dev/test_400_cad_advanced.cjs
           node dev/test_400_cad_transform.cjs
           node dev/test_400_cad_snap.cjs
+          node dev/test_400_cad_layers.cjs
           node dev/test_400_cad_catalog.cjs
           node --check ite-cad-workflow.js
           node dev/test_400_cad_workflow.cjs

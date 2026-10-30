@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 42: CAD con snap avanzato opzionale a estremi, punti medi e intersezioni geometriche; quote orizzontali/verticali, anteprima lunghezza in cm solo a scala calibrata, test unitari e browser sintetici. Nessuna misura reale inventata. Build e regressione da verificare. 3.0.74 e Windows 2.7.5 invariati; Safari fisico non collaudato."
+  "notes": "Milestone 43: CAD integrato con livelli architettura/idrico/termico/elettrico/CDZ/GAS/quote, blocco e sblocco gruppi, visibilità locale, distinta metrica per livello e CSV; compatibilità disegni precedenti e backup. Test unitari e pipeline aggiornati; esiti remoti da verificare. Nessuna pubblicazione; 3.0.74 e 2.7.5 invariati."
 }

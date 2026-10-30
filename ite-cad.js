@@ -4,6 +4,8 @@
 'use strict';
 const NS='http://www.w3.org/2000/svg', W=1000,H=650,MAX=200,GRID=10;
 const KINDS=['wall','line','rect','dimension','label','symbol'], COLORS=['#173451','#285b84','#b03434','#16805d','#222222'];
+const LAYERS=Object.freeze({arch:'Architettura',idr:'Idrico',term:'Riscaldamento',ele:'Elettrico',cdz:'Climatizzazione',gas:'Gas',quote:'Quote e note'});
+const layerOf=e=>e.layer||'arch';
 const SYMBOLS=Object.freeze({presa:'Presa elettrica',interruttore:'Interruttore',quadro:'Quadro elettrico',lavabo:'Lavabo',wc:'WC',radiatore:'Radiatore',caldaia:'Caldaia',split:'Unità interna CDZ',valvola:'Valvola'});
 const validScale=v=>v===undefined||v===null||(typeof v==='number'&&Number.isFinite(v)&&v>=0.01&&v<=100);
 const copy=x=>JSON.parse(JSON.stringify(x)),same=(a,b)=>String(a??'')===String(b??'');
@@ -12,7 +14,7 @@ const clamp=(v,max)=>Math.max(0,Math.min(max,Math.round(Number(v)/GRID)*GRID));
 const safeText=s=>String(s??'').trim().slice(0,120);
 const finite=(n,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=max;
 function validateElement(e){
- if(!e||typeof e!=='object'||!/^e_[a-zA-Z0-9-]{8,70}$/.test(e.id)||!KINDS.includes(e.kind)||!finite(e.x,W)||!finite(e.y,H)||!finite(e.x2,W)||!finite(e.y2,H)||!COLORS.includes(e.color)||typeof e.text!=='string'||e.text.length>120||!Number.isInteger(e.rotation)||e.rotation<0||e.rotation>270||e.rotation%90||(e.groupId!==undefined&&!/^g_[a-zA-Z0-9-]{8,70}$/.test(e.groupId))||(e.kind==='symbol'&&!Object.prototype.hasOwnProperty.call(SYMBOLS,e.text))||(e.articleId!==undefined&&(e.kind!=='symbol'||typeof e.articleId!=='string'||!/^art_[a-zA-Z0-9-]{8,70}$/.test(e.articleId))))throw Error('Elemento CAD non valido');
+ if(!e||typeof e!=='object'||!/^e_[a-zA-Z0-9-]{8,70}$/.test(e.id)||!KINDS.includes(e.kind)||!finite(e.x,W)||!finite(e.y,H)||!finite(e.x2,W)||!finite(e.y2,H)||!COLORS.includes(e.color)||typeof e.text!=='string'||e.text.length>120||!Number.isInteger(e.rotation)||e.rotation<0||e.rotation>270||e.rotation%90||(e.groupId!==undefined&&!/^g_[a-zA-Z0-9-]{8,70}$/.test(e.groupId))||((e.layer!==undefined&&!Object.prototype.hasOwnProperty.call(LAYERS,e.layer))||(e.locked!==undefined&&typeof e.locked!=='boolean'))||(e.kind==='symbol'&&!Object.prototype.hasOwnProperty.call(SYMBOLS,e.text))||(e.articleId!==undefined&&(e.kind!=='symbol'||typeof e.articleId!=='string'||!/^art_[a-zA-Z0-9-]{8,70}$/.test(e.articleId))))throw Error('Elemento CAD non valido');
  return true;
 }
 function validateCollection(rows,db,articles){
@@ -79,11 +81,18 @@ function operate(elements,action,id,payload={}){
   const selected=new Set(ids);
   if(rows.some(e=>e.groupId&&selected.has(e.id)&&rows.some(other=>other.groupId===e.groupId&&!selected.has(other.id))))
    throw Error('Selezione parziale di un gruppo: seleziona tutti gli elementi');
+  if(rows.some(e=>selected.has(e.id)&&e.locked))throw Error('Elemento bloccato: sblocca prima di raggruppare');
   const groupId=uid('g');for(const e of rows)if(selected.has(e.id))e.groupId=groupId;
  }else{
   if(i<0)throw Error('Seleziona un elemento CAD');
   const members=geometryMembers(rows,i),memberIds=new Set(members.map(e=>e.id));
-  if(action==='linkArticle'){
+  if(!['lock','unlock'].includes(action)&&members.some(e=>e.locked))throw Error('Elemento o gruppo bloccato: sblocca prima di modificare');
+  if(action==='lock'||action==='unlock'){
+   for(const e of members)e.locked=action==='lock';
+  }else if(action==='setLayer'){
+   if(!Object.prototype.hasOwnProperty.call(LAYERS,payload.layer))throw Error('Livello CAD non valido');
+   for(const e of members)e.layer=payload.layer;
+  }else if(action==='linkArticle'){
    if(rows[i].kind!=='symbol')throw Error('Seleziona un simbolo impiantistico');
    const articleId=String(payload.articleId||'');
    if(articleId&&!/^art_[a-zA-Z0-9-]{8,70}$/.test(articleId))throw Error('Codice articolo CAD non valido');
@@ -156,7 +165,7 @@ function pasteSelection(elements,clipboard,dx=20,dy=20){
  const pasted=transformMembers(clipboard,(x,y)=>({x:x+dx,y:y+dy}));
  const groups=new Map(),ids=[];
  for(const e of pasted){
-  e.id=uid('e');ids.push(e.id);
+  e.id=uid('e');delete e.locked;ids.push(e.id);
   if(e.groupId){if(!groups.has(e.groupId))groups.set(e.groupId,uid('g'));e.groupId=groups.get(e.groupId);}
  }
  const next=[...copy(elements),...pasted];next.forEach(validateElement);
@@ -252,20 +261,40 @@ function catalogSchedule(elements,scale,articles=[],movements=[]){
  return {items,wallMeters:geometry.wallMeters,lineMeters:geometry.lineMeters,calibrated:geometry.calibrated,allPriced,archiveTotal:allPriced?Math.round(items.reduce((n,x)=>n+x.estimated,0)*100)/100:null};
 }
 
+/* Registro dei livelli: conteggi e lunghezze indicativi, anche per elementi nascosti nell'editor. */
+function layerReport(elements,scale=null){
+ if(!Array.isArray(elements)||elements.length>MAX||!validScale(scale))throw Error('Registro livelli CAD non valido');
+ const report=Object.keys(LAYERS).map(id=>({id,label:LAYERS[id],count:0,locked:0,walls:0,lines:0,symbols:0,wallMeters:null,lineMeters:null}));
+ for(const e of elements){
+  validateElement(e);
+  const row=report.find(r=>r.id===layerOf(e));row.count++;
+  if(e.locked)row.locked++;
+  if(e.kind==='symbol')row.symbols++;
+  if(e.kind==='wall')row.walls+=Math.hypot(e.x2-e.x,e.y2-e.y);
+  if(e.kind==='line')row.lines+=Math.hypot(e.x2-e.x,e.y2-e.y);
+ }
+ for(const row of report){
+  row.wallMeters=scale==null?null:Math.round(row.walls*scale)/100;
+  row.lineMeters=scale==null?null:Math.round(row.lines*scale)/100;
+  delete row.walls;delete row.lines;
+ }
+ return report;
+}
 function references(rows,kind,id){
  const fields={clienti:'clientId',immobili:'propertyId',cantieri:'siteId',impianti:'plantId'};
  return (rows||[]).some(r=>fields[kind]&&same(r[fields[kind]],id));
 }
 function el(tag,text){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n}
 function svgElement(tag,attrs,text){const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs||{}))n.setAttribute(k,String(v));if(text!==undefined)n.textContent=text;return n}
-function renderSvg(elements,selected='',draft=true,scale=null){
+function renderSvg(elements,selected='',draft=true,scale=null,hiddenLayers=new Set()){
  if(!validScale(scale))throw Error('Scala CAD non valida');const chosen=new Set(Array.isArray(selected)?selected:[selected]);
  const svg=svgElement('svg',{xmlns:NS,viewBox:'0 0 '+W+' '+H,width:W,height:H,role:'img','aria-label':'Disegno tecnico CAD in bozza'});
  svg.append(svgElement('rect',{x:0,y:0,width:W,height:H,fill:'#ffffff'}));
  for(let x=0;x<=W;x+=50)svg.append(svgElement('line',{x1:x,y1:0,x2:x,y2:H,stroke:'#e5eaf0','stroke-width':1}));
  for(let y=0;y<=H;y+=50)svg.append(svgElement('line',{x1:0,y1:y,x2:W,y2:y,stroke:'#e5eaf0','stroke-width':1}));
  for(const e of elements){
-  const group=svgElement('g',{'data-cad-id':e.id,tabindex:'0',role:'button','aria-label':e.kind+' '+e.id});
+  if(hiddenLayers.has(layerOf(e)))continue;
+  const group=svgElement('g',{'data-cad-id':e.id,'data-cad-layer':layerOf(e),tabindex:'0',role:'button','aria-label':e.kind+' '+e.id+(e.locked?' bloccato':'')});
   const stroke=e.color,highlight=chosen.has(e.id)?'#f59e0b':stroke;
   if(e.kind==='symbol'){
    const sym=svgElement('g',{transform:'translate('+e.x+' '+e.y+') rotate('+e.rotation+')'});
@@ -288,7 +317,7 @@ function renderSvg(elements,selected='',draft=true,scale=null){
 function mount(){
  const host=document.getElementById('ite-cad');if(!host||host.dataset.mounted)return;
  host.dataset.mounted='1';
- const state={current:null,elements:[],selected:'',selectedIds:[],clipboard:[],multi:false,snap:true,advancedSnap:false,orthogonal:true,scale:null,tool:'select',start:null,drag:null,undo:[],redo:[],dirty:false,saving:false};
+ const state={current:null,elements:[],selected:'',selectedIds:[],clipboard:[],multi:false,snap:true,advancedSnap:false,orthogonal:true,hiddenLayers:new Set(),scale:null,tool:'select',start:null,drag:null,undo:[],redo:[],dirty:false,saving:false};
  const h=el('h2','Disegno tecnico I.T.E. CAD — bozza vettoriale'),note=el('p','Strumenti per muri, linee, rettangoli, simboli impiantistici, quote, gruppi e distinta indicativa. La scala in cm è inserita dal tecnico e deve essere verificata sul posto. Ogni salvataggio crea un backup preventivo e una revisione.','hint');
  host.append(h,note);
  const selectors=el('div');selectors.className='grid';
@@ -298,6 +327,7 @@ function mount(){
  const options=el('div');options.className='actions';host.append(options);
  const scaleLabel=el('label','Scala di lavoro (cm per unità grafica)'),scaleInput=el('input');scaleInput.type='number';scaleInput.min='0.01';scaleInput.max='100';scaleInput.step='0.01';scaleInput.placeholder='Non calibrata';scaleLabel.append(scaleInput);options.append(scaleLabel);
  const symbolLabel=el('label','Simbolo impiantistico'),symbolSelect=el('select');for(const [code,label] of Object.entries(SYMBOLS))symbolSelect.append(new Option(label,code));symbolLabel.append(symbolSelect);options.append(symbolLabel);
+ const layerLabel=el('label','Livello CAD attivo'),layerSelect=el('select');for(const [id,name] of Object.entries(LAYERS))layerSelect.append(new Option(name,id));layerLabel.append(layerSelect);options.append(layerLabel);
  const articleLabel=el('label','Articolo di magazzino associato al simbolo selezionato'),articleSelect=el('select');articleLabel.append(articleSelect);options.append(articleLabel);
  const list=mkSelect('Disegni salvati (seleziona per aprire)');host.append(list.parentElement);
  const toolbar=el('div');toolbar.className='actions';host.append(toolbar);
@@ -305,6 +335,7 @@ function mount(){
  const canvas=el('div');canvas.style.cssText='overflow:auto;touch-action:pan-x pan-y;border:1px solid #b5c6d7;background:white;max-width:100%';host.append(canvas);
  const commands=el('div');commands.className='actions';host.append(commands);
  const scheduleBox=el('div');scheduleBox.setAttribute('aria-label','Distinta materiali indicativa');host.append(scheduleBox);
+ const layersBox=el('div');layersBox.setAttribute('aria-label','Riepilogo livelli CAD');host.append(layersBox);
  const say=s=>{status.textContent=s};
  const button=(where,label,fn)=>{const b=el('button',label);b.type='button';b.addEventListener('click',fn);where.append(b);return b};
  const option=(s,value,label)=>s.append(new Option(label,value));
@@ -317,7 +348,7 @@ function mount(){
  function snapshot(){state.undo.push({elements:copy(state.elements),scale:state.scale});if(state.undo.length>60)state.undo.shift();state.redo.length=0}
  function update(next){snapshot();state.elements=next;state.dirty=true;paint()}
  function paint(){
-  const svg=renderSvg(state.elements,state.selectedIds.length?state.selectedIds:state.selected,true,state.scale);
+  const svg=renderSvg(state.elements,state.selectedIds.length?state.selectedIds:state.selected,true,state.scale,state.hiddenLayers);
   svg.style.cssText='width:100%;height:auto;min-width:450px;touch-action:none';canvas.replaceChildren(svg);
   svg.addEventListener('pointerdown',down);svg.addEventListener('pointerup',up);
   svg.addEventListener('pointercancel',()=>{state.start=null;state.drag=null});svg.addEventListener('pointermove',move);
@@ -326,9 +357,11 @@ function mount(){
   for(const item of summary.items){const info=item.articleCode?' · '+item.articleCode+' · '+item.description:' · senza articolo';const stock=item.stock===null?' · giacenza non verificata':' · giacenza attuale '+item.stock+' '+item.unit;const cost=item.estimated===null?' · prezzo da verificare':' · valore archivio '+item.estimated.toFixed(2)+' € ('+item.priceRole+')';scheduleBox.append(el('p',item.label+' × '+item.count+info+stock+cost+(item.warning?' · ATTENZIONE: '+item.warning:'')))}
   scheduleBox.append(el('p',summary.calibrated?'Muri: '+summary.wallMeters+' m · Linee: '+summary.lineMeters+' m (indicativi)':'Lunghezze non disponibili: calibrare la scala'));
   scheduleBox.append(el('p',summary.allPriced?'Somma prezzi archivio '+summary.archiveTotal.toFixed(2)+' € — non è un prezzo di vendita né un preventivo. Posa esclusa.':'Prezzi non completi: nessun totale economico. Fornitura e posa da quantificare separatamente.'));
+  layersBox.replaceChildren(el('h3','Livelli del disegno — visibilità solo editor'));
+  for(const layer of layerReport(state.elements,state.scale).filter(r=>r.count))layersBox.append(el('p',layer.label+': '+layer.count+' elementi ('+layer.locked+' bloccati, '+layer.symbols+' simboli)'+(state.hiddenLayers.has(layer.id)?' · NASCOSTO SOLO NELL’EDITOR':'')));
   say(state.elements.length+' elementi · '+(state.dirty?'Modifiche da salvare':'Salvato / nuova bozza')+' · strumento '+state.tool+(state.multi?' · selezione multipla':''));
  }
- const coord=e=>{const svg=canvas.querySelector('svg'),r=svg.getBoundingClientRect();return snapPoint(point((e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height),state.elements,state.snap&&state.tool!=='select',18,state.advancedSnap)};
+ const coord=e=>{const svg=canvas.querySelector('svg'),r=svg.getBoundingClientRect();return snapPoint(point((e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height),state.elements.filter(x=>!state.hiddenLayers.has(layerOf(x))),state.snap&&state.tool!=='select',18,state.advancedSnap)};
  function down(e){if(e.button!==0)return;const p=coord(e),target=e.target.closest('[data-cad-id]'),id=target?.getAttribute('data-cad-id')||'';
   if(state.multi){if(id){state.selectedIds=state.selectedIds.includes(id)?state.selectedIds.filter(x=>x!==id):[...state.selectedIds,id];state.selected=id}state.start=null;paintSelection();return}
   state.selectedIds=[];state.selected=id;state.start=p;state.drag=state.tool==='select'&&state.selected?p:null;e.currentTarget.setPointerCapture?.(e.pointerId);paintSelection()}
@@ -337,7 +370,7 @@ function mount(){
  function up(e){if(!state.start)return;const raw=coord(e),start=state.start,p=state.tool==='dimension-h'?axisDimensionPoint(start,raw,'horizontal'):state.tool==='dimension-v'?axisDimensionPoint(start,raw,'vertical'):state.orthogonal&&['wall','line','dimension'].includes(state.tool)?orthogonalPoint(start,raw):raw;state.start=null;
   try{if(state.tool==='select'){if(state.drag&&state.selected&&(p.x!==start.x||p.y!==start.y))update(operate(state.elements,'move',state.selected,{dx:p.x-start.x,dy:p.y-start.y}));else paint();state.drag=null;return}
    const text=state.tool==='symbol'?symbolSelect.value:state.tool==='label'?root.prompt('Testo etichetta (max 120 caratteri)','')||'':['dimension','dimension-h','dimension-v'].includes(state.tool)?root.prompt('Quota (facoltativa; verificare sul posto)','')||'':'';
-   const element=make(['dimension-h','dimension-v'].includes(state.tool)?'dimension':state.tool,start,state.tool==='symbol'?start:p,text);update(operate(state.elements,'add','',{element}));state.selected=element.id;
+   const element=make(['dimension-h','dimension-v'].includes(state.tool)?'dimension':state.tool,start,state.tool==='symbol'?start:p,text);element.layer=layerSelect.value;update(operate(state.elements,'add','',{element}));state.selected=element.id;
   }catch(err){say(err.message)}
  }
  for(const [key,label] of [['select','Seleziona / sposta'],['wall','Muro'],['line','Linea'],['rect','Rettangolo'],['dimension','Quota'],['dimension-h','Quota orizzontale'],['dimension-v','Quota verticale'],['label','Testo'],['symbol','Simbolo']])button(toolbar,label,()=>{state.tool=key;state.start=null;state.multi=false;state.selectedIds=[];multiButton.textContent='Selezione multipla: OFF';paint();say('Strumento: '+label)});
@@ -348,6 +381,11 @@ function mount(){
  button(toolbar,'Aggancio estremi: ON',function(){state.snap=!state.snap;this.textContent='Aggancio estremi: '+(state.snap?'ON':'OFF');paint()});
  button(toolbar,'Snap geometrico avanzato: OFF',function(){state.advancedSnap=!state.advancedSnap;this.textContent='Snap geometrico avanzato: '+(state.advancedSnap?'ON':'OFF');paint()});
  button(toolbar,'Vincolo ortogonale: ON',function(){state.orthogonal=!state.orthogonal;this.textContent='Vincolo ortogonale: '+(state.orthogonal?'ON':'OFF');paint()});
+ action('Assegna livello alla selezione',()=>{if(!state.selected)throw Error('Seleziona prima un elemento');update(operate(state.elements,'setLayer',state.selected,{layer:layerSelect.value}));});
+ action('Blocca selezione',()=>{if(!state.selected)throw Error('Seleziona prima un elemento');update(operate(state.elements,'lock',state.selected));});
+ action('Sblocca selezione',()=>{if(!state.selected)throw Error('Seleziona prima un elemento');update(operate(state.elements,'unlock',state.selected));});
+ action('Mostra / nascondi livello attivo',()=>{const id=layerSelect.value;if(state.hiddenLayers.has(id))state.hiddenLayers.delete(id);else state.hiddenLayers.add(id);state.selected='';state.selectedIds=[];paint();say(LAYERS[id]+(state.hiddenLayers.has(id)?' nascosto':' visibile')+' solo nell’editor; il disegno salvato e le esportazioni restano completi');});
+ action('Mostra tutti i livelli',()=>{state.hiddenLayers.clear();paint()});
  action('Raggruppa selezionati',()=>{const next=operate(state.elements,'group','',{ids:state.selectedIds});update(next);state.selectedIds=[];state.multi=false;multiButton.textContent='Selezione multipla: OFF';paint()});
  action('Separa gruppo',()=>update(operate(state.elements,'ungroup',state.selected)));
  action('Sostituisci simbolo selezionato',()=>update(operate(state.elements,'replaceSymbol',state.selected,{symbol:symbolSelect.value})));
@@ -386,6 +424,12 @@ function mount(){
   download('\uFEFF'+lines.join('\r\n'),'ITE-CAD-distinta-bozza.csv','text/csv;charset=utf-8');
  });
 
+ action('Esporta riepilogo livelli CSV (bozza)',()=>{
+  const quote=v=>{let s=String(v??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
+  const lines=[['Livello','Elementi','Bloccati','Simboli','Muri (m)','Linee (m)','Avviso'].map(quote).join(';')];
+  for(const row of layerReport(state.elements,state.scale))if(row.count)lines.push([row.label,row.count,row.locked,row.symbols,row.wallMeters??'',row.lineMeters??'','BOZZA, verificare le quote sul posto'].map(quote).join(';'));
+  download('\uFEFF'+lines.join('\r\n'),'ITE-CAD-livelli-bozza.csv','text/csv;charset=utf-8');
+ });
  action('Esporta distinta catalogo CSV (bozza)',()=>{
   const summary=catalogSchedule(state.elements,state.scale,root.ITECommerce.snapshot().articles,root.ITECommerce.snapshot().movements);
   const csvRow=fields=>fields.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';');
@@ -421,12 +465,12 @@ function mount(){
  }
  button(commands,'Salva con backup e revisione',()=>save().catch(e=>say(e.message)));
  button(commands,'Archivia (non elimina)',()=>{if(!state.current)return say('Apri un disegno salvato');if(root.confirm('Archiviare il disegno conservando lo storico?'))save(true).catch(e=>say(e.message))});
- button(commands,'Nuovo',()=>{if(state.dirty&&!root.confirm('Abbandonare le modifiche non salvate?'))return;state.current=null;state.elements=[];state.selected='';state.selectedIds=[];state.clipboard=[];state.scale=null;scaleInput.value='';state.undo=[];state.redo=[];state.dirty=false;title.value='';list.value='';paint()});
- list.addEventListener('change',()=>{if(!list.value)return;if(state.dirty&&!root.confirm('Abbandonare le modifiche non salvate?'))return;const record=(root.ITECommerce.snapshot().settings.cadDrawings||[]).find(r=>same(r.id,list.value));if(!record)return;state.current=record.id;state.elements=copy(record.elements);state.clipboard=[];state.scale=record.scaleCmPerUnit??null;scaleInput.value=state.scale==null?'':String(state.scale);state.undo=[];state.redo=[];state.selected='';state.selectedIds=[];state.dirty=false;title.value=record.title;client.value=record.clientId;cascade();property.value=record.propertyId;site.value=record.siteId;const db=database();fill(plant,(db.impianti||[]).filter(r=>same(r.immobile_id,property.value)),'— Impianto facoltativo —');plant.value=record.plantId;paint()});
+ button(commands,'Nuovo',()=>{if(state.dirty&&!root.confirm('Abbandonare le modifiche non salvate?'))return;state.current=null;state.elements=[];state.selected='';state.selectedIds=[];state.clipboard=[];state.hiddenLayers.clear();layerSelect.value='arch';state.scale=null;scaleInput.value='';state.undo=[];state.redo=[];state.dirty=false;title.value='';list.value='';paint()});
+ list.addEventListener('change',()=>{if(!list.value)return;if(state.dirty&&!root.confirm('Abbandonare le modifiche non salvate?'))return;const record=(root.ITECommerce.snapshot().settings.cadDrawings||[]).find(r=>same(r.id,list.value));if(!record)return;state.current=record.id;state.elements=copy(record.elements);state.clipboard=[];state.hiddenLayers.clear();layerSelect.value='arch';state.scale=record.scaleCmPerUnit??null;scaleInput.value=state.scale==null?'':String(state.scale);state.undo=[];state.redo=[];state.selected='';state.selectedIds=[];state.dirty=false;title.value=record.title;client.value=record.clientId;cascade();property.value=record.propertyId;site.value=record.siteId;const db=database();fill(plant,(db.impianti||[]).filter(r=>same(r.immobile_id,property.value)),'— Impianto facoltativo —');plant.value=record.plantId;paint()});
  refreshChoices();paint();
  root.addEventListener('beforeunload',event=>{if(state.dirty){event.preventDefault();event.returnValue='';}});
 }
-const api=Object.freeze({KINDS,COLORS,SYMBOLS,validScale,snapPoint,segmentIntersection,axisDimensionPoint,materialSchedule,catalogSchedule,validateElement,validateCollection,make,operate,copySelection,pasteSelection,orthogonalPoint,references,renderSvg,mount});
+const api=Object.freeze({KINDS,COLORS,SYMBOLS,LAYERS,layerOf,layerReport,validScale,snapPoint,segmentIntersection,axisDimensionPoint,materialSchedule,catalogSchedule,validateElement,validateCollection,make,operate,copySelection,pasteSelection,orthogonalPoint,references,renderSvg,mount});
 root.ITECad=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(typeof document!=='undefined')root.addEventListener('ite-vault-ready',mount);
