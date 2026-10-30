@@ -60,6 +60,10 @@ jobs:
         run: |
           node --check ite-job-economics.js
           node dev/test_400_job_economics.cjs
+      - name: Test integrated worksite financial and cost reconciliation (synthetic)
+        run: |
+          node --check ite-site-reconciliation.js
+          node dev/test_400_site_reconciliation.cjs
       - name: Test warehouse stock and references
         run: node dev/test_400_warehouse.cjs
       - name: Test itemized quotes and supply/install separation
@@ -170,6 +174,7 @@ jobs:
           test -s "$RUNNER_TEMP/ite-4-preview/ite-contract-billing.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-job-materials.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-site-costing.js"
+          test -s "$RUNNER_TEMP/ite-4-preview/ite-site-reconciliation.js"
           test -s "$RUNNER_TEMP/ite-4-preview/vault.js"
           test -s "$RUNNER_TEMP/ite-4-preview/version.json"
           test -s "$RUNNER_TEMP/ite-4-preview/AVVIA_ANTEPRIMA_WINDOWS.bat"
