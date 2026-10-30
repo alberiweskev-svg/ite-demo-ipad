@@ -375,6 +375,29 @@ function roomMeasurements(elements,scale=null){
  })),openContours:contours.filter(c=>!c.closed).length};
 }
 
+function roomMeasurementReport(elements,scale=null){
+ const result=roomMeasurements(elements,scale);
+ const rows=result.contours.map((c,i)=>({
+  number:i+1,type:c.type,elementIds:c.ids.slice(),status:!c.closed?'DA VERIFICARE':!result.calibrated?'SCALA NON CALIBRATA':'INDICATIVO',
+  perimeterUnits:c.perimeterUnits,areaUnits:c.areaUnits,
+  perimeterMeters:c.perimeterMeters,areaSquareMeters:c.areaSquareMeters
+ }));
+ const verified=rows.filter(r=>r.status==='INDICATIVO');
+ return {calibrated:result.calibrated,rows,invalidCount:rows.filter(r=>!['INDICATIVO','SCALA NON CALIBRATA'].includes(r.status)).length,
+  totalPerimeterMeters:result.calibrated?Math.round(verified.reduce((n,r)=>n+r.perimeterMeters,0)*1000)/1000:null,
+  totalAreaSquareMeters:result.calibrated?Math.round(verified.reduce((n,r)=>n+r.areaSquareMeters,0)*1000)/1000:null,
+  warning:'Rilievo preliminare: contorni sovrapposti possono duplicare superfici; verificare scala e misure sul posto.'};
+}
+function roomMeasurementCsv(elements,scale=null){
+ const report=roomMeasurementReport(elements,scale);
+ const cell=v=>{let s=String(v??'');if(/^[\\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
+ const lines=[['Contorno','Tipo','Stato','Elementi','Perimetro unità','Area unità²','Perimetro m','Area m²'].map(cell).join(';')];
+ for(const r of report.rows)lines.push([r.number,r.type,r.status,r.elementIds.join(' '),r.perimeterUnits,r.areaUnits??'',r.perimeterMeters??'',r.areaSquareMeters??''].map(cell).join(';'));
+ lines.push(['TOTALI INDICATIVI','','','','','',report.totalPerimeterMeters??'',report.totalAreaSquareMeters??''].map(cell).join(';'));
+ lines.push([report.warning].map(cell).join(';'));
+ return '\\uFEFF'+lines.join('\\r\\n');
+}
+
 function references(rows,kind,id){
  const fields={clienti:'clientId',immobili:'propertyId',cantieri:'siteId',impianti:'plantId'};
  return (rows||[]).some(r=>fields[kind]&&same(r[fields[kind]],id));
@@ -524,6 +547,9 @@ function mount(){
   download('\uFEFF'+lines.join('\r\n'),'ITE-CAD-distinta-bozza.csv','text/csv;charset=utf-8');
  });
 
+ action('Esporta rilievi ambienti CSV (bozza)',()=>{
+  download(roomMeasurementCsv(state.elements,state.scale),'ITE-CAD-rilievi-ambienti-bozza.csv','text/csv;charset=utf-8');
+ });
  action('Esporta riepilogo livelli CSV (bozza)',()=>{
   const quote=v=>{let s=String(v??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
   const lines=[['Livello','Elementi','Bloccati','Simboli','Muri (m)','Linee (m)','Avviso'].map(quote).join(';')];
@@ -570,7 +596,7 @@ function mount(){
  refreshChoices();paint();
  root.addEventListener('beforeunload',event=>{if(state.dirty){event.preventDefault();event.returnValue='';}});
 }
-const api=Object.freeze({KINDS,COLORS,SYMBOLS,LAYERS,layerOf,layerReport,roomMeasurements,validScale,snapPoint,segmentIntersection,axisDimensionPoint,materialSchedule,catalogSchedule,validateElement,validateCollection,make,operate,copySelection,pasteSelection,orthogonalPoint,references,renderSvg,mount});
+const api=Object.freeze({KINDS,COLORS,SYMBOLS,LAYERS,layerOf,layerReport,roomMeasurements,roomMeasurementReport,roomMeasurementCsv,validScale,snapPoint,segmentIntersection,axisDimensionPoint,materialSchedule,catalogSchedule,validateElement,validateCollection,make,operate,copySelection,pasteSelection,orthogonalPoint,references,renderSvg,mount});
 root.ITECad=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(typeof document!=='undefined')root.addEventListener('ite-vault-ready',mount);
