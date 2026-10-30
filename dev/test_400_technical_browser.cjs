@@ -163,6 +163,32 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert(saved.backup.some(x=>x.id===saved.draft.id&&x.originalPrefill?.['detail:committente']?.documentId==='doc_tech_prefill'));
 
 
+ // Pannello integrato: riepilogo cliente, esportazioni locali e avviso dati in chiaro.
+ await page.locator('#tech-filter-client').selectOption('1');
+ await page.locator('#ite-package-dashboard').waitFor({state:'visible'});
+ await page.locator('[data-package-action="refresh"]').click();
+ assert.match(await page.locator('#ite-package-output').innerText(),/4 pratiche/);
+ assert.match(await page.locator('#ite-package-output').innerText(),/BOZZA INTERNA/);
+ page.once('dialog',dialog=>dialog.accept());
+ const packageCsvPromise=page.waitForEvent('download');
+ await page.locator('[data-package-action="csv"]').click();
+ const packageCsv=await packageCsvPromise;
+ assert.equal(packageCsv.suggestedFilename(),'ITE_FASCICOLI_BOZZA.csv');
+ const packageCsvText=fs.readFileSync(await packageCsv.path(),'utf8');
+ assert.match(packageCsvText,/DICO-TEST-001/);
+ assert.match(packageCsvText,/POS-TEST-001/);
+ page.once('dialog',dialog=>dialog.accept());
+ const packageHtmlPromise=page.waitForEvent('download');
+ await page.locator('[data-package-action="html"]').click();
+ const packageHtml=await packageHtmlPromise;
+ assert.equal(packageHtml.suggestedFilename(),'ITE_FASCICOLI_BOZZA.html');
+ const packageHtmlText=fs.readFileSync(await packageHtml.path(),'utf8');
+ assert.match(packageHtmlText,/BOZZA|NON AUTORIZZA|NON VALIDA/i);
+ assert.match(packageHtmlText,/DICO-TEST-001/);
+ await page.locator('#tech-filter-client').selectOption('');
+ await page.locator('[data-package-action="csv"]').click();
+ assert.match(await page.locator('#ite-package-output').innerText(),/Cliente cambiato/);
+
  // Registro e fascicolo: filtri coerenti, storico revisioni e download solo locale.
  await page.locator('#tech-filter-client').selectOption('1');
  await page.locator('#tech-filter-type').selectOption('POS');
