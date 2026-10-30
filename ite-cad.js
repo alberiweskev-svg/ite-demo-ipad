@@ -108,8 +108,14 @@ function operate(elements,action,id,payload={}){
    for(const e of members)e.color=payload.color;
   }else if(action==='rotate'){
    const {cx,cy}=bounds(members);
-   const changed=transformMembers(members,(x,y)=>({x:cx-(y-cy),y:cy+(x-cx)}));
-   for(const e of changed)if(e.kind==='symbol'||e.kind==='label')e.rotation=(e.rotation+90)%360;
+   const raw=members.flatMap(e=>[[e.x,e.y],[e.x2,e.y2]].map(([x,y])=>({x:cx-(y-cy),y:cy+(x-cx)})));
+   const minX=Math.min(...raw.map(p=>p.x)),maxX=Math.max(...raw.map(p=>p.x));
+   const minY=Math.min(...raw.map(p=>p.y)),maxY=Math.max(...raw.map(p=>p.y));
+   if(maxX-minX>W||maxY-minY>H)throw Error('Gruppo troppo grande per ruotare nel foglio');
+   const shiftX=minX<0?-minX:maxX>W?W-maxX:0;
+   const shiftY=minY<0?-minY:maxY>H?H-maxY:0;
+   const changed=transformMembers(members,(x,y)=>({x:cx-(y-cy)+shiftX,y:cy+(x-cx)+shiftY}));
+   for(const e of changed)if(e.kind!=='rect')e.rotation=(e.rotation+90)%360;
    for(const e of changed)Object.assign(rows.find(x=>x.id===e.id),e);
   }else if(action==='resize'){
    const factor=payload.factor;
