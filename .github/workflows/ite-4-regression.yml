@@ -237,6 +237,12 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_job_materials_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Chromium worksite material costing and approved supply (synthetic)
+        run: node dev/test_400_site_costing_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit worksite material costing and approved supply (synthetic)
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_site_costing_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Chromium smoke test of encrypted vault and tablet layout
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit smoke test of encrypted vault and tablet layout (Safari engine)
