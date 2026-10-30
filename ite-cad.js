@@ -280,6 +280,71 @@ function layerReport(elements,scale=null){
  }
  return report;
 }
+
+/* Milestone 44: rilievo metrico di contorni chiusi, senza dedurre quote non rilevate.
+   Le misure sono indicative e non costituiscono computo metrico certificato. */
+function roomMeasurements(elements,scale=null){
+ if(!Array.isArray(elements)||elements.length>MAX||!validScale(scale))throw Error('Rilievo CAD non valido');
+ const walls=elements.filter(e=>{validateElement(e);return e.kind==='wall'});
+ const rectangles=elements.filter(e=>e.kind==='rect');
+ const contours=[];
+ const factor=scale==null?null:scale/100;
+ for(const e of rectangles){
+  const width=Math.abs(e.x2-e.x),height=Math.abs(e.y2-e.y);
+  if(width===0||height===0)continue;
+  contours.push({type:'rettangolo',ids:[e.id],closed:true,perimeterUnits:2*(width+height),areaUnits:width*height});
+ }
+ const used=new Set();
+ for(const first of walls){
+  if(used.has(first.id))continue;
+  const component=[],stack=[first],seen=new Set();
+  while(stack.length){
+   const e=stack.pop();if(seen.has(e.id))continue;
+   seen.add(e.id);component.push(e);
+   const endpoints=[e.x+','+e.y,e.x2+','+e.y2];
+   for(const other of walls){
+    if(seen.has(other.id))continue;
+    if(endpoints.includes(other.x+','+other.y)||endpoints.includes(other.x2+','+other.y2))stack.push(other);
+   }
+  }
+  component.forEach(e=>used.add(e.id));
+  const degrees=new Map();
+  for(const e of component)for(const key of [e.x+','+e.y,e.x2+','+e.y2])degrees.set(key,(degrees.get(key)||0)+1);
+  const closed=component.length>=3&&[...degrees.values()].every(v=>v===2);
+  const perimeterUnits=component.reduce((n,e)=>n+Math.hypot(e.x2-e.x,e.y2-e.y),0);
+  let areaUnits=null;
+  if(closed){
+   const adjacency=new Map();
+   for(const e of component){
+    const a=e.x+','+e.y,b=e.x2+','+e.y2;
+    if(!adjacency.has(a))adjacency.set(a,[]);
+    if(!adjacency.has(b))adjacency.set(b,[]);
+    adjacency.get(a).push(b);adjacency.get(b).push(a);
+   }
+   const start=[...adjacency.keys()].sort()[0],vertices=[start];
+   let previous=null,current=start;
+   for(let i=0;i<component.length;i++){
+    const next=adjacency.get(current).find(v=>v!==previous);
+    if(!next)break;
+    vertices.push(next);previous=current;current=next;
+   }
+   if(vertices.length===component.length+1&&vertices.at(-1)===start){
+    let sum=0;
+    for(let i=0;i<vertices.length-1;i++){
+     const [x,y]=vertices[i].split(',').map(Number),[xx,yy]=vertices[i+1].split(',').map(Number);
+     sum+=x*yy-xx*y;
+    }
+    areaUnits=Math.abs(sum)/2;
+   }
+  }
+  contours.push({type:'muri',ids:component.map(e=>e.id),closed:areaUnits!==null,perimeterUnits,areaUnits});
+ }
+ return {calibrated:factor!==null,contours:contours.map(c=>({...c,
+  perimeterMeters:factor===null?null:Math.round(c.perimeterUnits*factor*1000)/1000,
+  areaSquareMeters:factor===null||c.areaUnits===null?null:Math.round(c.areaUnits*factor*factor*1000)/1000
+ })),openContours:contours.filter(c=>!c.closed).length};
+}
+
 function references(rows,kind,id){
  const fields={clienti:'clientId',immobili:'propertyId',cantieri:'siteId',impianti:'plantId'};
  return (rows||[]).some(r=>fields[kind]&&same(r[fields[kind]],id));
@@ -336,6 +401,7 @@ function mount(){
  const commands=el('div');commands.className='actions';host.append(commands);
  const scheduleBox=el('div');scheduleBox.setAttribute('aria-label','Distinta materiali indicativa');host.append(scheduleBox);
  const layersBox=el('div');layersBox.setAttribute('aria-label','Riepilogo livelli CAD');host.append(layersBox);
+ const measuresBox=el('div');measuresBox.setAttribute('aria-label','Rilievo metrico dei contorni');host.append(measuresBox);
  const say=s=>{status.textContent=s};
  const button=(where,label,fn)=>{const b=el('button',label);b.type='button';b.addEventListener('click',fn);where.append(b);return b};
  const option=(s,value,label)=>s.append(new Option(label,value));
@@ -357,6 +423,10 @@ function mount(){
   for(const item of summary.items){const info=item.articleCode?' · '+item.articleCode+' · '+item.description:' · senza articolo';const stock=item.stock===null?' · giacenza non verificata':' · giacenza attuale '+item.stock+' '+item.unit;const cost=item.estimated===null?' · prezzo da verificare':' · valore archivio '+item.estimated.toFixed(2)+' € ('+item.priceRole+')';scheduleBox.append(el('p',item.label+' × '+item.count+info+stock+cost+(item.warning?' · ATTENZIONE: '+item.warning:'')))}
   scheduleBox.append(el('p',summary.calibrated?'Muri: '+summary.wallMeters+' m · Linee: '+summary.lineMeters+' m (indicativi)':'Lunghezze non disponibili: calibrare la scala'));
   scheduleBox.append(el('p',summary.allPriced?'Somma prezzi archivio '+summary.archiveTotal.toFixed(2)+' € — non è un prezzo di vendita né un preventivo. Posa esclusa.':'Prezzi non completi: nessun totale economico. Fornitura e posa da quantificare separatamente.'));
+  measuresBox.replaceChildren(el('h3','Rilievo metrico indicativo — contorni chiusi'));
+  const measures=roomMeasurements(state.elements,state.scale);
+  for(const c of measures.contours)measuresBox.append(el('p',c.type+' · '+(c.closed?'chiuso':'APERTO / DA VERIFICARE')+' · '+(c.perimeterMeters===null?'scala non calibrata':c.perimeterMeters+' m perimetro')+' · '+(c.areaSquareMeters===null?'superficie non calcolabile':c.areaSquareMeters+' m²')));
+  if(measures.openContours)measuresBox.append(el('p','Attenzione: '+measures.openContours+' contorni aperti o ramificati. Verificare la geometria prima di utilizzare le misure.'));
   layersBox.replaceChildren(el('h3','Livelli del disegno — visibilità solo editor'));
   for(const layer of layerReport(state.elements,state.scale).filter(r=>r.count))layersBox.append(el('p',layer.label+': '+layer.count+' elementi ('+layer.locked+' bloccati, '+layer.symbols+' simboli)'+(state.hiddenLayers.has(layer.id)?' · NASCOSTO SOLO NELL’EDITOR':'')));
   say(state.elements.length+' elementi · '+(state.dirty?'Modifiche da salvare':'Salvato / nuova bozza')+' · strumento '+state.tool+(state.multi?' · selezione multipla':''));
@@ -470,7 +540,7 @@ function mount(){
  refreshChoices();paint();
  root.addEventListener('beforeunload',event=>{if(state.dirty){event.preventDefault();event.returnValue='';}});
 }
-const api=Object.freeze({KINDS,COLORS,SYMBOLS,LAYERS,layerOf,layerReport,validScale,snapPoint,segmentIntersection,axisDimensionPoint,materialSchedule,catalogSchedule,validateElement,validateCollection,make,operate,copySelection,pasteSelection,orthogonalPoint,references,renderSvg,mount});
+const api=Object.freeze({KINDS,COLORS,SYMBOLS,LAYERS,layerOf,layerReport,roomMeasurements,validScale,snapPoint,segmentIntersection,axisDimensionPoint,materialSchedule,catalogSchedule,validateElement,validateCollection,make,operate,copySelection,pasteSelection,orthogonalPoint,references,renderSvg,mount});
 root.ITECad=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(typeof document!=='undefined')root.addEventListener('ite-vault-ready',mount);
