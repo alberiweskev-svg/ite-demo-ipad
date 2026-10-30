@@ -22,8 +22,10 @@ const server=http.createServer((req,res)=>{try{const name=decodeURIComponent(new
     const site=next.cantieri.find(x=>String(x.id)===String(ids.worksite));
     site.ite_quotes=JSON.stringify([{id:'recon_quote',number:'RECON-001',status:'Accettato',lines:[{line_type:'Fornitura',description:'Materiale sintetico',category:'Idrico',qty:2,unit:'m',price:20,discount:0,vat:10},{line_type:'Posa',description:'Posa sintetica',category:'Idrico',qty:1,unit:'h',price:60,discount:0,vat:10}]}]);
    });
+   const bytes=new TextEncoder().encode('%PDF-1.4\n%%EOF'),digest=await crypto.subtle.digest('SHA-256',bytes),hash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join(''),base64=btoa(String.fromCharCode(...bytes)),fileId='file_'+hash;
    await ITECommerce.mutate((next,core)=>{
-    next.documents.push({id:'recon_invoice',type:'Fattura vendita',status:'Registrato',clientId:String(ids.multi),subjectId:String(ids.multi),siteId:String(ids.worksite),number:'RECON-F001',net:100,tax:10,total:110,date:'2026-10-30',due:'2026-11-30'});
+    if(!next.files.some(f=>f.id===fileId))next.files.push({id:fileId,hash,size:bytes.length,base64,name:'recon-synthetic.pdf',type:'application/pdf'});
+    next.documents.push({id:'recon_invoice',type:'Fattura vendita',status:'Registrato',clientId:String(ids.multi),subjectId:String(ids.multi),siteId:String(ids.worksite),propertyId:String(ids.home),plantId:'',deviceId:'',jobId:'',number:'RECON-F001',net:100,tax:10,total:110,date:'2026-10-30',due:'2026-11-30',party:{name:'Cliente sintetico'},lines:[],fileId,sourceName:'recon-synthetic.pdf',payments:[],notes:[]});
     next.settings.contractBillingLinks=[...(next.settings.contractBillingLinks||[]),{id:'bill_recon001',siteId:String(ids.worksite),sourceType:'quote',sourceId:'recon_quote',documentId:'recon_invoice',amountCents:6000,sourceNetCents:10000,createdAt:'2026-10-30T04:00:00Z'}];
     next.settings.financialSettlements=[...(next.settings.financialSettlements||[]),{id:'recon_pay001',kind:'movimento',documentId:'recon_invoice',amountCents:5500,date:'2026-10-30',reference:'Incasso sintetico'}];
    });
