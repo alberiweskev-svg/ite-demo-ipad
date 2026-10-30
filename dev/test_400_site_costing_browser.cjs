@@ -45,9 +45,10 @@ const server=http.createServer((req,res)=>{try{const name=decodeURIComponent(new
   page.once('dialog',d=>d.accept());const download=page.waitForEvent('download');await page.locator('[data-site-cost-csv]').click();
   const csv=await fs.promises.readFile(await (await download).path(),'utf8');
   assert.match(csv,/PREV-COST-001/);assert.match(csv,/Tubo sintetico/);
-  page.once('dialog',d=>d.accept('Storno sintetico'));
-  page.once('dialog',d=>d.accept());
+  const handleVoidDialog=d=>d.type()==='prompt'?d.accept('Storno sintetico'):d.accept();
+  page.on('dialog',handleVoidDialog);
   await page.locator('[data-site-cost-void]').click();
+  page.off('dialog',handleVoidDialog);
   await page.waitForFunction(()=>!!ITECommerce.snapshot().settings.jobMaterialAllocations?.[0]?.voidedAt,null,{timeout:30000});
   const final=await page.evaluate(async()=>({balance:ITECommerce.balance('art_cost_test'),audit:ITECommerce.snapshot().audit.filter(x=>/ATTRIBUZIONE_CONSUMO_FORNITURA|STORNO_ATTRIBUZIONE_FORNITURA/.test(x.action)).length,backups:(await ITEHistory.list()).map(x=>x.reason)}));
   assert.equal(final.balance,7.5);assert(final.audit>=2);assert(final.backups.some(x=>x.includes('ATTRIBUZIONE_CONSUMO_FORNITURA')));
