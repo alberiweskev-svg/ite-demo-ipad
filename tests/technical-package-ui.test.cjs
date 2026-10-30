@@ -8,9 +8,12 @@ const state={documents:[],files:[],settings:{technicalDrafts:[p],technicalAnnexL
 test('dashboard groups technical drafts without mutation',()=>{
  const before=JSON.stringify(state),m=ui.model('c1',core,state);
  assert.equal(m.audit.practices,1);assert.equal(m.audit.authorizedForIssue,false);
+ assert.equal(m.audit.groups['Di.Co. elettrica'].count,1);assert.equal(m.audit.groups['Di.Co. elettrica'].review+m.audit.groups['Di.Co. elettrica'].blocked,1);
  m.core=core;m.state=state;
  const html=ui.render(m);
  assert(html.includes('BOZZA INTERNA'));
+ assert(html.includes('Riepilogo per tipologia'));
+ assert(html.includes('Di.Co. elettrica: 1 pratiche'));
  assert(!html.includes('<script>TEST</script>'));
  assert(html.includes('&lt;script&gt;TEST&lt;/script&gt;'));
  assert.equal(JSON.stringify(state),before);
