@@ -36,8 +36,16 @@ function analyze(site,core,commerce){
   if(allocated>net)alerts.push({level:'warning',message:'Attribuzione superiore alla fattura: '+label(doc)});
  }
  const approved=safeCents(billing.approvedCents),attributed=safeCents(billing.attributedCents),
-  invoiced=safeCents(billing.invoicedCents),knownCost=safeCents(costs.knownCost),
-  collectedGross=safeCents(billing.settledGrossCents),outstandingGross=safeCents(billing.remainingGrossCents);
+  invoiced=safeCents(billing.invoicedCents),knownCost=safeCents(costs.knownCost);
+ let collectedGross=0,outstandingGross=0;
+ if(!root.ITEFinancialDesk?.analyze)throw Error('Registro incassi non disponibile.');
+ if(!billing.settlementWarning){
+  const settlement=root.ITEFinancialDesk.analyze(commerce.documents||[],commerce.settings?.financialSettlements||[]);
+  for(const doc of billing.docs){if(!doc.value)continue;
+   const row=settlement.rows.find(x=>eq(x.id,doc.id));
+   if(row?.eligible){collectedGross+=row.applied;outstandingGross+=row.remaining??0;}
+  }
+ }
  if([approved,attributed,invoiced,knownCost,collectedGross,outstandingGross].some(n=>n===null))throw Error('Totali economici non validi.');
  const missingMaterialCost=Number(costs.material?.unknownCount||0);
  const openSessions=Number(costs.work?.unclosed||0);
