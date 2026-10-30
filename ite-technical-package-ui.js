@@ -4,9 +4,10 @@ const same=(a,b)=>String(a??'')===String(b??'');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function model(clientId,core,state){
  const api=root.ITETechnicalPackage;if(!api?.auditPackage||!api?.readiness)throw Error('Modulo fascicoli non disponibile.');
- if(!clientId)throw Error('Selezionare un cliente.');
+ if(!clientId||!Array.isArray(core?.clienti)||!core.clienti.some(x=>same(x.id,clientId)))throw Error('Selezionare un cliente valido.');
  const rows=(Array.isArray(state?.settings?.technicalDrafts)?state.settings.technicalDrafts:[]).filter(p=>same(p.clientId,clientId));
  if(!rows.length)return {empty:true,clientId,rows:[],audit:null};
+ if(rows.length>50)throw Error('Limite di 50 pratiche per fascicolo: suddividere la selezione.');
  const audit=api.auditPackage(rows,clientId,core,state);
  return {empty:false,clientId,rows,audit};
 }
@@ -18,7 +19,8 @@ function render(data){
  '<table><thead><tr><th>Pratica</th><th>Stato</th><th>Originali</th><th>Prove</th></tr></thead><tbody>'+
  data.rows.map((p,i)=>{const r=root.ITETechnicalPackage.manifest(p,data.core,data.state);
  return '<tr><td>'+esc(p.type)+' — '+esc(p.fields?.reference||p.id)+'</td><td>'+esc(r.state)+'</td><td>'+r.originals.length+'</td><td>'+r.proofs.length+'</td></tr>';}).join('')+
- '</tbody></table><p>'+a.findings.length+' segnalazioni nel controllo degli originali e delle prove.</p>';
+ '</tbody></table><h4>Segnalazioni documentali ('+a.findings.length+')</h4>'+
+ (a.findings.length?'<ul>'+a.findings.map(f=>'<li>'+esc(f.severity)+' · '+esc(f.practiceId)+' · '+esc(f.code)+(f.sourceId?' · '+esc(f.sourceId):'')+'</li>').join('')+'</ul>':'<p>Nessuna anomalia documentale rilevata. Resta obbligatoria la verifica manuale.</p>');
 }
 function install(){
  const panel=root.document?.getElementById('technical-drafts-panel');
@@ -44,6 +46,7 @@ function install(){
   host.querySelector('#ite-package-output').innerHTML=render(current);
  }
  function download(format){
+  if(format!=='csv'&&format!=='html')throw Error('Formato non supportato.');
   if(!current||current.empty)throw Error('Aggiornare il quadro prima di esportare.');
   if(!same(filter.value,current.clientId))throw Error('Cliente cambiato: aggiornare il quadro.');
   const {core,state}=snapshot(),fresh=model(current.clientId,core,state);
@@ -56,6 +59,7 @@ function install(){
   a.href=url;a.download='ITE_FASCICOLI_BOZZA.'+(format==='csv'?'csv':'html');root.document.body.append(a);a.click();a.remove();
   root.setTimeout(()=>URL.revokeObjectURL(url),60000);
  }
+ filter.addEventListener('change',()=>{current=null;host.querySelector('#ite-package-output').textContent='Cliente modificato: premere Aggiorna quadro prima di esportare.';});
  host.addEventListener('click',e=>{
   const button=e.target.closest('button[data-package-action]');if(!button)return;
   try{if(button.dataset.packageAction==='refresh')refresh();else download(button.dataset.packageAction);}
