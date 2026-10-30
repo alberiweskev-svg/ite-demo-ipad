@@ -39,3 +39,27 @@ test('document audit findings are visible in dashboard without HTML injection',(
  assert(!html.includes('<img src=x onerror=alert(1)>'));
  assert(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
 });
+
+test('filter by type and review state isolates dossier rows and exports',()=>{
+ const second={...p,id:'d2',type:'POS',fields:{reference:'POS-TEST'},linkedDocIds:['missing']};
+ const mixed={...state,settings:{...state.settings,technicalDrafts:[p,second]}};
+ const all=ui.model('c1',core,mixed);
+ assert.equal(all.rows.length,2);assert.equal(all.audit.blocked,1);
+ const pos=ui.model('c1',core,mixed,{type:'POS',status:'BLOCCATA'});
+ assert.equal(pos.rows.length,1);assert.equal(pos.rows[0].id,'d2');assert.equal(pos.audit.blocked,1);assert.equal(pos.allCount,2);
+ const reports=global.ITETechnicalPackage.bundle(pos.rows,'c1',core,mixed);
+ assert.match(global.ITETechnicalPackage.csv(reports),/POS-TEST/);
+ assert(!global.ITETechnicalPackage.csv(reports).includes('Di.Co. elettrica'));
+ const review=ui.model('c1',core,mixed,{status:'DA VERIFICARE MANUALMENTE'});
+ assert.equal(review.rows.length,1);assert.equal(review.rows[0].id,'d1');
+ const none=ui.model('c1',core,mixed,{type:'POS',status:'DA VERIFICARE MANUALMENTE'});
+ assert.equal(none.rows.length,0);assert.match(ui.render(none),/Nessuna pratica corrisponde/);
+});
+test('filter type labels remain escaped in dashboard',()=>{
+ const hostile={...p,id:'d2',type:'<img src=x onerror=alert(1)>',fields:{reference:'TEST'}};
+ const mixed={...state,settings:{...state.settings,technicalDrafts:[hostile]}};
+ const m=ui.model('c1',core,mixed,{type:hostile.type});m.core=core;m.state=mixed;
+ const html=ui.render(m);
+ assert(!html.includes('<img src=x onerror=alert(1)>'));
+ assert(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
+});
