@@ -401,6 +401,7 @@ const server=http.createServer((req,res)=>{
     },50);
   });
   await page.locator('#vault-gate').waitFor({state:'visible',timeout:30000});
+  await page.waitForLoadState('domcontentloaded');
   assert.equal(await page.locator('#app-shell').isVisible(),false,'Idle timeout left sensitive data visible behind an open form');
   await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
   await page.locator('#vault-submit').click({noWaitAfter:true});
@@ -422,6 +423,7 @@ const server=http.createServer((req,res)=>{
     },50);
   });
   await page.locator('#vault-gate').waitFor({state:'visible',timeout:30000});
+  await page.waitForLoadState('domcontentloaded');
   assert.equal(await page.locator('#app-shell').isVisible(),false,'First touch after long suspension kept the archive unlocked');
   await page.locator('#vault-password').fill('ITE-4-Test-Only-2026!');
   await page.locator('#vault-submit').click({noWaitAfter:true});

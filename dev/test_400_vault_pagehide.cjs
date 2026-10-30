@@ -28,3 +28,37 @@ assert.equal(thirdCloses,1,'Remaining database must close despite an earlier fai
 context.closeAll();
 assert.equal(thirdCloses,1,'Repeated pagehide cleanup must be idempotent');
 console.log('OK: vault closes active IndexedDB connections before session release; explicit close and failure isolation verified');
+
+
+// Milestone 39: forced idle lock must fail closed before navigation, close DB
+// connections and release Web Locks even if a form has unsaved changes.
+const lockStart=source.indexOf('function lock(force=false){');
+const lockEnd=source.indexOf('\nasync function acquireLock()',lockStart);
+assert(lockStart>=0&&lockEnd>lockStart,'Vault lock function not found');
+const trace=[],secret=new Uint8Array([12,34,56]);
+const shell={hidden:false},form={hidden:false},documentElement={style:{}};
+const lockContext={
+  locking:false,ready:true,secret,releaseLock:()=>trace.push('release'),
+  closeActiveDatabases:()=>trace.push('close'),
+  window:{ITECommerce:{busy:()=>false}},
+  document:{documentElement,getElementById(id){return id==='app-shell'?shell:id==='appointment-form'?form:null}},
+  location:{reload(){trace.push('reload')}},
+  alert(){trace.push('alert')}
+};
+vm.createContext(lockContext);
+vm.runInContext(source.slice(lockStart,lockEnd)+'\nthis.lock=lock;',lockContext);
+lockContext.lock(false);
+assert.deepEqual(trace,['alert'],'Manual lock must protect unsaved forms');
+assert.equal(shell.hidden,false,'Rejected manual lock must leave form accessible');
+trace.length=0;
+lockContext.lock(true);
+assert.deepEqual(trace,['close','release','reload'],'Forced lock must close connections and release session before reload');
+assert.equal(shell.hidden,true,'Forced lock must immediately hide application shell');
+assert.equal(documentElement.style.visibility,'hidden','Forced lock must immediately mask the entire page');
+assert.deepEqual(Array.from(secret),[0,0,0],'Forced lock must zero encryption key bytes');
+assert.equal(lockContext.ready,false,'Forced lock must disable vault access');
+assert.equal(lockContext.secret,null,'Forced lock must drop encryption key reference');
+assert.equal(lockContext.releaseLock,null,'Released Web Lock must not be retained');
+lockContext.lock(true);
+assert.deepEqual(trace,['close','release','reload'],'Repeated inactivity events must not cause multiple reloads');
+console.log('OK: forced idle lock masks UI, zeroes key, closes DBs and releases Web Lock once');
