@@ -94,7 +94,7 @@ jobs:
         run: |
           node --check technical-pdf.js
           node dev/test_400_technical_pdf.cjs
-      - name: Verify generated script integrity without pushing
+      - name: Validate site economics module\n        run: |\n          node --check ite-job-economics.js\n          node dev/test_400_job_economics.cjs\n      - name: Verify generated script integrity without pushing
         run: |
           node dev/sync_sri.cjs --write
           node dev/sync_sri.cjs
