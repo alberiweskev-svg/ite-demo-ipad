@@ -56,7 +56,11 @@ jobs:
         run: |
           node --check ite-site-costing.js
           node dev/test_400_site_costing.cjs
-      - name: Test integrated labor, expenses, internal rates and audit (synthetic)\n        run: |\n          node --check ite-job-economics.js\n          node dev/test_400_job_economics.cjs\n      - name: Test warehouse stock and references
+      - name: Test integrated labor, expenses, internal rates and audit (synthetic)
+        run: |
+          node --check ite-job-economics.js
+          node dev/test_400_job_economics.cjs
+      - name: Test warehouse stock and references
         run: node dev/test_400_warehouse.cjs
       - name: Test itemized quotes and supply/install separation
         run: node dev/test_400_quotes.cjs
@@ -243,7 +247,13 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_site_costing_browser.cjs "$RUNNER_TEMP/ite-4-preview"
-      - name: Chromium worksite labor and expenses (synthetic)\n        run: node dev/test_400_job_economics_browser.cjs "$RUNNER_TEMP/ite-4-preview"\n      - name: WebKit worksite labor and expenses (synthetic)\n        env:\n          ITE_TEST_BROWSER: webkit\n        run: node dev/test_400_job_economics_browser.cjs "$RUNNER_TEMP/ite-4-preview"\n      - name: Chromium smoke test of encrypted vault and tablet layout
+      - name: Chromium worksite labor and expenses (synthetic)
+        run: node dev/test_400_job_economics_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit worksite labor and expenses (synthetic)
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_job_economics_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Chromium smoke test of encrypted vault and tablet layout
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit smoke test of encrypted vault and tablet layout (Safari engine)
         env:
