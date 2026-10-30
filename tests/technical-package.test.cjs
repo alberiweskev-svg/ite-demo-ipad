@@ -61,3 +61,15 @@ test('audit flags missing source file as blocking',()=>{
  assert.equal(a.readyForManualReview,false);
  assert(a.findings.some(x=>x.code==='FILE ASSENTE'&&x.severity==='BLOCCANTE'));
 });
+
+
+test('CSV and A4 expose absent originals and unlinked proofs without implying mandatory checks',()=>{
+ const q={...p(),id:'draft-empty',linkedDocIds:[],fields:{reference:'DOSSIER-TEST-EMPTY',scope:'Synthetic checks'}};
+ const report=api.manifest(q,core,s());
+ const csv=api.csv([report]),html=api.html([report]);
+ assert.match(csv,/ORIGINALI ASSENTI: verificare documentazione/);
+ assert.match(csv,/PROVE NON COLLEGATE: verificare applicabilita/);
+ assert.match(html,/ORIGINALI ASSENTI: verificare documentazione/);
+ assert.match(html,/PROVE NON COLLEGATE: verificare applicabilita/);
+ assert.match(html,/BOZZA INTERNA NON FIRMATA/);
+});
