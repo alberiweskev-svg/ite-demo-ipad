@@ -49,4 +49,40 @@ assert(api.compatible(manual,{...check,jobId:'55'}));
 assert(!api.compatible({...manual,siteId:'999'},check));
 assert(!api.compatible({...manual,deviceId:''},check));
 assert.equal(api.candidates({settings:{fieldChecks:[check]}},manual).length,1);
+
+// Milestone 37: allegati originali tecnici, isolamento cliente, revisioni e revoche.
+const annex=clone(s);
+const sha='a'.repeat(64);
+annex.documents=[{id:'doc_test_pdf',type:'Di.Co. idrica / termica',clientId:'1',propertyId:'',siteId:'40',
+ fileId:'file_'+sha,sourceName:'originale_sintetico.pdf',number:'SYN-37',lines:[]}];
+annex.files=[{id:'file_'+sha,hash:sha,size:12,base64:'JVBERi0xLjQKJSVFT0Y='}];
+assert(api.technicalDoc(annex.documents[0]));
+assert(api.originalMetadata(annex,annex.documents[0]));
+assert.equal(api.annexCandidates(annex,p).length,1);
+assert.throws(()=>api.attachAnnex(annex,core,{practiceId:p.id,documentId:'doc_test_pdf',category:'Progetto',reviewer:'A',note:'Breve'}),/Revisore/i);
+const linked=api.attachAnnex(annex,core,{practiceId:p.id,documentId:'doc_test_pdf',category:'Schema impianto',reviewer:'Tecnico TEST',note:'Schema sintetico da verificare'});
+assert.equal(api.validateAnnexes(annex),true);
+assert.equal(api.annexCandidates(annex,p).length,0);
+assert.equal(api.annexReport(annex,core,p.id).annexes[0].status,'Originale riferito - da verificare');
+assert.match(api.annexCsv(api.annexReport(annex,core,p.id)),/SYN-37/);
+assert.match(api.annexHtml(api.annexReport(annex,core,p.id)),/BOZZA NON UFFICIALE/);
+assert.throws(()=>api.attachAnnex(annex,core,{practiceId:p.id,documentId:'doc_test_pdf',category:'Progetto',reviewer:'Tecnico TEST',note:'Duplicato da evitare'}),/gia collegato/);
+const annexOther=clone(annex);annexOther.documents[0].clientId='2';
+assert.throws(()=>api.validateAnnexes(annexOther),/cliente/i);
+assert(!api.annexCompatible(p,annexOther.documents[0]));
+const annexStale=clone(annex);annexStale.settings.technicalDrafts[0].revision=2;
+assert.equal(api.annexReport(annexStale,core,p.id).annexes[0].status,'Revisione superata');
+const annexMissing=clone(annex);annexMissing.files=[];
+assert.equal(api.annexReport(annexMissing,core,p.id).annexes[0].status,'Originale mancante');
+const annexInjection=clone(annex);annexInjection.documents[0].sourceName='<script>danger</script>';
+annexInjection.settings.technicalAnnexLinks[0].note='=1+2';
+assert.doesNotMatch(api.annexHtml(api.annexReport(annexInjection,core,p.id)),/<script>/);
+assert.match(api.annexCsv(api.annexReport(annexInjection,core,p.id)),/"'=1\+2"/);
+assert.throws(()=>api.revokeAnnex(annex,core,{linkId:linked.id,reviewer:'Tecnico TEST',reason:'Breve'}),/motivazione/i);
+api.revokeAnnex(annex,core,{linkId:linked.id,reviewer:'Tecnico TEST',reason:'Originale sostituito da nuova versione'});
+assert.equal(api.annexReport(annex,core,p.id).annexes[0].status,'Revocato');
+assert(annex.audit.some(x=>x.action==='COLLEGA_ORIGINALE_PRATICA'));
+assert(annex.audit.some(x=>x.action==='REVOCA_ORIGINALE_PRATICA'));
+assert.throws(()=>api.revokeAnnex(annex,core,{linkId:linked.id,reviewer:'Tecnico TEST',reason:'Ancora da revocare'}),/gia revocato/);
+
 console.log('OK: links, revisions, revoked/stale references, client isolation, manual review, A4/CSV, audit and no certification');
