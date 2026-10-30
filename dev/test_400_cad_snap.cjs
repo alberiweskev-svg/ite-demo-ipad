@@ -9,7 +9,7 @@ assert.deepEqual(cad.segmentIntersection({x:0,y:0},{x:100,y:100},{x:0,y:100},{x:
 assert.equal(cad.segmentIntersection({x:0,y:0},{x:100,y:0},{x:0,y:20},{x:100,y:20}),null);
 assert.equal(cad.segmentIntersection({x:0,y:0},{x:10,y:0},{x:20,y:-10},{x:20,y:10}),null);
 assert.deepEqual(cad.snapPoint({x:205,y:105},rows,true,18,true),{x:200,y:100},'Intersection');
-assert.deepEqual(cad.snapPoint({x:145,y:105},[wall],true,18,true),{x:150,y:100},'Midpoint on 100-200');
+assert.deepEqual(cad.snapPoint({x:195,y:105},[wall],true,18,true),{x:200,y:100},'Midpoint on 100-300');
 assert.deepEqual(cad.snapPoint({x:145,y:105},[wall],true,18,false),{x:150,y:110},'Endpoint-only legacy mode');
 assert.deepEqual(cad.snapPoint({x:205,y:105},rows,false,18,true),{x:210,y:110},'Disabled snap');
 assert.deepEqual(cad.axisDimensionPoint({x:100,y:200},{x:300,y:450},'horizontal'),{x:300,y:200});
