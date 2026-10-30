@@ -27,6 +27,9 @@ on:
       - 'technical-structured-docs.js'
       - 'technical-pdf.js'
       - 'technical-acroform.js'
+      - 'ite-technical-consistency.js'
+      - 'dev/test_400_technical_consistency.cjs'
+      - 'dev/test_400_technical_consistency_browser.cjs'
       - 'ite-technical-evidence.js'
       - 'dev/test_400_technical_evidence.cjs'
       - 'dev/test_400_technical_evidence_browser.cjs'
@@ -101,6 +104,10 @@ jobs:
           node dev/test_400_cad_catalog.cjs
           node --check ite-cad-workflow.js
           node dev/test_400_cad_workflow.cjs
+      - name: Technical source consistency and guided prefill (synthetic)
+        run: |
+          node --check ite-technical-consistency.js
+          node dev/test_400_technical_consistency.cjs
       - name: Technical evidence link validation (synthetic)
         run: |
           node --check ite-technical-evidence.js

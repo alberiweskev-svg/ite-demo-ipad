@@ -81,6 +81,10 @@ jobs:
           node --check ite-field-checks.js
           node dev/test_400_field_checks.cjs
           node dev/test_400_field_dossier.cjs
+      - name: Test technical consistency across customer, annex, proofs, CAD and safe prefill
+        run: |
+          node --check ite-technical-consistency.js
+          node dev/test_400_technical_consistency.cjs
       - name: Test technical evidence provenance, revision, audit, revocation and export
         run: |
           node --check ite-technical-evidence.js
@@ -225,6 +229,12 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_technical_evidence_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Chromium technical source consistency and guided prefill (synthetic)
+        run: node dev/test_400_technical_consistency_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit technical source consistency and guided prefill (synthetic)
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_technical_consistency_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Chromium intervention dossier A4 and CSV (synthetic)
         run: node dev/test_400_intervention_dossier_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit intervention dossier A4 and CSV (synthetic)

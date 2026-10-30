@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 39: chiusura archivio per inattività fail-closed, mascheramento immediato, azzeramento chiave, chiusura IndexedDB, rilascio Web Lock e protezione da ricaricamenti duplicati; verifiche di riapertura Chromium/WebKit da confermare con GitHub Actions. Documenti sintetici; 3.0.74 e Windows 2.7.5 invariati; iPad fisico non collaudato."
+  "notes": "Milestone 40: controllo incrociato anagrafiche, originali, allegati, prove, revisioni CAD, PDR GAS e checklist; precompilazione non distruttiva in editor esistente e report A4/CSV. Test sintetici e regressione GitHub da verificare. 3.0.74 e Windows 2.7.5 invariati; Safari/iPad fisico non collaudato."
 }

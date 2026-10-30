@@ -140,3 +140,11 @@ html=html.replace(evidencePattern,'<script src="./ite-technical-evidence.js?v=4.
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
 else assert.equal(fs.readFileSync('index.html','utf8'),html,'Technical evidence SRI outdated; run node dev/sync_sri.cjs --write');
 console.log('TECHNICAL_EVIDENCE_SRI='+evidenceHash);
+
+const consistencyHash=digest('ite-technical-consistency.js');
+const consistencyPattern=/<script src="\.\/ite-technical-consistency\.js\?v=4\.0\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\/script>/;
+assert(consistencyPattern.test(html),'Technical consistency script tag missing');
+html=html.replace(consistencyPattern,'<script src="./ite-technical-consistency.js?v=4.0.0" integrity="'+consistencyHash+'" crossorigin="anonymous"></script>');
+if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
+else assert.equal(fs.readFileSync('index.html','utf8'),html,'Technical consistency SRI outdated');
+console.log('TECHNICAL_CONSISTENCY_SRI='+consistencyHash);
