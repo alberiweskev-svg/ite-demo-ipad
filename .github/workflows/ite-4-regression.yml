@@ -252,6 +252,12 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_site_costing_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Chromium integrated worksite reconciliation (synthetic)
+        run: node dev/test_400_site_reconciliation_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit integrated worksite reconciliation (synthetic)
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_site_reconciliation_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Chromium worksite labor and expenses (synthetic)
         run: node dev/test_400_job_economics_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit worksite labor and expenses (synthetic)
