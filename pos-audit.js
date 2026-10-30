@@ -13,6 +13,7 @@ function audit(values){
   if(issues.length>500)throw Error('Troppi controlli POS: ridurre i dati');
  };
  for(const key of KEYS){
+  if(values?.[key]!==undefined&&values?.[key]!==null&&typeof values[key]!=='string')throw Error('Il campo POS deve essere testuale');
   const raw=String(values?.[key]??'');
   if(raw.length>2000)throw Error('Registro '+key+' oltre il limite POS');
   const parsed=root.ITEPosRegisters.parse(raw);
