@@ -92,6 +92,19 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(json.schema,2);
  assert.equal(json.scaleCmPerUnit,2);
  assert(json.elements.some(e=>e.kind==='symbol'&&e.text==='presa'));
+ // Milestone 41: editor integrato — sostituzione, annulla, appunti privati e incolla.
+ await page.getByRole('button',{name:'Seleziona / sposta'}).click();
+ await page.locator('#ite-cad label').filter({hasText:'Simbolo impiantistico'}).locator('select').selectOption('lavabo');
+ await page.getByRole('button',{name:'Sostituisci simbolo selezionato'}).click();
+ assert(await page.evaluate(()=>document.querySelector('#ite-cad svg')&&ITECad.SYMBOLS.lavabo));
+ assert.match(await page.locator('#ite-cad [aria-label="Distinta materiali indicativa"]').innerText(),/Lavabo/);
+ await page.getByRole('button',{name:'Annulla',exact:true}).click();
+ assert.match(await page.locator('#ite-cad [aria-label="Distinta materiali indicativa"]').innerText(),/Presa elettrica/);
+ await page.getByRole('button',{name:'Copia gruppo / elemento (memoria locale)'}).click();
+ await page.getByRole('button',{name:'Incolla copia (+20 unità)'}).click();
+ assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),4);
+ await page.getByRole('button',{name:'Annulla',exact:true}).click();
+ assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),3);
  assert.equal(errors.length,0,'JavaScript errors: '+errors.join('; '));
  console.log('OK: '+(process.env.ITE_TEST_BROWSER||'chromium')+' CAD save, backup, revision, undo/redo, SVG, references');
 }finally{await browser.close();server.close()}})().catch(e=>{console.error(e);server.close();process.exitCode=1});
