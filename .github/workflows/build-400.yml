@@ -15,6 +15,8 @@ on:
       - 'app.js'
       - 'ite-contract-billing.js'
       - 'ite-job-economics.js'
+      - 'ite-site-reconciliation.js'
+      - 'dev/test_400_site_reconciliation.cjs'
       - 'dev/test_400_job_economics.cjs'
       - 'dev/test_400_job_economics_browser.cjs'
       - 'dev/sync_sri.cjs'
@@ -102,6 +104,10 @@ jobs:
         run: |
           node --check ite-job-economics.js
           node dev/test_400_job_economics.cjs
+      - name: Integrated worksite reconciliation (synthetic)
+        run: |
+          node --check ite-site-reconciliation.js
+          node dev/test_400_site_reconciliation.cjs
       - name: Verify generated script integrity without pushing
         run: |
           node dev/sync_sri.cjs --write
