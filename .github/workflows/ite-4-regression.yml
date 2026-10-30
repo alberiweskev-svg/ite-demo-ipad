@@ -108,6 +108,9 @@ jobs:
           node dev/test_400_cad_catalog.cjs
           node --check ite-cad-workflow.js
           node dev/test_400_cad_workflow.cjs
+      - name: Test CAD room measurements, polygon safety and CSV reports (synthetic)
+        run: |
+          node --test tests/cad-room-measurements.test.cjs tests/cad-room-report.test.cjs
       - name: Test technical crosscheck of CAD, equipment and intervention (synthetic)
         run: node dev/test_400_technical_sources.cjs
       - name: Test technical dossier, filters and revision comparisons
