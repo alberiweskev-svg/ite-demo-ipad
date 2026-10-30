@@ -55,6 +55,48 @@ const server=http.createServer((req,res)=>{try{let file=path.resolve(root,'.'+de
   assert.equal(audit.rows.length,1);assert(audit.rows[0].removedAt);
   assert(audit.audit.includes('COLLEGA_PROVA_PRATICA')&&audit.audit.includes('REVOCA_PROVA_PRATICA'));
   assert(audit.backups.some(x=>x.includes('collegamento prova'))&&audit.backups.some(x=>x.includes('revoca collegamento')));
+  // Allegato tecnico fittizio: byte PDF sintetici, nessun documento cliente reale.
+  await page.locator('[data-evidence-close]').click();
+  const documentId=await page.evaluate(async id=>{
+   const p=ITECommerce.snapshot().settings.technicalDrafts.find(x=>x.id===id);
+   const bytes=new TextEncoder().encode('%PDF-1.4\n%ITE-SYNTHETIC-ONLY\n%%EOF');
+   const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
+   const hash=Array.from(digest,x=>x.toString(16).padStart(2,'0')).join('');
+   const fileId='file_'+hash,docId='doc_ite_technical_annex_37';
+   await ITECommerce.mutate(next=>{
+    next.files.push({id:fileId,hash,size:bytes.length,base64:btoa(String.fromCharCode(...bytes)),name:'synthetic_only.pdf',type:'application/pdf'});
+    next.documents.push({id:docId,type:'Di.Co. idrica / termica',fileId,clientId:p.clientId,
+     propertyId:p.propertyId,siteId:p.siteId,sourceName:'synthetic_only.pdf',
+     number:'SYN-37',date:'2026-10-30',status:'Registrato',lines:[]});
+   });
+   ITETechnicalDrafts.render();
+   return docId;
+  },practiceId);
+  await page.locator('[data-tech-annex="'+practiceId+'"]').waitFor({state:'visible',timeout:30000});
+  await page.locator('[data-tech-annex="'+practiceId+'"]').click();
+  await page.locator('#ite-annex-document').selectOption(documentId);
+  await page.locator('#ite-annex-category').selectOption('Schema impianto');
+  await page.locator('#ite-annex-reviewer').fill('Operatore TEST');
+  await page.locator('#ite-annex-note').fill('Originale sintetico da verificare in pratica');
+  await page.locator('[data-annex-add]').click();
+  await page.waitForFunction(id=>ITECommerce.snapshot().settings.technicalAnnexLinks?.some(x=>x.practiceId===id),practiceId,{timeout:30000});
+  assert.match(await page.locator('#ite-tech-annex-overlay').innerText(),/Originale riferito - da verificare/);
+  page.once('dialog',d=>d.accept());
+  const annexDownload=page.waitForEvent('download');
+  await page.locator('[data-annex-csv]').click();
+  const annexCsv=fs.readFileSync(await (await annexDownload).path(),'utf8');
+  assert.match(annexCsv,/SYN-37/);
+  assert.match(annexCsv,/Schema impianto/);
+  await page.locator('#ite-annex-reviewer').fill('Operatore TEST');
+  page.once('dialog',d=>d.accept('Documento sintetico sostituito'));
+  await page.locator('[data-annex-revoke]').click();
+  await page.waitForFunction(id=>ITECommerce.snapshot().settings.technicalAnnexLinks?.find(x=>x.practiceId===id)?.removedAt,practiceId,{timeout:30000});
+  const annexAudit=await page.evaluate(async()=>({
+   actions:ITECommerce.snapshot().audit.filter(x=>/ORIGINALE_PRATICA/.test(x.action)).map(x=>x.action),
+   backups:(await ITEHistory.list()).map(x=>x.reason)
+  }));
+  assert(annexAudit.actions.includes('COLLEGA_ORIGINALE_PRATICA')&&annexAudit.actions.includes('REVOCA_ORIGINALE_PRATICA'));
+  assert(annexAudit.backups.some(x=>x.includes('collegamento originale'))&&annexAudit.backups.some(x=>x.includes('revoca originale')));
   assert.deepEqual(errors,[],'Browser errors: '+errors.join(' | '));
   console.log('OK '+engine.name()+': technical evidence linked to Di.Co., encrypted save, backup, audit, CSV and revocation');
  }finally{await browser.close()}
