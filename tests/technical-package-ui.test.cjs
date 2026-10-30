@@ -2,7 +2,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 global.ITETechnicalPackage=require('../ite-technical-package.js');
 const ui=require('../ite-technical-package-ui.js');
-const core={clienti:[{id:'c1',name:'Cliente TEST'}],immobili:[],cantieri:[],impianti:[],apparecchiature:[]};
+const core={clienti:[{id:'c1',name:'Cliente TEST'},{id:'c2',name:'Altro cliente fittizio'}],immobili:[],cantieri:[],impianti:[],apparecchiature:[]};
 const p={id:'d1',clientId:'c1',type:'Di.Co. elettrica',revision:1,status:'Bozza',fields:{reference:'<script>TEST</script>',scope:'test'},linkedDocIds:[]};
 const state={documents:[],files:[],settings:{technicalDrafts:[p],technicalAnnexLinks:[],technicalEvidenceLinks:[],fieldChecks:[],cadPracticeLinks:[],cadDrawings:[]}};
 test('dashboard groups technical drafts without mutation',()=>{
