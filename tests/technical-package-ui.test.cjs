@@ -63,3 +63,28 @@ test('filter type labels remain escaped in dashboard',()=>{
  assert(!html.includes('<img src=x onerror=alert(1)>'));
  assert(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
 });
+
+test('export snapshot detects revision changes',()=>{
+ const a=ui.model('c1',core,state);a.core=core;a.state=state;
+ const changed={...state,settings:{...state.settings,technicalDrafts:[{...p,revision:2}]}};
+ const b=ui.model('c1',core,changed);b.core=core;b.state=changed;
+ assert.equal(ui.compareSelection(a,b),false);assert.equal(ui.compareSelection(a,a),true);
+});
+test('export snapshot detects changed SHA-256 and proof links',()=>{
+ const linked={...p,linkedDocIds:['doc1']};
+ const base={...state,documents:[{id:'doc1',clientId:'c1',fileId:'f1',type:'Di.Co.'}],files:[{id:'f1',hash:'a'.repeat(64)}],settings:{...state.settings,technicalDrafts:[linked]}};
+ const a=ui.model('c1',core,base);a.core=core;a.state=base;
+ const altered={...base,files:[{id:'f1',hash:'b'.repeat(64)}]};
+ const b=ui.model('c1',core,altered);b.core=core;b.state=altered;
+ assert.equal(ui.compareSelection(a,b),false);
+ const proof={...base,settings:{...base.settings,technicalEvidenceLinks:[{practiceId:'d1',checkId:'missing',practiceRevision:1}]}};
+ const c=ui.model('c1',core,proof);c.core=core;c.state=proof;
+ assert.equal(ui.compareSelection(a,c),false);
+});
+test('export snapshot is read only and rejects empty selection',()=>{
+ const before=JSON.stringify(state);
+ const a=ui.model('c1',core,state);a.core=core;a.state=state;
+ const b=ui.model('c2',core,state);b.core=core;b.state=state;
+ assert.equal(ui.compareSelection(a,b),false);
+ assert.equal(JSON.stringify(state),before);
+});
