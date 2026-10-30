@@ -76,6 +76,11 @@ jobs:
         run: |
           node --check pos-operativo.js
           node dev/test_400_pos_registers.cjs
+      - name: Test technical field readings, equipment history, reversals and dossier (synthetic)
+        run: |
+          node --check ite-field-checks.js
+          node dev/test_400_field_checks.cjs
+          node dev/test_400_field_dossier.cjs
       - name: Test intervention dossier, hierarchy, time, materials, A4 and CSV
         run: |
           node --check ite-intervention-dossier.js
@@ -176,6 +181,7 @@ jobs:
           test -s "$RUNNER_TEMP/ite-4-preview/technical-structured-docs.js"
           test -s "$RUNNER_TEMP/ite-4-preview/pos-operativo.js"
           test -s "$RUNNER_TEMP/ite-4-preview/pos-audit.js"
+          test -s "$RUNNER_TEMP/ite-4-preview/ite-field-checks.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-intervention-dossier.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-cad.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-cad-workflow.js"
@@ -202,6 +208,12 @@ jobs:
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
           npx playwright install --with-deps chromium webkit
+      - name: Chromium integrated field measurements, dossier and audit (synthetic)
+        run: node dev/test_400_field_checks_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit integrated field measurements, dossier and audit (synthetic)
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_field_checks_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Chromium intervention dossier A4 and CSV (synthetic)
         run: node dev/test_400_intervention_dossier_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit intervention dossier A4 and CSV (synthetic)
