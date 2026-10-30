@@ -6,7 +6,7 @@ function model(clientId,core,state,options={}){
  const api=root.ITETechnicalPackage;if(!api?.auditPackage||!api?.readiness)throw Error('Modulo fascicoli non disponibile.');
  if(!clientId||!Array.isArray(core?.clienti)||!core.clienti.some(x=>same(x.id,clientId)))throw Error('Selezionare un cliente valido.');
  const rows=(Array.isArray(state?.settings?.technicalDrafts)?state.settings.technicalDrafts:[]).filter(p=>same(p.clientId,clientId));
- if(!rows.length)return {empty:true,clientId,rows:[],audit:null};
+ if(!rows.length)return {empty:true,clientId,rows:[],audit:null,types:[],allCount:0,filters:{type:'all',status:'all'}};
  if(rows.length>50)throw Error('Limite di 50 pratiche per fascicolo: suddividere la selezione.');
  const allAudit=api.auditPackage(rows,clientId,core,state);
  const statuses=new Map(api.bundle(rows,clientId,core,state).map(r=>[r.practiceId,r.state]));
