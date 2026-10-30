@@ -41,6 +41,9 @@ on:
       - 'dev/test_400_technical_sources_browser.cjs'
       - 'dev/test_400_cad_catalog.cjs'
       - 'dev/test_400_cad_browser.cjs'
+      - 'pos-audit.js'
+      - 'dev/test_400_pos_audit.cjs'
+      - 'dev/test_400_pos_audit_browser.cjs'
       - 'index.html'
       - 'vault.js'
       - '.github/workflows/build-400.yml'
@@ -72,6 +75,10 @@ jobs:
         run: |
           node --check ite-contract-billing.js
           node dev/test_400_contract_billing.cjs
+      - name: POS cross-register audit and exports (synthetic)
+        run: |
+          node --check pos-audit.js
+          node dev/test_400_pos_audit.cjs
       - name: Warehouse stock regression tests
         run: node dev/test_400_warehouse.cjs
       - name: Posted stock document immutability tests

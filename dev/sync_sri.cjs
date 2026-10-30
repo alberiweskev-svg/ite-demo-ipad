@@ -108,3 +108,11 @@ assert(reconciliationPattern.test(html),'Cannot find site reconciliation script 
 html=html.replace(reconciliationPattern,'<script src="./ite-site-reconciliation.js?v=4.0.0" integrity="'+reconciliationHash+'" crossorigin="anonymous"></script>');
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
 else assert.equal(fs.readFileSync('index.html','utf8'),html,'Site reconciliation SRI is outdated; run node dev/sync_sri.cjs --write');
+
+const posAuditHash=digest('pos-audit.js');
+const posAuditPattern=/<script src="\.\/pos-audit\.js\?v=4\.0\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\/script>/;
+assert(posAuditPattern.test(html),'Cannot find POS audit script tag');
+html=html.replace(posAuditPattern,'<script src="./pos-audit.js?v=4.0.0" integrity="'+posAuditHash+'" crossorigin="anonymous"></script>');
+if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
+else assert.equal(fs.readFileSync('index.html','utf8'),html,'POS audit SRI is outdated; run node dev/sync_sri.cjs --write');
+console.log('POS_AUDIT_SRI='+posAuditHash);

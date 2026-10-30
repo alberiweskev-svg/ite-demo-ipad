@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 32: quadro integrato cantiere con lavori approvati, fatture attribuite, incassi lordi, costi noti, anomalie e CSV. Sola lettura, non utile fiscale. 3.0.74 e Windows 2.7.5 invariati."
+  "notes": "Milestone 33: POS controllo incrociato di personale, attrezzature, rischi, DPI ed emergenze, matrice fasi, verifiche, A4 e CSV. Solo bozze, nessuna attestazione. 3.0.74 e Windows 2.7.5 invariati."
 }
