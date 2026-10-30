@@ -17,6 +17,7 @@ on:
       - 'ite-job-economics.js'
       - 'ite-site-reconciliation.js'
       - 'dev/test_400_site_reconciliation.cjs'
+      - 'dev/test_400_site_reconciliation_browser.cjs'
       - 'dev/test_400_job_economics.cjs'
       - 'dev/test_400_job_economics_browser.cjs'
       - 'dev/sync_sri.cjs'
