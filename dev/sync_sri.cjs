@@ -100,3 +100,11 @@ html=html.replace(economicsPattern,'<script src="./ite-job-economics.js?v=4.0.0"
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
 else assert.equal(fs.readFileSync('index.html','utf8'),html,'Site economics SRI is outdated; run node dev/sync_sri.cjs --write');
 console.log('JOB_ECONOMICS_SRI='+economicsHash);
+
+const reconciliationHash=digest('ite-site-reconciliation.js');
+console.log('SITE_RECONCILIATION_SRI='+reconciliationHash);
+const reconciliationPattern=/<script src="\.\/ite-site-reconciliation\.js\?v=4\.0\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\/script>/;
+assert(reconciliationPattern.test(html),'Cannot find site reconciliation script tag');
+html=html.replace(reconciliationPattern,'<script src="./ite-site-reconciliation.js?v=4.0.0" integrity="'+reconciliationHash+'" crossorigin="anonymous"></script>');
+if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
+else assert.equal(fs.readFileSync('index.html','utf8'),html,'Site reconciliation SRI is outdated; run node dev/sync_sri.cjs --write');
