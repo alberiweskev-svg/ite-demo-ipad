@@ -70,7 +70,7 @@ function csv(r){
  return '\uFEFF'+lines.map(row=>row.map(cell).join(';')).join('\r\n')+'\r\n';
 }
 function printable(r,reference=''){
- const body=render(r);
+ const body=render(r).replace(/<details(?: open)?>/g,'<details open>');
  return '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;"><title>ITE POS — verifica interna</title>'+
  '<style>@page{size:A4;margin:17mm}body{font:12px Arial,sans-serif;color:#182d40}h1{font-size:20px}h4{font-size:15px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #aab;padding:5px;vertical-align:top;overflow-wrap:anywhere}li{margin:5px 0}details{display:block;margin:12px 0}summary{font-weight:bold}.hint{font-size:11px}header{border-bottom:2px solid #385b4d;margin-bottom:15px}</style></head><body>'+
  '<header><h1>I.T.E. — verifica interna registri POS</h1><p>Riferimento: '+esc(reference||'Non indicato')+'</p><strong>BOZZA NON FIRMATA — NON ATTESTA CONFORMITÀ O SICUREZZA</strong></header>'+body+
