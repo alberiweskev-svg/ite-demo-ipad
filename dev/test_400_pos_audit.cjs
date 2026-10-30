@@ -27,6 +27,7 @@ const r=api.audit(attack),html=api.render(r),print=api.printable(r,'<script>aler
 assert.ok(!html.includes('<img src='));
 assert.ok(!print.includes('<script>alert(1)</script>'));
 assert.ok(print.includes('BOZZA NON FIRMATA'));
+assert.equal((print.match(/<details open>/g)||[]).length,3,'Tutte le sezioni devono essere visibili in stampa A4');
 assert.ok(print.includes('default-src'));
 assert.ok(csv.includes('"\'=SOMMA(A1:A2)'));
 assert.ok(!csv.includes('\n=SOMMA'));
