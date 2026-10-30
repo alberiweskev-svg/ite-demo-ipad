@@ -1,0 +1,58 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
+const {chromium,webkit}=require('playwright');
+const root=path.resolve(process.argv[2]||'.'),engine=process.env.ITE_TEST_BROWSER==='webkit'?webkit:chromium;
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json'};
+const server=http.createServer((req,res)=>{try{let file=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(file!==root&&!file.startsWith(root+path.sep))throw Error('outside');if(fs.statSync(file).isDirectory())file=path.join(file,'index.html');res.setHeader('Content-Type',mime[path.extname(file)]||'application/octet-stream');fs.createReadStream(file).on('error',()=>{res.statusCode=404;res.end()}).pipe(res)}catch{res.statusCode=404;res.end('not found')}});
+(async()=>{
+ await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const browser=await engine.launch({headless:true});
+ try{
+  const page=await browser.newPage({acceptDownloads:true}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'domcontentloaded'});
+  await page.locator('#vault-password').fill('ITE-4-FIELD-CHECKS-SYNTHETIC');
+  await page.locator('#vault-confirm').fill('ITE-4-FIELD-CHECKS-SYNTHETIC');
+  await page.locator('#vault-submit').click();
+  await page.locator('#app-shell').waitFor({state:'visible',timeout:45000});
+  await page.waitForFunction(()=>!!window.ITEFieldChecks&&!!window.ITEInterventionDossier&&!!window.ITETestData&&!!ITECommerce.snapshot().settings.testDatasets?.ITE_TEST_3073&&!ITECommerce.busy(),null,{timeout:45000});
+  const jobId=await page.evaluate(()=>{
+   const ids=ITECommerce.snapshot().settings.testDatasets.ITE_TEST_3073.ids;
+   const jobId=Math.max(0,...ITE.snapshot().interventi.map(x=>x.id))+1;
+   const start=new Date(Date.now()-600000).toISOString(),end=new Date(Date.now()+3600000).toISOString();
+   ITE.commit(next=>next.interventi.push({id:jobId,appointment:'1',time_tracking:'automatic',workflow_status:'In corso',target_type:'apparecchiature',target_id:ids.boiler,client_id:ids.multi,immobile_id:ids.home,cantiere_id:ids.worksite,apparecchiatura_id:ids.boiler,kind:'Manutenzione',description:'Prove tecniche sintetiche',technician_id:ids.worker,assigned_operators:JSON.stringify([{operator_id:ids.worker,role:'Principale'}]),scheduled_start:start,scheduled_end:end,started_at:start,finished_at:'',work_sessions:JSON.stringify([{id:'field-synthetic-session',operator_id:ids.worker,arrived_at:start,departed_at:''}]),callout_policy:'ordinary',callout_fee:'0.00',outcome:'Da completare'}));
+   document.getElementById('agenda-actor').value=ids.worker;
+   document.getElementById('agenda-actor').dispatchEvent(new Event('change',{bubbles:true}));
+   ITEAgenda.open(jobId);return jobId;
+  });
+  await page.locator('#ite-field-checks-form').waitFor({state:'visible',timeout:30000});
+  await page.locator('#ite-field-checks-form [name=category]').selectOption('Termico');
+  await page.locator('#ite-field-checks-form [name=kind]').selectOption('Misura strumentale');
+  await page.locator('#ite-field-checks-form [name=label]').fill('Temperatura mandata TEST');
+  await page.locator('#ite-field-checks-form [name=value]').fill('45,5');
+  await page.locator('#ite-field-checks-form [name=unit]').selectOption('°C');
+  await page.locator('#ite-field-checks-form [name=instrument]').fill('Termometro sintetico');
+  await page.locator('#ite-field-checks-form [name=note]').fill('Dato fittizio, non certificato');
+  await page.locator('#ite-field-checks-form [type=submit]').click();
+  await page.waitForFunction(()=>ITECommerce.snapshot().settings.fieldChecks?.length===1,null,{timeout:30000});
+  await page.locator('#ite-field-checks-form').waitFor({state:'visible',timeout:30000});
+  await page.locator('#ite-field-checks-form [name=category]').selectOption('Termico');
+  await page.locator('#ite-field-checks-form [name=kind]').selectOption('Verifica visiva');
+  await page.locator('#ite-field-checks-form [name=outcome]').selectOption('Da verificare');
+  await page.locator('#ite-field-checks-form [name=label]').fill('Controllo visivo TEST');
+  await page.locator('#ite-field-checks-form [name=note]').fill('Da verificare in cantiere');
+  await page.locator('#ite-field-checks-form [type=submit]').click();
+  await page.waitForFunction(()=>ITECommerce.snapshot().settings.fieldChecks?.length===2,null,{timeout:30000});
+  await page.locator('[data-intervention-report="preview"]').click();
+  assert.match(await page.locator('#ite-intervention-report-result').innerText(),/prove: 2/);
+  page.once('dialog',d=>d.accept());const p1=page.waitForEvent('download');await page.locator('[data-intervention-report="a4"]').click();
+  const a4=fs.readFileSync(await (await p1).path(),'utf8');
+  assert.match(a4,/Temperatura mandata TEST/);assert.match(a4,/45.5/);assert.match(a4,/BOZZA INTERNA NON FIRMATA/);
+  page.once('dialog',d=>d.accept('Misura da correggere'));await page.locator('[data-field-void]').first().click();
+  await page.waitForFunction(()=>ITECommerce.snapshot().settings.fieldChecks?.some(x=>x.voidedAt),null,{timeout:30000});
+  page.once('dialog',d=>d.accept());const p2=page.waitForEvent('download');await page.locator('[data-field-csv]').click();
+  const csv=fs.readFileSync(await (await p2).path(),'utf8');assert.match(csv,/Temperatura mandata TEST/);assert.match(csv,/Stornato/);
+  const audit=await page.evaluate(async()=>({checks:ITECommerce.snapshot().settings.fieldChecks,audit:ITECommerce.snapshot().audit.filter(x=>/PROVA_TECNICA/.test(x.action)).length,backups:(await ITEHistory.list()).map(x=>x.reason)}));
+  assert.equal(audit.checks.length,2);assert(audit.audit>=3);assert(audit.backups.some(x=>x.includes('registrazione prova tecnica')));
+  assert.deepEqual(errors,[],'Browser errors: '+errors.join(' | '));
+  console.log('OK '+engine.name()+': technical field checks, encrypted save, dossier A4, reversal, CSV and audit; job '+jobId);
+ }finally{await browser.close()}
+})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>server.close());
