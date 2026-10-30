@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict'),api=require('../ite-intervention-dossier.js');
+const core={clienti:[{id:1,name:'Cliente TEST'},{id:2,name:'Tecnico TEST'},{id:3,name:'Altro'}],immobili:[{id:10,client_id:'1',name:'Via Prova 1'}],impianti:[{id:20,immobile_id:'10',name:'Impianto TEST'}],apparecchiature:[{id:30,impianto_id:'20',brand:'Baxi',model:'TEST'}],cantieri:[{id:40,client_id:'1',immobile_id:'10',name:'Cantiere TEST'}],interventi:[{id:50,appointment:'1',client_id:'1',immobile_id:'10',impianto_id:'20',apparecchiatura_id:'30',cantiere_id:'40',kind:'Riparazione',date:'2026-10-30',workflow_status:'Chiuso',description:'Lavoro TEST',outcome:'Completato',assigned_operators:'[{"operator_id":"2","role":"Principale"}]',work_sessions:'[{"operator_id":"2","arrived_at":"2026-10-30T08:00:00Z","departed_at":"2026-10-30T09:30:00Z"},{"operator_id":"2","arrived_at":"2026-10-30T10:00:00Z","departed_at":""}]',revision_audit:'[{"action":"RETTIFICA"}]'}]};
+const commerce={settings:{jobMaterialUsage:[{jobId:'50',clientId:'1',siteId:'40',articleLabel:'Rubinetto TEST',quantity:2,unit:'pz',date:'2026-10-30',note:'Sostituito'},{jobId:'50',clientId:'1',siteId:'40',articleLabel:'Vecchio pezzo',quantity:1,unit:'pz',reversedAt:'2026-10-30T10:00:00Z'}],technicalDrafts:[{interventionId:'50',clientId:'1',type:'Di.Co. idrica / termica',reference:'TEST-001',status:'Bozza'}]}};
+const copy=x=>JSON.parse(JSON.stringify(x)),r=api.build(core,commerce,50);
+assert.equal(r.minutes,90);assert.equal(r.open,1);assert.equal(r.materials.length,1);assert.equal(r.reversed,1);assert.equal(r.practices.length,1);assert.equal(r.revision,1);
+assert.match(api.printable(r),/BOZZA INTERNA NON FIRMATA/);assert.match(api.csv(r),/Rubinetto TEST/);
+assert.doesNotMatch(api.printable(r),/unitCostCents|Tariffa interna/);
+let c=copy(core);c.immobili[0].client_id='3';assert.throws(()=>api.build(c,commerce,50),/altro cliente/);
+c=copy(core);c.interventi[0].impianto_id='999';assert.throws(()=>api.build(c,commerce,50),/discordanti|mancante/);
+let d=copy(commerce);d.settings.jobMaterialUsage[0].clientId='3';assert.throws(()=>api.build(core,d,50),/cliente/);
+d=copy(commerce);d.settings.technicalDrafts[0].clientId='3';assert.throws(()=>api.build(core,d,50),/altro cliente/);
+c=copy(core);c.interventi[0].work_sessions='not json';assert.throws(()=>api.build(c,commerce,50),/non leggibile/);
+c=copy(core);c.interventi[0].description='<img src=x onerror=alert(1)>';assert.ok(!api.printable(api.build(c,commerce,50)).includes('<img src=x'));
+c.interventi[0].description='=SOMMA(A1:A2)';assert.ok(api.csv(api.build(c,commerce,50)).includes("'=SOMMA(A1:A2)"));
+assert.deepEqual(api.build(core,commerce,50),r);
+console.log('OK: fascicolo intervento, gerarchia, accessi, materiali, storni, pratiche, revisioni, A4/CSV sicuri');
