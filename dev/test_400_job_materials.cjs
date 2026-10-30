@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),api=require('../ite-job-materials.js');
 const client={id:1,name:'=CLIENTE DI PROVA'},actor={id:2,name:'Tecnico fittizio'};
-const core={clienti:[client,actor,{id:3,name:'Altro cliente'}],cantieri:[{id:9,client_id:1,name:'Cantiere fittizio'}],interventi:[{id:12,appointment:'1',client_id:1,cantiere_id:9,workflow_status:'In corso',assigned_operators:JSON.stringify([{operator_id:'2',role:'Principale'}])},{id:13,appointment:'1',client_id:3,cantiere_id:'',workflow_status:'In corso',assigned_operators:'[{"operator_id":"2"}]'}]};
+const core={clienti:[client,actor,{id:3,name:'Altro cliente'}],cantieri:[{id:9,client_id:1,name:'Cantiere fittizio'}],interventi:[{id:12,appointment:'1',client_id:1,cantiere_id:9,workflow_status:'In corso',assigned_operators:JSON.stringify([{operator_id:'2',role:'Principale'}])},{id:13,appointment:'1',client_id:3,cantiere_id:9,workflow_status:'In corso',assigned_operators:'[{"operator_id":"2"}]'}]};
 const state=()=>({settings:{},articles:[{id:'a',kind:'Materiale',code:'=M1',description:'Tubo fittizio',unit:'m',costPrice:2.5},{id:'b',kind:'Servizio',description:'Posa'}],movements:[{id:'in',articleId:'a',quantity:10,date:'2026-10-30',reason:'Carico fittizio',siteId:'9'}],audit:[]});
 const s=state(),req={jobId:12,actorId:2,articleId:'a',quantity:'2.500',note:'Bagno prova'};
 assert.equal(api.stock(s,'a'),10);

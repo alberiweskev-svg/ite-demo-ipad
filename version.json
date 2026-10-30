@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 28: collegamenti manuali tra preventivi/Extra approvati e fatture vendita importate, attribuzioni imponibile con limiti, storni e audit, SAL previsionali, riconciliazione separata incassi fatture, CSV sicuro. main 3.0.74 e moduli Windows 2.7.5 invariati; Safari iPad fisico, modelli ufficiali e WebKit reload ancora aperti."
+  "notes": "Milestone 29: registro consumi materiali per intervento da calendario, scarico giacenza verificata, storno con movimento compensativo, audit e backup, riepilogo cantiere e CSV protetto da formule. Versione 3.0.74 e moduli Windows 2.7.5 preservati; Safari iPad fisico e modelli ufficiali ancora da collaudare."
 }
