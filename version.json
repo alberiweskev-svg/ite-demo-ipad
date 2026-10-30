@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 43: CAD integrato con livelli architettura/idrico/termico/elettrico/CDZ/GAS/quote, blocco e sblocco gruppi, visibilità locale, distinta metrica per livello e CSV; compatibilità disegni precedenti e backup. Test unitari e pipeline aggiornati; esiti remoti da verificare. Nessuna pubblicazione; 3.0.74 e 2.7.5 invariati."
+  "notes": "Milestone 44 (parziale): rilievo metrico CAD integrato con perimetri, superfici di contorni chiusi, avvisi contorni aperti e scala calibrata. Test sintetici della geometria eseguiti; regressione browser e pipeline da verificare. Nessuna pubblicazione; 3.0.74 e 2.7.5 invariati."
 }
