@@ -92,3 +92,11 @@ html=html.replace(siteCostPattern,'<script src="./ite-site-costing.js?v=4.0.0" i
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
 else assert.equal(fs.readFileSync('index.html','utf8'),html,'Site costing SRI is outdated; run node dev/sync_sri.cjs --write');
 console.log('SITE_COSTING_SRI='+siteCostHash);
+
+const economicsHash=digest('ite-job-economics.js');
+const economicsPattern=/<script src="\.\/ite-job-economics\.js\?v=4\.0\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\/script>/;
+assert(economicsPattern.test(html),'Cannot find site economics script tag');
+html=html.replace(economicsPattern,'<script src="./ite-job-economics.js?v=4.0.0" integrity="'+economicsHash+'" crossorigin="anonymous"></script>');
+if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
+else assert.equal(fs.readFileSync('index.html','utf8'),html,'Site economics SRI is outdated; run node dev/sync_sri.cjs --write');
+console.log('JOB_ECONOMICS_SRI='+economicsHash);
