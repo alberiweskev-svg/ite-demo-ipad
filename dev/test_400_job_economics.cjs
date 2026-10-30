@@ -1,0 +1,45 @@
+'use strict';
+const assert=require('node:assert/strict');
+globalThis.ITEContractBilling=require('../ite-contract-billing.js');
+globalThis.ITESiteCosting=require('../ite-site-costing.js');
+const api=require('../ite-job-economics.js');
+const site={id:9,client_id:1,name:'=Cantiere fittizio',ite_quotes:JSON.stringify([{id:'q1',number:'Q-001',status:'Accettato',lines:[{line_type:'Fornitura',description:'Materiale sintetico',qty:5,unit:'m',price:10,discount:0,vat:10,category:'Idrico'},{line_type:'Posa',description:'Lavorazione',qty:1,unit:'h',price:50,discount:0,vat:10,category:'Idrico'}]}]),ite_extras:'[]'};
+const core={clienti:[{id:1,name:'Cliente sintetico'},{id:2,name:'Altro cliente'},{id:3,name:'Operaio fittizio',kind:'Dipendente'},{id:4,name:'Professionista fittizio',kind:'Professionista'}],cantieri:[site,{id:10,client_id:2}],interventi:[
+ {id:11,cantiere_id:9,client_id:1,time_tracking:'automatic',work_sessions:JSON.stringify([{id:'s1',operator_id:'3',arrived_at:'2026-10-29T08:00:00Z',departed_at:'2026-10-29T09:00:00Z'},{id:'s2',operator_id:'4',arrived_at:'2026-10-29T08:30:00Z',departed_at:'2026-10-29T09:00:00Z'},{id:'s3',operator_id:'3',arrived_at:'2026-10-29T10:00:00Z',departed_at:''}]),work_logs:JSON.stringify([{operator_id:'3',duration_minutes:60},{operator_id:'4',duration_minutes:30}])},
+ {id:12,cantiere_id:9,client_id:1,time_tracking:'manual',work_logs:JSON.stringify([{operator_id:'3',duration_minutes:30}])}
+]};
+const state=()=>({settings:{jobMaterialUsage:[{id:'u1',quantity:2,unit:'m',articleId:'a',unitCostCents:300,clientId:'1',siteId:'9',jobId:'11',articleLabel:'Tubo fittizio',reversedAt:''}],jobMaterialAllocations:[],jobSiteExpenses:[],jobLaborRates:{}},audit:[],documents:[]});
+const s=state();
+assert.equal(api.euroCents('15,50'),1550);
+assert.throws(()=>api.euroCents('1e5'),/Importo/);
+assert.throws(()=>api.euroCents('-1'),/Importo/);
+assert.equal(api.rateFor(core.clienti[2],s),4400);
+assert.equal(api.rateFor(core.clienti[3],s),5800);
+const before=api.analyze(site,core,s);
+assert.equal(before.work.costCents,9500);
+assert.equal(before.work.seconds,7200);
+assert.equal(before.work.unclosed,1);
+assert.equal(before.materialCents,600);
+assert.equal(before.knownCost,10100);
+assert.ok(before.warnings.some(x=>x.includes('sessioni aperte')));
+assert.equal(before.complete,false);
+assert.ok(before.approvedNet>0);
+const x=api.addExpense(s,core,{siteId:9,category:'Noleggio',description:'Noleggio ponteggio sintetico',date:'2026-10-29',amount:'15.50'});
+assert.equal(api.analyze(site,core,s).knownCost,11650);
+assert.equal(s.audit.at(-1).action,'COSTO_COMMESSA_REGISTRATO');
+assert.throws(()=>api.addExpense(s,core,{siteId:9,category:'Altro',description:'test',date:'2026-10-29',amount:2}),/Descrizione/);
+assert.throws(()=>api.addExpense(s,core,{siteId:9,category:'Altro',description:'Spesa sintetica',date:'2026-02-30',amount:2}),/Data/);
+assert.match(api.csv(site,core,s),/"'=Cantiere fittizio"/);
+assert.doesNotMatch(api.render(site,core,s),/<script/);
+assert.throws(()=>api.reverseExpense(s,core,9,x.id,'no'),/Motivazione/);
+api.reverseExpense(s,core,9,x.id,'Rettifica sintetica');
+assert.equal(api.analyze(site,core,s).knownCost,10100);
+assert.throws(()=>api.reverseExpense(s,core,9,x.id,'Secondo storno'),/già stornata/);
+api.setRate(s,core,3,'48.50');
+assert.equal(api.analyze(site,core,s).work.costCents,10175);
+assert.equal(api.validate(s,core),true);
+const tampered=structuredClone(s);tampered.settings.jobSiteExpenses[0].clientId='2';
+assert.throws(()=>api.validate(tampered,core),/incoerente/);
+const foreign=structuredClone(core);foreign.interventi[0].client_id=2;
+assert.throws(()=>api.analyze(site,foreign,s),/altro cliente/);
+console.log('OK: ore automatiche/manuali, professionista, sessioni aperte, materiali, spese, tariffe, storni, privacy, CSV');
