@@ -281,6 +281,8 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_technical_sources_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Verify technical package script SRI hashes
+        run: node tests/technical-package-sri.test.cjs
       - name: Chromium integrated technical draft browser flow with synthetic data
         run: node dev/test_400_technical_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit integrated technical draft save, backup, revision and print
