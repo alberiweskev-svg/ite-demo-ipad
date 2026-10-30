@@ -116,3 +116,11 @@ html=html.replace(posAuditPattern,'<script src="./pos-audit.js?v=4.0.0" integrit
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
 else assert.equal(fs.readFileSync('index.html','utf8'),html,'POS audit SRI is outdated; run node dev/sync_sri.cjs --write');
 console.log('POS_AUDIT_SRI='+posAuditHash);
+
+const dossierHash=digest('ite-intervention-dossier.js');
+const dossierPattern=/<script src="\.\/ite-intervention-dossier\.js\?v=4\.0\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\/script>/;
+assert(dossierPattern.test(html),'Cannot find intervention dossier script tag');
+html=html.replace(dossierPattern,'<script src="./ite-intervention-dossier.js?v=4.0.0" integrity="'+dossierHash+'" crossorigin="anonymous"></script>');
+if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
+else assert.equal(fs.readFileSync('index.html','utf8'),html,'Intervention dossier SRI outdated; run node dev/sync_sri.cjs --write');
+console.log('INTERVENTION_DOSSIER_SRI='+dossierHash);

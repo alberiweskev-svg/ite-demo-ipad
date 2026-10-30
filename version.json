@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 33: POS controllo incrociato di personale, attrezzature, rischi, DPI ed emergenze, matrice fasi, verifiche, A4 e CSV. Solo bozze, nessuna attestazione. 3.0.74 e Windows 2.7.5 invariati."
+  "notes": "Milestone 34: fascicolo intervento collegato a cliente, sede, impianto, apparecchiatura, cantiere, operatori, accessi, materiali, revisioni e pratiche; controlli, A4 e CSV. Solo bozze, nessun costo interno. 3.0.74 e Windows 2.7.5 invariati."
 }
