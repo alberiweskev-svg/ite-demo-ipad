@@ -44,3 +44,20 @@ test('proof of different equipment is never included',()=>{
  state.settings.technicalEvidenceLinks=[{practiceId:'draft1',checkId:'check1',practiceRevision:2,removedAt:''}];
  assert.throws(()=>api.manifest(practice,localCore,state),/apparecchiatura differente/);
 });
+
+test('audit flags absent originals and proofs without certifying',()=>{
+ const practice={...p(),linkedDocIds:[]};
+ const a=api.auditPackage([practice],'1',core,s());
+ assert.equal(a.practices,1);
+ assert.equal(a.authorizedForIssue,false);
+ assert.equal(a.readyForManualReview,true);
+ assert(a.findings.some(x=>x.code==='ORIGINALI_ASSENTI'));
+ assert(a.findings.some(x=>x.code==='PROVE_ASSENTI'));
+});
+test('audit flags missing source file as blocking',()=>{
+ const state=s();state.files=[];
+ const a=api.auditPackage([p()],'1',core,state);
+ assert.equal(a.blocked,1);
+ assert.equal(a.readyForManualReview,false);
+ assert(a.findings.some(x=>x.code==='FILE ASSENTE'&&x.severity==='BLOCCANTE'));
+});
