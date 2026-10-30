@@ -8,7 +8,7 @@ const eur=c=>(c/100).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
 const safeCents=n=>Number.isSafeInteger(n)&&Math.abs(n)<=1e12?n:null;
 const label=x=>String(x.number||x.description||x.name||x.id||'');
 function analyze(site,core,commerce){
- if(!site||!(core?.cantieri||[]).some(s=>eq(s.id,site.id))||!(core.clienti||[]).some(c=>eq(c.id,site.client_id)))throw Error('Cantiere e cliente non disponibili.');
+ if(!site||!(core?.cantieri||[]).some(s=>eq(s.id,site.id)&&eq(s.client_id,site.client_id))||!(core.clienti||[]).some(c=>eq(c.id,site.client_id)))throw Error('Cantiere e cliente non disponibili.');
  if(!root.ITEContractBilling?.calculate||!root.ITEJobEconomics?.analyze)throw Error('Moduli economici non disponibili.');
  const billing=root.ITEContractBilling.calculate(site,commerce);
  const costs=root.ITEJobEconomics.analyze(site,core,commerce);
