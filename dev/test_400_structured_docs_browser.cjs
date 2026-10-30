@@ -85,7 +85,12 @@ const server=http.createServer((req,res)=>{try{
      clientId:'1',subjectId:'1',propertyId:'1',siteId:'',lines:[],number:'TEST-ORIG-1',sourceName:'originale_fittizio.pdf'});
     const row=next.settings.technicalDrafts.find(p=>p.fields.reference==='STRUCT-TEST-001');
     if(!row)throw Error('Missing synthetic draft');
-    row.linkedDocIds=['doc_originale_fittizio'];
+    row.linkedDocIds=[];
+    next.settings.technicalAnnexLinks=[...(next.settings.technicalAnnexLinks||[]),{
+     id:'ta_synthetic_bundle_38',practiceId:row.id,practiceRevision:row.revision,
+     clientId:String(row.clientId),documentId:'doc_originale_fittizio',
+     category:'Schema impianto',reviewer:'Operatore sintetico',note:'Allegato sintetico di prova',
+     linkedAt:new Date().toISOString(),removedAt:'',removedBy:'',removedReason:''}];
    });
    ITETechnicalDrafts.render();
   });
@@ -101,6 +106,10 @@ const server=http.createServer((req,res)=>{try{
   assert.equal(manifest.format,'ITE-4-TECHNICAL-EVIDENCE-1');
   assert.equal(manifest.documents.length,1);
   assert.equal(manifest.documents[0].number,'TEST-ORIG-1');
+  assert.equal(manifest.annexRegisterVersion,2);
+  assert.equal(manifest.documents[0].links[0].source,'registro_allegati');
+  assert.equal(manifest.documents[0].links[0].category,'Schema impianto');
+  assert.match(await z.file('REGISTRO_VERIFICHE.csv').async('string'),/Schema impianto/);
   assert.match(await z.file(manifest.documents[0].filePath).async('string'),/DOCUMENTO SINTETICO/);
   assert.match(await z.file('FASCICOLO_BOZZA.html').async('string'),/STRUCT-TEST-001/);
   assert.match(await page.locator('#tech-status').innerText(),/SHA-256/);

@@ -126,6 +126,11 @@ function inspectionMatrix(p,docs,clientId,options={}){
   push('POS','Cronologia lavori',start&&end&&start<=end?'Date presenti':'Da verificare',
    start&&end&&start>end?'Fine lavori precedente all’inizio':'Verificare date e completezza');
  }
+ for(const {record,document,status} of annexLinksFor(p,docs,clientId,options)){
+  push('Registro allegati',record.category+' · '+clean(document.number||document.sourceName||document.id),
+   status==='Riferimento attivo - da verificare'?'Riferito':'Da verificare',
+   status+' · revisione '+record.practiceRevision+' · revisore '+clean(record.reviewer));
+ }
  for(const evidence of root.ITETechnicalEvidence?.summary?.(p,options.evidenceLinks,options.fieldChecks,clientId)||[]){
   push('Prove intervento',evidence.label,evidence.status==='Riferimento attivo - da verificare'?'Riferito':'Da verificare',
    [evidence.measuredAt,evidence.value?evidence.value+' '+evidence.unit:evidence.outcome,evidence.status,'Revisore: '+evidence.reviewer,'Nota: '+evidence.note].filter(Boolean).join(' · '));
@@ -252,6 +257,15 @@ function build(rows,clientId,docs,base,options={}){
   const checks=Object.entries(p.checklistEvidence||{}).map(([name,c])=>[name,(c?.status||'Da verificare')+' — '+(c?.evidence||'Evidenza assente')+(c?.documentId?' — documento '+c.documentId:'')]);
   const linked=arr(p.linkedDocIds).map(id=>docMap.get(String(id)));
   for(const d of linked)annexes.push({practiceId:p.id,documentId:d.id,type:d.type||'',name:d.sourceName||d.number||String(d.id),date:d.date||''});
+  const annexRegistry=annexLinksFor(p,docs,clientId,options);
+  for(const {record,document,status} of annexRegistry){
+   if(status==='Riferimento attivo - da verificare')annexes.push({practiceId:p.id,documentId:document.id,
+    type:record.category,name:document.sourceName||document.number||String(document.id),date:record.linkedAt});
+   else issues.push('Allegato '+record.category+': '+status);
+  }
+  const annexRegistryRows=annexRegistry.map(({record,document,status})=>
+   [record.category,clean(document.number||document.sourceName||document.id)+' · '+status+
+    ' · revisione '+record.practiceRevision+' · revisore '+clean(record.reviewer)]);
   const sourceRows=Object.entries(p.originalPrefill||{}).map(([target,s])=>{
    const d=docMap.get(String(s?.documentId||'')),linkedOk=arr(p.linkedDocIds).some(id=>same(id,s?.documentId));
    const current=target.startsWith('detail:')?p.structured?.[target.slice(7)]:target.startsWith('field:')?p.fields?.[target.slice(6)]:undefined;
@@ -275,6 +289,7 @@ function build(rows,clientId,docs,base,options={}){
    '<h3>Distinta materiali CAD (quantità da verificare, posa separata)</h3>'+(trace.rows.length?table(trace.rows.map(x=>[x.code||x.symbol,x.quantity+' '+(x.unit||'pz')+' · '+x.description+' · '+x.status+' · tavola rev. '+x.revision])):'<p>Nessun materiale CAD associato a una tavola valida.</p>')+
    '<h3>Schema e tavole collegate</h3>'+(cadRows.length?table(cadRows):'<p>Nessuna tavola CAD collegata.</p>')+
    '<h3>Originali collegati (solo indice, nessun file incorporato)</h3>'+(linked.length?table(linked.map(d=>[d.type||'Originale',String(d.number||d.sourceName||d.id)+(d.date?' · '+d.date:'')])):'<p>Nessun originale collegato.</p>')+
+   '<h3>Registro allegati originali (revisioni e revoche)</h3>'+(annexRegistryRows.length?table(annexRegistryRows):'<p>Nessun collegamento nel registro allegati.</p>')+
    '<h3>Provenienza delle proposte originali</h3>'+(sourceRows.length?table(sourceRows):'<p>Nessuna provenienza registrata.</p>')+
    '<h3>Verifiche aperte ('+issues.length+')</h3><ul>'+(issues.length?issues.map(x=>'<li>'+esc(x)+'</li>').join(''):'<li>Nessun punto aperto nella checklist interna; verifiche normative e firme restano obbligatorie.</li>')+'</ul></article>');
  }
@@ -312,26 +327,70 @@ function ensureLocalZip(){
  }).catch(e=>{zipLoader=null;throw e});
  return zipLoader;
 }
-function packageOriginalRefs(rows,clientId,docs,base){
+/* Milestone 38: use the audited annex register as a first-class source for
+   the technical dossier. Never treat a reference as proof of conformity. */
+function annexLinksFor(p,docs,clientId,options={}){
+ const all=options.annexLinks??[];
+ if(!Array.isArray(all)||all.length>10000)throw Error('Registro allegati non valido.');
+ const output=[];
+ for(const a of all){
+  if(!same(a?.practiceId,p.id))continue;
+  const d=find(docs,a.documentId);
+  if(!d||!same(a.clientId,clientId)||!same(d.clientId||d.subjectId,clientId)||
+     d.propertyId&&p.propertyId&&!same(d.propertyId,p.propertyId)||
+     d.siteId&&p.siteId&&!same(d.siteId,p.siteId)||
+     d.plantId&&p.plantId&&!same(d.plantId,p.plantId)||
+     d.deviceId&&p.deviceId&&!same(d.deviceId,p.deviceId)||
+     d.jobId&&p.interventionId&&!same(d.jobId,p.interventionId))
+   throw Error('Registro allegati: cliente, sede o impianto non coerenti; esportazione bloccata.');
+  if(!Number.isSafeInteger(a.practiceRevision)||a.practiceRevision<1||
+     typeof a.category!=='string'||!clean(a.category)||
+     typeof a.reviewer!=='string'||clean(a.reviewer).length<3||
+     !Number.isFinite(Date.parse(a.linkedAt))||
+     a.removedAt&&!Number.isFinite(Date.parse(a.removedAt)))
+   throw Error('Registro allegati: provenienza o revisione non valida.');
+  const status=a.removedAt?'Revocato':p.status==='Annullata'?'Pratica annullata':
+   !same(a.practiceRevision,p.revision)?'Revisione superata':'Riferimento attivo - da verificare';
+  output.push({record:a,document:d,status});
+ }
+ return output;
+}
+function packageOriginalRefs(rows,clientId,docs,base,options={}){
  validate(rows,clientId,docs,base);
  const ids=new Map(),byId=new Map(arr(docs).map(d=>[String(d.id),d]));
- for(const p of rows)for(const id of arr(p.linkedDocIds)){
+ const add=(p,id,source,record)=>{
   const d=byId.get(String(id));
-  if(!d||!same(d.clientId||d.subjectId,clientId))throw Error('Originale di un altro cliente: pacchetto bloccato.');
-  if(!ids.has(String(id)))ids.set(String(id),{document:d,practices:[]});
-  ids.get(String(id)).practices.push(String(p.id));
+  if(!d||!same(d.clientId||d.subjectId,clientId)||
+     d.propertyId&&p.propertyId&&!same(d.propertyId,p.propertyId)||
+     d.siteId&&p.siteId&&!same(d.siteId,p.siteId))
+   throw Error('Originale di un altro cliente o sede: pacchetto bloccato.');
+  if(!ids.has(String(id)))ids.set(String(id),{document:d,practices:[],links:[]});
+  const entry=ids.get(String(id));
+  if(!entry.practices.includes(String(p.id)))entry.practices.push(String(p.id));
+  entry.links.push({practiceId:String(p.id),source,category:record?.category||'Collegamento pratica',
+   practiceRevision:record?.practiceRevision??p.revision,
+   reviewer:record?.reviewer||'',linkedAt:record?.linkedAt||''});
+ };
+ for(const p of rows){
+  for(const id of arr(p.linkedDocIds))add(p,id,'collegamento_pratica',null);
+  for(const {record,status} of annexLinksFor(p,docs,clientId,options)){
+   if(status==='Revocato')continue;
+   if(status!=='Riferimento attivo - da verificare')
+    throw Error('Registro allegati: pratica annullata o revisione superata. Aggiorna il collegamento prima del pacchetto.');
+   add(p,record.documentId,'registro_allegati',record);
+  }
  }
  if(!ids.size)throw Error('Nessun originale collegato: importa e collega prima i documenti tecnici.');
  if(ids.size>30)throw Error('Massimo 30 originali per pacchetto: restringi le pratiche.');
  return [...ids.values()];
 }
 async function buildOriginalPackage(rows,clientId,docs,base,commerce,options={},deps={}){
- const refs=packageOriginalRefs(rows,clientId,docs,base),files=arr(commerce?.files);
+ const refs=packageOriginalRefs(rows,clientId,docs,base,options),files=arr(commerce?.files);
  const ZIP=deps.JSZip||root.JSZip,subtle=deps.subtle||root.crypto?.subtle;
  if(typeof ZIP!=='function'||!subtle?.digest)throw Error('Motore ZIP o verifica SHA-256 non disponibile.');
  const verified=[],usedPaths=new Map(),manifestDocs=[];let totalBytes=0;
  const hex=bytes=>[...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('');
- for(const {document:d,practices} of refs){
+ for(const {document:d,practices,links} of refs){
   const f=files.find(x=>same(x.id,d.fileId));
   if(!f||typeof f.base64!=='string'||!Number.isSafeInteger(f.size)||f.size<1||
      typeof f.hash!=='string'||!/^[a-f0-9]{64}$/.test(f.hash)||f.id!=='file_'+f.hash)
@@ -354,7 +413,7 @@ async function buildOriginalPackage(rows,clientId,docs,base,commerce,options={},
    usedPaths.set(f.hash,safePath);verified.push({path:safePath,bytes});
   }
   manifestDocs.push({documentId:String(d.id),type:clean(d.type),number:clean(d.number),originalName:clean(f.name),
-   filePath:usedPaths.get(f.hash),size:f.size,sha256:f.hash,practiceIds:practices});
+   filePath:usedPaths.get(f.hash),size:f.size,sha256:f.hash,practiceIds:practices,links});
  }
  const structured=build(rows,clientId,docs,base,options);
  const register=csvReport(rows,clientId,docs,base,options);
@@ -364,7 +423,7 @@ async function buildOriginalPackage(rows,clientId,docs,base,commerce,options={},
   warning:'Archivio ZIP locale NON CIFRATO. Originali verificati SHA-256; nessuna conformita o firma attestata.',
   clientId:String(clientId),practices:rows.map(p=>({id:String(p.id),type:p.type,reference:clean(p.fields?.reference),
    revision:p.revision,status:p.status})),documents:manifestDocs,
-  totalOriginalBytes:totalBytes,openChecks:register.counts.toVerify};
+  totalOriginalBytes:totalBytes,openChecks:register.counts.toVerify,annexRegisterVersion:2};
  const zip=new ZIP();
  zip.file('LEGGIMI_PRIMA.txt','I.T.E. 4.0 - PACCHETTO TECNICO PREPARATORIO\n'+
   'BOZZA NON VALIDA, NON FIRMATA. ZIP NON CIFRATO: custodire in luogo protetto.\n'+
@@ -427,7 +486,7 @@ function install(){
     selected=rows.filter(r=>same(r.id,button.dataset.techStructured));clientId=selected[0]?.clientId;
    }
    const api=root.ITETechnicalDrafts;
-   const options={groups:api?.structuredGroups||{},review:api?.qualityReport,drawings:state.settings?.cadDrawings,links:state.settings?.cadPracticeLinks,articles:state.articles,movements:state.movements,evidenceLinks:state.settings?.technicalEvidenceLinks,fieldChecks:state.settings?.fieldChecks};
+   const options={groups:api?.structuredGroups||{},review:api?.qualityReport,drawings:state.settings?.cadDrawings,links:state.settings?.cadPracticeLinks,articles:state.articles,movements:state.movements,evidenceLinks:state.settings?.technicalEvidenceLinks,fieldChecks:state.settings?.fieldChecks,annexLinks:state.settings?.technicalAnnexLinks};
    if(button.id==='tech-dossier-originals'){
     if(!root.confirm('Il pacchetto ZIP includera copie reali dei documenti originali del cliente selezionato. NON e cifrato e NON e un documento ufficiale. Vuoi scaricarlo sul tuo dispositivo?'))return;
     button.disabled=true;

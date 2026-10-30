@@ -42,6 +42,36 @@ const rows=[p],commerce={files:[file]},before=JSON.stringify({rows,docs,base,com
  assert(!String(zip.entries.get('FASCICOLO_BOZZA.html')).includes('CLIENTE RISERVATO'));
  assert.match(String(zip.entries.get('FASCICOLO_BOZZA.html')),/TEST-DICO-001/);
  assert.equal(JSON.stringify({rows,docs,base,commerce}),before,'Export must never mutate source archives');
+ const annex={id:'ta_test_annex_38',practiceId:'p1',practiceRevision:2,clientId:'1',
+  documentId:'d1',category:'Schema impianto',reviewer:'Operatore sintetico',
+  note:'Originale di prova sintetico',linkedAt:'2026-10-30T09:00:00Z',
+  removedAt:'',removedBy:'',removedReason:''};
+ const annexOnly={...p,linkedDocIds:[]};
+ const annexOptions={annexLinks:[annex]};
+ const fromRegister=await api.buildOriginalPackage([annexOnly],'1',docs,base,commerce,annexOptions,
+  {JSZip:MockZip,subtle:webcrypto.subtle,atob});
+ assert.equal(fromRegister.originals,1,'The new annex register alone must produce the original');
+ assert.equal(fromRegister.manifest.annexRegisterVersion,2);
+ assert.equal(fromRegister.manifest.documents[0].links[0].source,'registro_allegati');
+ assert.equal(fromRegister.manifest.documents[0].links[0].category,'Schema impianto');
+ assert.match(String(MockZip.latest.entries.get('FASCICOLO_BOZZA.html')),/Schema impianto/);
+ assert.match(String(MockZip.latest.entries.get('REGISTRO_VERIFICHE.csv')),/Schema impianto/);
+ const merged=api.packageOriginalRefs([p],'1',docs,base,annexOptions);
+ assert.equal(merged.length,2);
+ assert.equal(merged.find(x=>x.document.id==='d1').links.length,2,'Legacy and registry links share a single original');
+ await assert.rejects(api.buildOriginalPackage([annexOnly],'1',docs,base,commerce,
+  {annexLinks:[{...annex,removedAt:'2026-10-30T09:05:00Z',removedBy:'Operatore sintetico',removedReason:'Revocato per test'}]},
+  {JSZip:MockZip,subtle:webcrypto.subtle,atob}),/Nessun originale/);
+ await assert.rejects(api.buildOriginalPackage([annexOnly],'1',docs,base,commerce,
+  {annexLinks:[{...annex,practiceRevision:1}]},
+  {JSZip:MockZip,subtle:webcrypto.subtle,atob}),/revisione superata/);
+ await assert.rejects(api.buildOriginalPackage([annexOnly],'1',docs,base,commerce,
+  {annexLinks:[{...annex,clientId:'2'}]},
+  {JSZip:MockZip,subtle:webcrypto.subtle,atob}),/cliente/);
+ await assert.rejects(api.buildOriginalPackage([annexOnly],'1',docs,base,commerce,
+  {annexLinks:[{...annex,documentId:'foreign'}]},
+  {JSZip:MockZip,subtle:webcrypto.subtle,atob}),/cliente/);
+ assert.equal(JSON.stringify({rows,docs,base,commerce}),before,'Annex exports must remain read-only');
  const invalid=(f,rows0=rows,docs0=docs)=>api.buildOriginalPackage(rows0,'1',docs0,base,{files:[f]}, {},{JSZip:MockZip,subtle:webcrypto.subtle,atob});
  await assert.rejects(invalid({...file,base64:Buffer.from(bytes.map(x=>x^1)).toString('base64')}),/SHA-256/);
  await assert.rejects(invalid({...file,size:file.size+1}),/SHA-256/);
