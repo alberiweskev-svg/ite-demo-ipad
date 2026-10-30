@@ -23,12 +23,19 @@ const server=http.createServer((req,res)=>{try{const name=decodeURIComponent(new
    ITE.commit(next=>{
     const site=next.cantieri.find(x=>String(x.id)===String(ids.worksite));
     site.ite_quotes=JSON.stringify([{id:'q_econ_test',number:'PREV-ECON-001',status:'Accettato',lines:[{line_type:'Fornitura',description:'Materiale sintetico',category:'Idrico',qty:5,unit:'m',price:10,discount:0,vat:10},{line_type:'Posa',description:'Posa sintetica',category:'Idrico',qty:1,unit:'h',price:50,discount:0,vat:10}]}]);
-    next.interventi.push({id:jobId,appointment:'1',time_tracking:'automatic',workflow_status:'Chiuso',target_type:'apparecchiature',target_id:ids.boiler,client_id:ids.multi,immobile_id:ids.home,cantiere_id:ids.worksite,apparecchiatura_id:ids.boiler,kind:'Riparazione',description:'Intervento economia sintetico',technician_id:ids.worker,assigned_operators:JSON.stringify([{operator_id:ids.worker,role:'Principale'}]),scheduled_start:start,scheduled_end:end,started_at:start,finished_at:end,work_sessions:JSON.stringify([{id:'econ-session',operator_id:String(ids.worker),arrived_at:start,departed_at:end}]),work_logs:JSON.stringify([{operator_id:String(ids.worker),role:'Principale',duration_minutes:60,duration_seconds:3600}]),labor_minutes:'60',callout_policy:'ordinary',callout_fee:'0.00',outcome:'Completato'});
+    next.interventi.push({id:jobId,appointment:'1',time_tracking:'automatic',workflow_status:'In corso',target_type:'apparecchiature',target_id:ids.boiler,client_id:ids.multi,immobile_id:ids.home,cantiere_id:ids.worksite,apparecchiatura_id:ids.boiler,kind:'Riparazione',description:'Intervento economia sintetico',technician_id:ids.worker,assigned_operators:JSON.stringify([{operator_id:ids.worker,role:'Principale'}]),scheduled_start:start,scheduled_end:end,started_at:start,finished_at:'',work_sessions:JSON.stringify([{id:'econ-session',operator_id:String(ids.worker),arrived_at:start,departed_at:''}]),callout_policy:'ordinary',callout_fee:'0.00',outcome:'Da completare'});
    });
    await ITECommerce.mutate((next,core)=>{
     next.articles.push({id:'art_econ_test',kind:'Materiale',code:'TEST-ECON',description:'Tubo sintetico',unit:'m',price:10,costPrice:3});
     next.movements.push({id:'stock_econ_test',articleId:'art_econ_test',quantity:10,date:'2026-10-30',reason:'Carico fittizio',siteId:ids.worksite,documentId:''});
     ITEJobMaterials.addUsage(next,core,{jobId,actorId:ids.worker,articleId:'art_econ_test',quantity:2,note:'Prova economia'});
+   });
+   // Materiali: scarico durante l'intervento aperto; successivamente chiusura con tempi consuntivati.
+   ITE.commit(next=>{
+    const job=next.interventi.find(x=>x.id===jobId);
+    job.work_sessions=JSON.stringify([{id:'econ-session',operator_id:String(ids.worker),arrived_at:start,departed_at:end}]);
+    job.work_logs=JSON.stringify([{operator_id:String(ids.worker),role:'Principale',duration_minutes:60,duration_seconds:3600}]);
+    job.labor_minutes='60';job.finished_at=end;job.workflow_status='Chiuso';job.outcome='Completato';
    });
    ITEWorksites.open(ids.worksite);
    return ids;
