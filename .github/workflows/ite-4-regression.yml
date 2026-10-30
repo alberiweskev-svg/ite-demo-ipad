@@ -81,6 +81,10 @@ jobs:
           node --check ite-field-checks.js
           node dev/test_400_field_checks.cjs
           node dev/test_400_field_dossier.cjs
+      - name: Test integrated technical dashboard (synthetic)
+        run: |
+          node --check ite-technical-package-ui.js
+          node --test tests/technical-package-ui.test.cjs
       - name: Test technical delivery manifest, source isolation and safe exports
         run: |
           node --check ite-technical-package.js
