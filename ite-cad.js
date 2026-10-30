@@ -119,6 +119,7 @@ function operate(elements,action,id,payload={}){
    for(const e of changed)Object.assign(rows.find(x=>x.id===e.id),e);
   }else if(action==='resize'){
    const factor=payload.factor;
+   if(members.length===1&&['symbol','label'].includes(rows[i].kind))throw Error('Ridimensiona la geometria o un gruppo: la dimensione grafica di icone e testi è fissa');
    if(typeof factor!=='number'||!Number.isFinite(factor)||factor<0.5||factor>2||factor===1)
     throw Error('Ridimensionamento consentito dal 50% al 200%, escluso 100%');
    const {cx,cy}=bounds(members);
@@ -160,6 +161,11 @@ function pasteSelection(elements,clipboard,dx=20,dy=20){
  }
  const next=[...copy(elements),...pasted];next.forEach(validateElement);
  return {elements:next,ids};
+}
+/* Vincolo ortogonale opzionale per muri, linee e quote: nessuna misura inventata. */
+function orthogonalPoint(start,end){
+ if(!start||!end||![start.x,start.y,end.x,end.y].every(Number.isFinite))throw Error('Punti CAD non validi');
+ return Math.abs(end.x-start.x)>=Math.abs(end.y-start.y)?{x:end.x,y:start.y}:{x:start.x,y:end.y};
 }
 function snapPoint(p,elements,enabled=true,radius=18){
  const q=point(p.x,p.y);if(!enabled)return q;
@@ -242,7 +248,7 @@ function renderSvg(elements,selected='',draft=true,scale=null){
 function mount(){
  const host=document.getElementById('ite-cad');if(!host||host.dataset.mounted)return;
  host.dataset.mounted='1';
- const state={current:null,elements:[],selected:'',selectedIds:[],clipboard:[],multi:false,snap:true,scale:null,tool:'select',start:null,drag:null,undo:[],redo:[],dirty:false,saving:false};
+ const state={current:null,elements:[],selected:'',selectedIds:[],clipboard:[],multi:false,snap:true,orthogonal:true,scale:null,tool:'select',start:null,drag:null,undo:[],redo:[],dirty:false,saving:false};
  const h=el('h2','Disegno tecnico I.T.E. CAD — bozza vettoriale'),note=el('p','Strumenti per muri, linee, rettangoli, simboli impiantistici, quote, gruppi e distinta indicativa. La scala in cm è inserita dal tecnico e deve essere verificata sul posto. Ogni salvataggio crea un backup preventivo e una revisione.','hint');
  host.append(h,note);
  const selectors=el('div');selectors.className='grid';
@@ -287,8 +293,8 @@ function mount(){
   if(state.multi){if(id){state.selectedIds=state.selectedIds.includes(id)?state.selectedIds.filter(x=>x!==id):[...state.selectedIds,id];state.selected=id}state.start=null;paintSelection();return}
   state.selectedIds=[];state.selected=id;state.start=p;state.drag=state.tool==='select'&&state.selected?p:null;e.currentTarget.setPointerCapture?.(e.pointerId);paintSelection()}
  function paintSelection(){for(const node of canvas.querySelectorAll('[data-cad-id]'))node.style.opacity=(state.selectedIds.length?state.selectedIds.includes(node.getAttribute('data-cad-id')):node.getAttribute('data-cad-id')===state.selected)?'1':state.multi?'0.35':'0.9';const selected=state.elements.find(e=>e.id===state.selected);articleSelect.value=selected?.kind==='symbol'&&[...articleSelect.options].some(o=>o.value===selected.articleId)?selected.articleId:''}
- function move(e){if(!state.start)return;const p=coord(e);status.textContent='Da ('+state.start.x+','+state.start.y+') a ('+p.x+','+p.y+') · '+Math.round(Math.hypot(p.x-state.start.x,p.y-state.start.y))+' unità grafiche'}
- function up(e){if(!state.start)return;const p=coord(e),start=state.start;state.start=null;
+ function move(e){if(!state.start)return;const raw=coord(e),p=state.orthogonal&&['wall','line','dimension'].includes(state.tool)?orthogonalPoint(state.start,raw):raw;status.textContent='Da ('+state.start.x+','+state.start.y+') a ('+p.x+','+p.y+') · '+Math.round(Math.hypot(p.x-state.start.x,p.y-state.start.y))+' unità grafiche'+(state.orthogonal?' · ortogonale':'')}
+ function up(e){if(!state.start)return;const raw=coord(e),start=state.start,p=state.orthogonal&&['wall','line','dimension'].includes(state.tool)?orthogonalPoint(start,raw):raw;state.start=null;
   try{if(state.tool==='select'){if(state.drag&&state.selected&&(p.x!==start.x||p.y!==start.y))update(operate(state.elements,'move',state.selected,{dx:p.x-start.x,dy:p.y-start.y}));else paint();state.drag=null;return}
    const text=state.tool==='symbol'?symbolSelect.value:state.tool==='label'?root.prompt('Testo etichetta (max 120 caratteri)','')||'':state.tool==='dimension'?root.prompt('Quota (facoltativa; verificare sul posto)','')||'':'';
    const element=make(state.tool,start,state.tool==='symbol'?start:p,text);update(operate(state.elements,'add','',{element}));state.selected=element.id;
@@ -300,6 +306,7 @@ function mount(){
  action('Associa articolo al simbolo',()=>{const selected=state.elements.find(e=>e.id===state.selected);if(!selected||selected.kind!=='symbol')throw Error('Seleziona prima un simbolo');const articleId=articleSelect.value;const articles=root.ITECommerce.snapshot().articles;if(articleId&&!articles.some(a=>a.id===articleId&&a.kind==='Materiale'))throw Error('Articolo non valido o non più presente');update(operate(state.elements,'linkArticle',selected.id,{articleId}))});
  const multiButton=button(toolbar,'Selezione multipla: OFF',function(){state.multi=!state.multi;state.tool='select';state.selectedIds=[];this.textContent='Selezione multipla: '+(state.multi?'ON':'OFF');paint()});
  button(toolbar,'Aggancio estremi: ON',function(){state.snap=!state.snap;this.textContent='Aggancio estremi: '+(state.snap?'ON':'OFF');paint()});
+ button(toolbar,'Vincolo ortogonale: ON',function(){state.orthogonal=!state.orthogonal;this.textContent='Vincolo ortogonale: '+(state.orthogonal?'ON':'OFF');paint()});
  action('Raggruppa selezionati',()=>{const next=operate(state.elements,'group','',{ids:state.selectedIds});update(next);state.selectedIds=[];state.multi=false;multiButton.textContent='Selezione multipla: OFF';paint()});
  action('Separa gruppo',()=>update(operate(state.elements,'ungroup',state.selected)));
  action('Sostituisci simbolo selezionato',()=>update(operate(state.elements,'replaceSymbol',state.selected,{symbol:symbolSelect.value})));
@@ -378,7 +385,7 @@ function mount(){
  refreshChoices();paint();
  root.addEventListener('beforeunload',event=>{if(state.dirty){event.preventDefault();event.returnValue='';}});
 }
-const api=Object.freeze({KINDS,COLORS,SYMBOLS,validScale,snapPoint,materialSchedule,catalogSchedule,validateElement,validateCollection,make,operate,copySelection,pasteSelection,references,renderSvg,mount});
+const api=Object.freeze({KINDS,COLORS,SYMBOLS,validScale,snapPoint,materialSchedule,catalogSchedule,validateElement,validateCollection,make,operate,copySelection,pasteSelection,orthogonalPoint,references,renderSvg,mount});
 root.ITECad=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(typeof document!=='undefined')root.addEventListener('ite-vault-ready',mount);
