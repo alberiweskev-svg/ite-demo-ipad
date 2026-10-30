@@ -96,6 +96,13 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('#app-shell').evaluate(el=>getComputedStyle(el).display),'none',
     'Manual lock left the app shell visible on iPad portrait');
   await page.setViewportSize({width:1280,height:800});
+  // After the manual-lock reload the gate may be visible before boot() attaches its submit handler.
+  // Wait for the exclusive vault session and form handler before testing password rejection.
+  await page.waitForFunction(()=>{
+    const form=document.getElementById('vault-form');
+    const button=document.getElementById('vault-submit');
+    return typeof form?.onsubmit==='function' && button && !button.disabled;
+  },null,{timeout:30000});
   await page.locator('#vault-password').fill('WRONG-SYNTHETIC-PASSWORD');
   // Il controllo credenziali puo' generare navigazioni di ripristino: attendiamo l'esito visibile, non il navigation event.
   await page.locator('#vault-submit').click({noWaitAfter:true});
