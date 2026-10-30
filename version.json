@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 41: CAD integrato con rotazione geometrica di gruppi, ridimensionamento 50–200%, vincolo ortogonale opzionale, copia/incolla in memoria dell'editor, sostituzione simboli con rimozione del materiale obsoleto, gestione ordine e cancellazione gruppi, controlli foglio, test unitari e browser. Build/regressione finale da verificare. 3.0.74 e Windows 2.7.5 invariati; Safari/iPad fisico non collaudato."
+  "notes": "Milestone 42: CAD con snap avanzato opzionale a estremi, punti medi e intersezioni geometriche; quote orizzontali/verticali, anteprima lunghezza in cm solo a scala calibrata, test unitari e browser sintetici. Nessuna misura reale inventata. Build e regressione da verificare. 3.0.74 e Windows 2.7.5 invariati; Safari fisico non collaudato."
 }

@@ -105,6 +105,25 @@ const server=http.createServer((req,res)=>{try{const target=path.resolve(root,'.
  assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),4);
  await page.getByRole('button',{name:'Annulla',exact:true}).click();
  assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),3);
+ // Milestone 42: quote ortogonali e snap avanzato nel medesimo editor.
+ await page.getByRole('button',{name:'Snap geometrico avanzato: OFF'}).click();
+ assert.equal(await page.getByRole('button',{name:'Snap geometrico avanzato: ON'}).count(),1);
+ page.on('dialog',dialog=>dialog.accept(''));
+ await page.getByRole('button',{name:'Quota orizzontale'}).click();
+ const measureSvg=page.locator('#ite-cad svg');await measureSvg.scrollIntoViewIfNeeded();const measureBox=await measureSvg.boundingBox();
+ await page.mouse.move(measureBox.x+measureBox.width*.2,measureBox.y+measureBox.height*.35);await page.mouse.down();
+ await page.mouse.move(measureBox.x+measureBox.width*.6,measureBox.y+measureBox.height*.55);await page.mouse.up();
+ const horizontal=await page.evaluate(()=>{const nodes=[...document.querySelectorAll('#ite-cad [data-cad-id]')];return nodes.length});
+ assert.equal(horizontal,4);
+ const afterHorizontal=await page.evaluate(()=>{const nodes=[...document.querySelectorAll('#ite-cad [data-cad-id]')];return nodes[nodes.length-1]?.querySelector('line')?.getAttribute('y1')===nodes[nodes.length-1]?.querySelector('line')?.getAttribute('y2')});
+ assert(afterHorizontal,'Horizontal quota geometry');
+ await page.getByRole('button',{name:'Quota verticale'}).click();
+ const measureBox2=await page.locator('#ite-cad svg').boundingBox();
+ await page.mouse.move(measureBox2.x+measureBox2.width*.75,measureBox2.y+measureBox2.height*.2);await page.mouse.down();
+ await page.mouse.move(measureBox2.x+measureBox2.width*.5,measureBox2.y+measureBox2.height*.6);await page.mouse.up();
+ assert.equal(await page.locator('#ite-cad [data-cad-id]').count(),5);
+ const afterVertical=await page.evaluate(()=>{const nodes=[...document.querySelectorAll('#ite-cad [data-cad-id]')];return nodes[nodes.length-1]?.querySelector('line')?.getAttribute('x1')===nodes[nodes.length-1]?.querySelector('line')?.getAttribute('x2')});
+ assert(afterVertical,'Vertical quota geometry');
  assert.equal(errors.length,0,'JavaScript errors: '+errors.join('; '));
  console.log('OK: '+(process.env.ITE_TEST_BROWSER||'chromium')+' CAD save, backup, revision, undo/redo, SVG, references');
 }finally{await browser.close();server.close()}})().catch(e=>{console.error(e);server.close();process.exitCode=1});

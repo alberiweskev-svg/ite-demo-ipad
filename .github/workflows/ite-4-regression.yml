@@ -103,6 +103,7 @@ jobs:
           node dev/test_400_cad.cjs
           node dev/test_400_cad_advanced.cjs
           node dev/test_400_cad_transform.cjs
+          node dev/test_400_cad_snap.cjs
           node dev/test_400_cad_catalog.cjs
           node --check ite-cad-workflow.js
           node dev/test_400_cad_workflow.cjs

@@ -167,13 +167,53 @@ function orthogonalPoint(start,end){
  if(!start||!end||![start.x,start.y,end.x,end.y].every(Number.isFinite))throw Error('Punti CAD non validi');
  return Math.abs(end.x-start.x)>=Math.abs(end.y-start.y)?{x:end.x,y:start.y}:{x:start.x,y:end.y};
 }
-function snapPoint(p,elements,enabled=true,radius=18){
+
+/* Snap CAD avanzato: intersezioni geometriche, punti medi ed estremi.
+   Nessuna quota reale viene dedotta. Il punto restituito resta sulla griglia salvabile. */
+function segmentIntersection(a,b,c,d){
+ const rx=b.x-a.x,ry=b.y-a.y,sx=d.x-c.x,sy=d.y-c.y;
+ const denominator=rx*sy-ry*sx;
+ if(Math.abs(denominator)<1e-9)return null; // paralleli / sovrapposti: nessun incrocio univoco
+ const qx=c.x-a.x,qy=c.y-a.y;
+ const t=(qx*sy-qy*sx)/denominator,u=(qx*ry-qy*rx)/denominator;
+ if(t<-1e-9||t>1+1e-9||u<-1e-9||u>1+1e-9)return null;
+ return {x:a.x+t*rx,y:a.y+t*ry};
+}
+function snapSegments(elements){
+ const segments=[];
+ for(const e of elements){
+  if(['wall','line','dimension'].includes(e.kind))segments.push([{x:e.x,y:e.y},{x:e.x2,y:e.y2}]);
+  if(e.kind==='rect'&&!e.rotation){
+   const a={x:e.x,y:e.y},b={x:e.x2,y:e.y},c={x:e.x2,y:e.y2},d={x:e.x,y:e.y2};
+   segments.push([a,b],[b,c],[c,d],[d,a]);
+  }
+ }
+ return segments.filter(([a,b])=>a.x!==b.x||a.y!==b.y);
+}
+function axisDimensionPoint(start,end,axis){
+ if(!start||!end||![start.x,start.y,end.x,end.y].every(Number.isFinite))throw Error('Punti quota non validi');
+ if(axis!=='horizontal'&&axis!=='vertical')throw Error('Asse quota non valido');
+ return axis==='horizontal'?{x:end.x,y:start.y}:{x:start.x,y:end.y};
+}
+function snapPoint(p,elements,enabled=true,radius=18,advanced=false){
+ if(!Array.isArray(elements)||elements.length>MAX||typeof radius!=='number'||!Number.isFinite(radius)||radius<0||radius>50)throw Error('Aggancio CAD non valido');
  const q=point(p.x,p.y);if(!enabled)return q;
  let best=radius+1,match=null;
+ const consider=candidate=>{const target=point(candidate.x,candidate.y),distance=Math.hypot(q.x-candidate.x,q.y-candidate.y);
+  if(distance<best){best=distance;match=target}};
  for(const e of elements){validateElement(e);const ends=e.kind==='symbol'||e.kind==='label'?[{x:e.x,y:e.y}]:[{x:e.x,y:e.y},{x:e.x2,y:e.y2}];
-  for(const end of ends){const d=Math.hypot(q.x-end.x,q.y-end.y);if(d<best){best=d;match=end}}
+  for(const end of ends)consider(end);
  }
- return best<=radius?{...match}:q;
+ if(advanced){
+  const segments=snapSegments(elements);
+  for(const [a,b] of segments)consider({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+  // Calcola incroci solo tra segmenti vicini al cursore: niente scansione quadratica su tutto il foglio.
+  const nearby=segments.filter(([a,b])=>q.x>=Math.min(a.x,b.x)-radius&&q.x<=Math.max(a.x,b.x)+radius&&q.y>=Math.min(a.y,b.y)-radius&&q.y<=Math.max(a.y,b.y)+radius);
+  for(let i=0;i<nearby.length;i++)for(let j=i+1;j<nearby.length;j++){
+   const cross=segmentIntersection(...nearby[i],...nearby[j]);if(cross)consider(cross);
+  }
+ }
+ return best<=radius?match:q;
 }
 function materialSchedule(elements,scale=null){
  if(!Array.isArray(elements)||elements.length>MAX||!validScale(scale))throw Error('Distinta CAD non valida');
@@ -248,7 +288,7 @@ function renderSvg(elements,selected='',draft=true,scale=null){
 function mount(){
  const host=document.getElementById('ite-cad');if(!host||host.dataset.mounted)return;
  host.dataset.mounted='1';
- const state={current:null,elements:[],selected:'',selectedIds:[],clipboard:[],multi:false,snap:true,orthogonal:true,scale:null,tool:'select',start:null,drag:null,undo:[],redo:[],dirty:false,saving:false};
+ const state={current:null,elements:[],selected:'',selectedIds:[],clipboard:[],multi:false,snap:true,advancedSnap:false,orthogonal:true,scale:null,tool:'select',start:null,drag:null,undo:[],redo:[],dirty:false,saving:false};
  const h=el('h2','Disegno tecnico I.T.E. CAD — bozza vettoriale'),note=el('p','Strumenti per muri, linee, rettangoli, simboli impiantistici, quote, gruppi e distinta indicativa. La scala in cm è inserita dal tecnico e deve essere verificata sul posto. Ogni salvataggio crea un backup preventivo e una revisione.','hint');
  host.append(h,note);
  const selectors=el('div');selectors.className='grid';
@@ -288,24 +328,25 @@ function mount(){
   scheduleBox.append(el('p',summary.allPriced?'Somma prezzi archivio '+summary.archiveTotal.toFixed(2)+' € — non è un prezzo di vendita né un preventivo. Posa esclusa.':'Prezzi non completi: nessun totale economico. Fornitura e posa da quantificare separatamente.'));
   say(state.elements.length+' elementi · '+(state.dirty?'Modifiche da salvare':'Salvato / nuova bozza')+' · strumento '+state.tool+(state.multi?' · selezione multipla':''));
  }
- const coord=e=>{const svg=canvas.querySelector('svg'),r=svg.getBoundingClientRect();return snapPoint(point((e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height),state.elements,state.snap&&state.tool!=='select')};
+ const coord=e=>{const svg=canvas.querySelector('svg'),r=svg.getBoundingClientRect();return snapPoint(point((e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height),state.elements,state.snap&&state.tool!=='select',18,state.advancedSnap)};
  function down(e){if(e.button!==0)return;const p=coord(e),target=e.target.closest('[data-cad-id]'),id=target?.getAttribute('data-cad-id')||'';
   if(state.multi){if(id){state.selectedIds=state.selectedIds.includes(id)?state.selectedIds.filter(x=>x!==id):[...state.selectedIds,id];state.selected=id}state.start=null;paintSelection();return}
   state.selectedIds=[];state.selected=id;state.start=p;state.drag=state.tool==='select'&&state.selected?p:null;e.currentTarget.setPointerCapture?.(e.pointerId);paintSelection()}
  function paintSelection(){for(const node of canvas.querySelectorAll('[data-cad-id]'))node.style.opacity=(state.selectedIds.length?state.selectedIds.includes(node.getAttribute('data-cad-id')):node.getAttribute('data-cad-id')===state.selected)?'1':state.multi?'0.35':'0.9';const selected=state.elements.find(e=>e.id===state.selected);articleSelect.value=selected?.kind==='symbol'&&[...articleSelect.options].some(o=>o.value===selected.articleId)?selected.articleId:''}
- function move(e){if(!state.start)return;const raw=coord(e),p=state.orthogonal&&['wall','line','dimension'].includes(state.tool)?orthogonalPoint(state.start,raw):raw;status.textContent='Da ('+state.start.x+','+state.start.y+') a ('+p.x+','+p.y+') · '+Math.round(Math.hypot(p.x-state.start.x,p.y-state.start.y))+' unità grafiche'+(state.orthogonal?' · ortogonale':'')}
- function up(e){if(!state.start)return;const raw=coord(e),start=state.start,p=state.orthogonal&&['wall','line','dimension'].includes(state.tool)?orthogonalPoint(start,raw):raw;state.start=null;
+ function move(e){if(!state.start)return;const raw=coord(e),p=state.tool==='dimension-h'?axisDimensionPoint(state.start,raw,'horizontal'):state.tool==='dimension-v'?axisDimensionPoint(state.start,raw,'vertical'):state.orthogonal&&['wall','line','dimension'].includes(state.tool)?orthogonalPoint(state.start,raw):raw;status.textContent='Da ('+state.start.x+','+state.start.y+') a ('+p.x+','+p.y+') · '+Math.round(Math.hypot(p.x-state.start.x,p.y-state.start.y))+' unità grafiche'+(state.scale!=null?' · '+(Math.round(Math.hypot(p.x-state.start.x,p.y-state.start.y)*state.scale*10)/10)+' cm indicativi':'')+(state.orthogonal?' · ortogonale':'')}
+ function up(e){if(!state.start)return;const raw=coord(e),start=state.start,p=state.tool==='dimension-h'?axisDimensionPoint(start,raw,'horizontal'):state.tool==='dimension-v'?axisDimensionPoint(start,raw,'vertical'):state.orthogonal&&['wall','line','dimension'].includes(state.tool)?orthogonalPoint(start,raw):raw;state.start=null;
   try{if(state.tool==='select'){if(state.drag&&state.selected&&(p.x!==start.x||p.y!==start.y))update(operate(state.elements,'move',state.selected,{dx:p.x-start.x,dy:p.y-start.y}));else paint();state.drag=null;return}
-   const text=state.tool==='symbol'?symbolSelect.value:state.tool==='label'?root.prompt('Testo etichetta (max 120 caratteri)','')||'':state.tool==='dimension'?root.prompt('Quota (facoltativa; verificare sul posto)','')||'':'';
-   const element=make(state.tool,start,state.tool==='symbol'?start:p,text);update(operate(state.elements,'add','',{element}));state.selected=element.id;
+   const text=state.tool==='symbol'?symbolSelect.value:state.tool==='label'?root.prompt('Testo etichetta (max 120 caratteri)','')||'':['dimension','dimension-h','dimension-v'].includes(state.tool)?root.prompt('Quota (facoltativa; verificare sul posto)','')||'':'';
+   const element=make(['dimension-h','dimension-v'].includes(state.tool)?'dimension':state.tool,start,state.tool==='symbol'?start:p,text);update(operate(state.elements,'add','',{element}));state.selected=element.id;
   }catch(err){say(err.message)}
  }
- for(const [key,label] of [['select','Seleziona / sposta'],['wall','Muro'],['line','Linea'],['rect','Rettangolo'],['dimension','Quota'],['label','Testo'],['symbol','Simbolo']])button(toolbar,label,()=>{state.tool=key;state.start=null;state.multi=false;state.selectedIds=[];multiButton.textContent='Selezione multipla: OFF';paint();say('Strumento: '+label)});
+ for(const [key,label] of [['select','Seleziona / sposta'],['wall','Muro'],['line','Linea'],['rect','Rettangolo'],['dimension','Quota'],['dimension-h','Quota orizzontale'],['dimension-v','Quota verticale'],['label','Testo'],['symbol','Simbolo']])button(toolbar,label,()=>{state.tool=key;state.start=null;state.multi=false;state.selectedIds=[];multiButton.textContent='Selezione multipla: OFF';paint();say('Strumento: '+label)});
  const action=(label,fn)=>button(commands,label,()=>{try{fn()}catch(err){say(err.message)}});
  action('Aggiorna catalogo materiali',()=>{refreshCatalog();paint();say('Catalogo aggiornato senza modificare il disegno')});
  action('Associa articolo al simbolo',()=>{const selected=state.elements.find(e=>e.id===state.selected);if(!selected||selected.kind!=='symbol')throw Error('Seleziona prima un simbolo');const articleId=articleSelect.value;const articles=root.ITECommerce.snapshot().articles;if(articleId&&!articles.some(a=>a.id===articleId&&a.kind==='Materiale'))throw Error('Articolo non valido o non più presente');update(operate(state.elements,'linkArticle',selected.id,{articleId}))});
  const multiButton=button(toolbar,'Selezione multipla: OFF',function(){state.multi=!state.multi;state.tool='select';state.selectedIds=[];this.textContent='Selezione multipla: '+(state.multi?'ON':'OFF');paint()});
  button(toolbar,'Aggancio estremi: ON',function(){state.snap=!state.snap;this.textContent='Aggancio estremi: '+(state.snap?'ON':'OFF');paint()});
+ button(toolbar,'Snap geometrico avanzato: OFF',function(){state.advancedSnap=!state.advancedSnap;this.textContent='Snap geometrico avanzato: '+(state.advancedSnap?'ON':'OFF');paint()});
  button(toolbar,'Vincolo ortogonale: ON',function(){state.orthogonal=!state.orthogonal;this.textContent='Vincolo ortogonale: '+(state.orthogonal?'ON':'OFF');paint()});
  action('Raggruppa selezionati',()=>{const next=operate(state.elements,'group','',{ids:state.selectedIds});update(next);state.selectedIds=[];state.multi=false;multiButton.textContent='Selezione multipla: OFF';paint()});
  action('Separa gruppo',()=>update(operate(state.elements,'ungroup',state.selected)));
@@ -385,7 +426,7 @@ function mount(){
  refreshChoices();paint();
  root.addEventListener('beforeunload',event=>{if(state.dirty){event.preventDefault();event.returnValue='';}});
 }
-const api=Object.freeze({KINDS,COLORS,SYMBOLS,validScale,snapPoint,materialSchedule,catalogSchedule,validateElement,validateCollection,make,operate,copySelection,pasteSelection,orthogonalPoint,references,renderSvg,mount});
+const api=Object.freeze({KINDS,COLORS,SYMBOLS,validScale,snapPoint,segmentIntersection,axisDimensionPoint,materialSchedule,catalogSchedule,validateElement,validateCollection,make,operate,copySelection,pasteSelection,orthogonalPoint,references,renderSvg,mount});
 root.ITECad=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(typeof document!=='undefined')root.addEventListener('ite-vault-ready',mount);
