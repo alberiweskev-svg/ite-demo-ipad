@@ -16,6 +16,17 @@ function model(clientId,core,state,options={}){
  return {empty:false,clientId,rows:selected,allCount:rows.length,allAudit,audit,filters:{type,status},
   types:[...new Set(rows.map(p=>p.type))].sort((a,b)=>String(a).localeCompare(String(b),'it'))};
 }
+function signature(data){
+ if(!data||!data.rows?.length)return '';
+ const reports=root.ITETechnicalPackage.bundle(data.rows,data.clientId,data.core,data.state);
+ // Compare every export-visible field, not just practice IDs: revisions, hashes,
+ // proof states, missing sources and findings must invalidate a stale selection.
+ return JSON.stringify(reports);
+}
+function compareSelection(previous,next){
+ if(!previous||!next||previous.empty||next.empty||!previous.rows.length||!next.rows.length)return false;
+ return signature(previous)===signature(next);
+}
 function render(data){
  if(data.empty)return '<p>Nessuna pratica tecnica per il cliente selezionato.</p>';
  const a=data.audit;
@@ -67,7 +78,8 @@ function install(){
   const {core,state}=snapshot(),fresh=model(current.clientId,core,state,current.filters);
   if(fresh.empty||!fresh.rows.length)throw Error('Nessuna pratica disponibile nei filtri.');
   const originalIds=current.rows.map(p=>String(p.id)).join('|'),freshIds=fresh.rows.map(p=>String(p.id)).join('|');
-  if(originalIds!==freshIds)throw Error('Le pratiche sono cambiate: aggiornare il quadro.');
+  fresh.core=core;fresh.state=state;
+  if(originalIds!==freshIds||!compareSelection(current,fresh))throw Error('Pratiche, revisioni, allegati o prove modificati: aggiornare il quadro.');
   if(!root.confirm('Il file '+format.toUpperCase()+' sara NON cifrato e potra contenere dati cliente. Confermi il download locale?'))return;
   const reports=root.ITETechnicalPackage.bundle(fresh.rows,fresh.clientId,core,state);
   const data=format==='csv'?root.ITETechnicalPackage.csv(reports):root.ITETechnicalPackage.html(reports);
@@ -86,7 +98,7 @@ function install(){
   catch(err){host.querySelector('#ite-package-output').textContent='Operazione non disponibile: '+err.message;}
  });
 }
-root.ITETechnicalPackageUI=Object.freeze({model,render,install});
+root.ITETechnicalPackageUI=Object.freeze({model,render,install,signature,compareSelection});
 if(typeof module!=='undefined'&&module.exports)module.exports=root.ITETechnicalPackageUI;
 if(root.document&&root.addEventListener){root.addEventListener('ite-vault-ready',install);root.addEventListener('ite-pagechange',install);if(root.ITEVault?.isUnlocked?.())install();}
 })(typeof window!=='undefined'?window:globalThis);
