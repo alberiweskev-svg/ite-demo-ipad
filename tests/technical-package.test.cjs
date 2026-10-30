@@ -12,3 +12,34 @@ test('foreign client original is rejected',()=>{const state=s();state.documents[
 test('cross-client and duplicate batches rejected',()=>{assert.throws(()=>api.bundle([p(),{...p(),id:'draft2',clientId:'2'}],'1',core,s()),/Cliente diverso/);assert.throws(()=>api.bundle([p(),p()],'1',core,s()),/duplicata/);});
 test('CSV neutralizes formulas and HTML escapes markup',()=>{const q=p();q.fields.scope='<script>alert(1)</script>';const x=api.manifest(q,core,s());assert(api.csv([x]).includes("'=1+1"));assert(!api.html([x]).includes('<script>'));assert(api.html([x]).includes('NON FIRMATA'));});
 test('read-only manifest leaves source unchanged',()=>{const q=p(),state=s(),before=JSON.stringify({q,state});api.manifest(q,core,state);assert.equal(JSON.stringify({q,state}),before);});
+
+test('readiness groups multiple draft types and never authorizes release',()=>{
+ const a=p(),b={...p(),id:'draft2',type:'Allegato gas H40',linkedDocIds:[]};
+ const summary=api.readiness([a,b],'1',core,s());
+ assert.equal(summary.count,2);
+ assert.equal(summary.releaseAllowed,false);
+ assert.equal(summary.groups['Di.Ri.'].count,1);
+ assert.equal(summary.groups['Allegato gas H40'].count,1);
+ assert.equal(summary.originals,1);
+});
+test('readiness isolates clients and detects blocked originals',()=>{
+ const state=s();state.files=[];
+ const summary=api.readiness([p()],'1',core,state);
+ assert.equal(summary.blocked,1);
+ assert.equal(summary.groups['Di.Ri.'].blocked,1);
+ assert.throws(()=>api.readiness([p()],'2',core,state),/Cliente diverso/);
+});
+test('proof of different intervention is never included',()=>{
+ const practice={...p(),interventionId:'job1'};
+ const state=s();
+ state.settings.fieldChecks=[{id:'check1',clientId:'1',jobId:'job2'}];
+ state.settings.technicalEvidenceLinks=[{practiceId:'draft1',checkId:'check1',practiceRevision:2,removedAt:''}];
+ assert.throws(()=>api.manifest(practice,core,state),/intervento differente/);
+});
+test('proof of different equipment is never included',()=>{
+ const practice={...p(),deviceId:'device1'};
+ const state=s();
+ state.settings.fieldChecks=[{id:'check1',clientId:'1',deviceId:'device2'}];
+ state.settings.technicalEvidenceLinks=[{practiceId:'draft1',checkId:'check1',practiceRevision:2,removedAt:''}];
+ assert.throws(()=>api.manifest(practice,core,state),/apparecchiatura differente/);
+});
