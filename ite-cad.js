@@ -281,6 +281,36 @@ function layerReport(elements,scale=null){
  return report;
 }
 
+/* Milestone 45: reject crossed, overlapping or degenerate room boundaries.
+   Only non-adjacent edges may intersect; shared endpoints of adjacent edges are valid. */
+function validRoomPolygon(vertices){
+ const points=vertices.map(v=>v.split(',').map(Number));
+ const n=points.length-1;
+ if(n<3||points[0][0]!==points[n][0]||points[0][1]!==points[n][1])return false;
+ const cross=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+ const on=(a,b,p)=>Math.min(a[0],b[0])<=p[0]&&p[0]<=Math.max(a[0],b[0])&&Math.min(a[1],b[1])<=p[1]&&p[1]<=Math.max(a[1],b[1])&&cross(a,b,p)===0;
+ for(let i=0;i<n;i++){
+  const a=points[i],b=points[i+1];
+  if(a[0]===b[0]&&a[1]===b[1])return false;
+  for(let j=i+1;j<n;j++){
+   const c=points[j],d=points[j+1];
+   const adjacent=j===i+1||(i===0&&j===n-1);
+   if(adjacent){
+    // Adjacent collinear edges that reverse direction overlap and are invalid.
+    const shared=j===i+1?b:a,other=j===i+1?d:b,previous=j===i+1?a:c;
+    if(cross(previous,shared,other)===0&&on(previous,shared,other))return false;
+    continue;
+   }
+   const o1=cross(a,b,c),o2=cross(a,b,d),o3=cross(c,d,a),o4=cross(c,d,b);
+   if((o1===0&&on(a,b,c))||(o2===0&&on(a,b,d))||(o3===0&&on(c,d,a))||(o4===0&&on(c,d,b))||
+      ((o1>0)!==(o2>0)&&(o3>0)!==(o4>0)))return false;
+  }
+ }
+ let twiceArea=0;
+ for(let i=0;i<n;i++)twiceArea+=points[i][0]*points[i+1][1]-points[i+1][0]*points[i][1];
+ return twiceArea!==0;
+}
+
 /* Milestone 44: rilievo metrico di contorni chiusi, senza dedurre quote non rilevate.
    Le misure sono indicative e non costituiscono computo metrico certificato. */
 function roomMeasurements(elements,scale=null){
@@ -328,7 +358,7 @@ function roomMeasurements(elements,scale=null){
     if(!next)break;
     vertices.push(next);previous=current;current=next;
    }
-   if(vertices.length===component.length+1&&vertices.at(-1)===start){
+   if(vertices.length===component.length+1&&vertices.at(-1)===start&&validRoomPolygon(vertices)){
     let sum=0;
     for(let i=0;i<vertices.length-1;i++){
      const [x,y]=vertices[i].split(',').map(Number),[xx,yy]=vertices[i+1].split(',').map(Number);
