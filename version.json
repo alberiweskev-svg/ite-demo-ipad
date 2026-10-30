@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 31: costi di commessa integrati con ore operatore, tariffe interne configurabili, spese aggiuntive, storni, backup, audit e CSV. Differenza solo parziale, non margine definitivo. 3.0.74 e Windows 2.7.5 preservati."
-}\n
+  "notes": "Milestone 32: quadro integrato cantiere con lavori approvati, fatture attribuite, incassi lordi, costi noti, anomalie e CSV. Sola lettura, non utile fiscale. 3.0.74 e Windows 2.7.5 invariati."
+}
