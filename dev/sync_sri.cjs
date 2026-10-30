@@ -132,3 +132,11 @@ html=html.replace(fieldChecksPattern,'<script src="./ite-field-checks.js?v=4.0.0
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
 else assert.equal(fs.readFileSync('index.html','utf8'),html,'Field checks SRI outdated; run node dev/sync_sri.cjs --write');
 console.log('FIELD_CHECKS_SRI='+fieldChecksHash);
+
+const evidenceHash=digest('ite-technical-evidence.js');
+const evidencePattern=/<script src="\.\/ite-technical-evidence\.js\?v=4\.0\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\/script>/;
+assert(evidencePattern.test(html),'Cannot find technical evidence script tag');
+html=html.replace(evidencePattern,'<script src="./ite-technical-evidence.js?v=4.0.0" integrity="'+evidenceHash+'" crossorigin="anonymous"></script>');
+if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
+else assert.equal(fs.readFileSync('index.html','utf8'),html,'Technical evidence SRI outdated; run node dev/sync_sri.cjs --write');
+console.log('TECHNICAL_EVIDENCE_SRI='+evidenceHash);

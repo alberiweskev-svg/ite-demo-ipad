@@ -81,6 +81,10 @@ jobs:
           node --check ite-field-checks.js
           node dev/test_400_field_checks.cjs
           node dev/test_400_field_dossier.cjs
+      - name: Test technical evidence provenance, revision, audit, revocation and export
+        run: |
+          node --check ite-technical-evidence.js
+          node dev/test_400_technical_evidence.cjs
       - name: Test intervention dossier, hierarchy, time, materials, A4 and CSV
         run: |
           node --check ite-intervention-dossier.js
@@ -182,6 +186,7 @@ jobs:
           test -s "$RUNNER_TEMP/ite-4-preview/pos-operativo.js"
           test -s "$RUNNER_TEMP/ite-4-preview/pos-audit.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-field-checks.js"
+          test -s "$RUNNER_TEMP/ite-4-preview/ite-technical-evidence.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-intervention-dossier.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-cad.js"
           test -s "$RUNNER_TEMP/ite-4-preview/ite-cad-workflow.js"
@@ -214,6 +219,12 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_field_checks_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Chromium technical evidence links in Di.Co. (synthetic)
+        run: node dev/test_400_technical_evidence_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit technical evidence links in Di.Co. (synthetic)
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_technical_evidence_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Chromium intervention dossier A4 and CSV (synthetic)
         run: node dev/test_400_intervention_dossier_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit intervention dossier A4 and CSV (synthetic)

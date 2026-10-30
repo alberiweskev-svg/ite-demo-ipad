@@ -27,6 +27,9 @@ on:
       - 'technical-structured-docs.js'
       - 'technical-pdf.js'
       - 'technical-acroform.js'
+      - 'ite-technical-evidence.js'
+      - 'dev/test_400_technical_evidence.cjs'
+      - 'dev/test_400_technical_evidence_browser.cjs'
       - 'dev/test_400_acroform.cjs'
       - 'dev/test_400_acroform_pdfjs.mjs'
       - 'dev/test_400_technical_pdf_browser.cjs'
@@ -98,6 +101,10 @@ jobs:
           node dev/test_400_cad_catalog.cjs
           node --check ite-cad-workflow.js
           node dev/test_400_cad_workflow.cjs
+      - name: Technical evidence link validation (synthetic)
+        run: |
+          node --check ite-technical-evidence.js
+          node dev/test_400_technical_evidence.cjs
       - name: Technical crosscheck of CAD and interventions
         run: node dev/test_400_technical_sources.cjs
       - name: Structured technical dossier unit and syntax tests

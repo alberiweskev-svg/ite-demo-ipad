@@ -85,3 +85,16 @@ assert(!protectedReport.csv.includes('SEGRETO-DISEGNO'));
 assert.equal(materialTrace(p,'1',foreignAudit).rows.length,0);
 assert.equal(JSON.stringify({p,base,docs}),before,'New audit must not modify the source');
 console.log('OK: CAD material trace, quantities, shortage, internal inspection matrix, CSV formula protection and client isolation');
+
+/* Milestone 36: the A4/CSV internal matrix includes only same-client field evidence. */
+vm.runInContext(fs.readFileSync('ite-technical-evidence.js','utf8'),sandbox);
+const evidenceLink={id:'te_12345678',practiceId:p.id,practiceRevision:p.revision,checkId:'fc_12345678',clientId:'1',reviewer:'Tecnico TEST',note:'Riferimento sintetico da verificare',linkedAt:'2026-10-30T08:00:00Z',removedAt:'',removedBy:'',removedReason:''};
+const evidenceCheck={id:'fc_12345678',clientId:'1',jobId:'8',createdAt:'2026-10-30T07:00:00Z',label:'Pressione sintetica TEST',value:'1.5',unit:'bar',outcome:'Rilevato'};
+const withEvidence={...auditOptions,evidenceLinks:[evidenceLink],fieldChecks:[evidenceCheck]};
+const matrixWithEvidence=inspectionMatrix(p,docs,'1',withEvidence);
+assert(matrixWithEvidence.some(x=>x.section==='Prove intervento'&&x.item==='Pressione sintetica TEST'&&x.status==='Riferito'));
+assert.match(csvReport([p],'1',docs,base,withEvidence).csv,/Pressione sintetica TEST/);
+assert.match(build([p],'1',docs,base,withEvidence).html,/Pressione sintetica TEST/);
+const foreignEvidence={...withEvidence,fieldChecks:[{...evidenceCheck,clientId:'2',label:'SEGRETO PROVA'}]};
+assert(!csvReport([p],'1',docs,base,foreignEvidence).csv.includes('SEGRETO PROVA'));
+console.log('OK: technical evidence referenced in A4/CSV with same-client isolation');

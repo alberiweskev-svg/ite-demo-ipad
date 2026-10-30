@@ -126,6 +126,10 @@ function inspectionMatrix(p,docs,clientId,options={}){
   push('POS','Cronologia lavori',start&&end&&start<=end?'Date presenti':'Da verificare',
    start&&end&&start>end?'Fine lavori precedente all’inizio':'Verificare date e completezza');
  }
+ for(const evidence of root.ITETechnicalEvidence?.summary?.(p,options.evidenceLinks,options.fieldChecks,clientId)||[]){
+  push('Prove intervento',evidence.label,evidence.status==='Riferimento attivo - da verificare'?'Riferito':'Da verificare',
+   [evidence.measuredAt,evidence.value?evidence.value+' '+evidence.unit:evidence.outcome,evidence.status,'Revisore: '+evidence.reviewer,'Nota: '+evidence.note].filter(Boolean).join(' · '));
+ }
  const links=arr(options.links).filter(l=>same(l.practiceId,p.id));
  push('Disegni','Tavole CAD',links.length?'Riferite':'Da verificare',links.length?links.length+' collegamento/i':'Nessuna tavola collegata');
  const trace=materialTrace(p,clientId,options);
@@ -423,7 +427,7 @@ function install(){
     selected=rows.filter(r=>same(r.id,button.dataset.techStructured));clientId=selected[0]?.clientId;
    }
    const api=root.ITETechnicalDrafts;
-   const options={groups:api?.structuredGroups||{},review:api?.qualityReport,drawings:state.settings?.cadDrawings,links:state.settings?.cadPracticeLinks,articles:state.articles,movements:state.movements};
+   const options={groups:api?.structuredGroups||{},review:api?.qualityReport,drawings:state.settings?.cadDrawings,links:state.settings?.cadPracticeLinks,articles:state.articles,movements:state.movements,evidenceLinks:state.settings?.technicalEvidenceLinks,fieldChecks:state.settings?.fieldChecks};
    if(button.id==='tech-dossier-originals'){
     if(!root.confirm('Il pacchetto ZIP includera copie reali dei documenti originali del cliente selezionato. NON e cifrato e NON e un documento ufficiale. Vuoi scaricarlo sul tuo dispositivo?'))return;
     button.disabled=true;
