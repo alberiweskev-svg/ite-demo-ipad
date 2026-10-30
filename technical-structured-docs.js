@@ -42,12 +42,15 @@ function assess(p,docs,options={}){
  if(p.status==='Annullata')add('Pratica annullata');
  if(!clean(p.fields?.reference))add('Riferimento pratica da completare');
  if(!clean(p.fields?.scope))add('Descrizione lavori da completare');
- if(!arr(p.linkedDocIds).length)add('Nessun originale tecnico collegato');
+ if(!arr(p.linkedDocIds).length&&!arr(options.annexLinks).some(a=>same(a?.practiceId,p.id)&&!a.removedAt&&same(a.practiceRevision,p.revision)))
+  add('Nessun originale tecnico collegato');
  const groups=options.groups?.[p.type]||[];
  for(const g of groups)for(const f of g.fields||[])if(f[3]&&!clean(p.structured?.[f[0]]))add(g.title+': '+f[1]+' da compilare');
  for(const [item,check] of Object.entries(p.checklistEvidence||{})){
   if(!['Documentato','Non applicabile'].includes(check?.status)||!clean(check?.evidence))add('Checklist: '+item+' da verificare');
-  if(check?.documentId&&!arr(p.linkedDocIds).some(id=>same(id,check.documentId)))add('Checklist: fonte '+item+' non collegata');
+  if(check?.documentId&&!arr(p.linkedDocIds).some(id=>same(id,check.documentId))&&
+     !arr(options.annexLinks).some(a=>same(a?.practiceId,p.id)&&same(a.documentId,check.documentId)&&
+      !a.removedAt&&same(a.practiceRevision,p.revision)))add('Checklist: fonte '+item+' non collegata');
  }
  if(p.type.startsWith('Allegato gas')&&!clean(p.structured?.pdrVerificato))add('PDR non attestato da documento verificato');
  if(p.type==='POS'&&!p.siteId)add('POS privo di cantiere');
@@ -107,14 +110,17 @@ function inspectionMatrix(p,docs,clientId,options={}){
   }
  }
  const linked=arr(p.linkedDocIds);
- push('Originali','Documenti collegati',linked.length?'Riferiti':'Da verificare',linked.length?linked.length+' riferimento/i, non incorporati':'Nessun originale');
+ const activeAnnex=annexLinksFor(p,docs,clientId,options).filter(x=>x.status==='Riferimento attivo - da verificare');
+ const linkedIds=new Set([...linked.map(String),...activeAnnex.map(x=>String(x.document.id))]);
+ push('Originali','Documenti collegati',linkedIds.size?'Riferiti':'Da verificare',
+  linkedIds.size?linkedIds.size+' originale/i riferiti, non incorporati':'Nessun originale');
  for(const id of linked){
   const d=find(docs,id);
   if(d&&same(d.clientId||d.subjectId,clientId))push('Originali','Riferimento '+String(id),'Riferito',clean(d.type||'Documento')+' · '+clean(d.number||d.sourceName||d.id));
  }
  for(const [item,c] of Object.entries(p.checklistEvidence||{})){
   const ok=['Documentato','Non applicabile'].includes(c?.status)&&clean(c?.evidence);
-  const attached=!c?.documentId||linked.some(id=>same(id,c.documentId));
+  const attached=!c?.documentId||linkedIds.has(String(c.documentId));
   push('Evidenze',item,ok&&attached?(c.status==='Non applicabile'?'Non applicabile':'Riferita'):'Da verificare',
    clean(c?.evidence)||'Evidenza non indicata');
  }

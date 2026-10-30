@@ -54,6 +54,9 @@ const rows=[p],commerce={files:[file]},before=JSON.stringify({rows,docs,base,com
  assert.equal(fromRegister.manifest.annexRegisterVersion,2);
  assert.equal(fromRegister.manifest.documents[0].links[0].source,'registro_allegati');
  assert.equal(fromRegister.manifest.documents[0].links[0].category,'Schema impianto');
+ assert(!api.assess(annexOnly,docs,annexOptions).includes('Nessun originale tecnico collegato'));
+ assert.match(api.csvReport([annexOnly],'1',docs,base,annexOptions).csv,/Documenti collegati";"Riferiti"/);
+ assert.match(api.csvReport([annexOnly],'1',docs,base,annexOptions).csv,/Schema impianto/);
  assert.match(String(MockZip.latest.entries.get('FASCICOLO_BOZZA.html')),/Schema impianto/);
  assert.match(String(MockZip.latest.entries.get('REGISTRO_VERIFICHE.csv')),/Schema impianto/);
  const merged=api.packageOriginalRefs([p],'1',docs,base,annexOptions);
