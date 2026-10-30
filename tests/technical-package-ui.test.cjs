@@ -20,3 +20,19 @@ test('empty client dashboard does not disclose other customer',()=>{
  assert(!ui.render(m).includes('TEST'));
 });
 test('missing client is rejected',()=>assert.throws(()=>ui.model('',core,state),/Selezionare/));
+
+test('unknown client is rejected rather than returning empty dossier',()=>{
+ assert.throws(()=>ui.model('missing',core,state),/cliente valido/);
+});
+test('large dossiers are rejected before export or rendering',()=>{
+ const many={...state,settings:{...state.settings,technicalDrafts:Array.from({length:51},(_,i)=>({...p,id:'d'+i}))}};
+ assert.throws(()=>ui.model('c1',core,many),/50 pratiche/);
+});
+test('document audit findings are visible in dashboard without HTML injection',()=>{
+ const broken={...state,settings:{...state.settings,technicalDrafts:[{...p,linkedDocIds:['<img src=x onerror=alert(1)>']}]}};
+ const m=ui.model('c1',core,broken);m.core=core;m.state=broken;
+ const html=ui.render(m);
+ assert.match(html,/DOCUMENTO ASSENTE/);
+ assert(!html.includes('<img src=x onerror=alert(1)>'));
+ assert(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
+});
