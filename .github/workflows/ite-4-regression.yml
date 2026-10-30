@@ -81,6 +81,10 @@ jobs:
           node --check ite-field-checks.js
           node dev/test_400_field_checks.cjs
           node dev/test_400_field_dossier.cjs
+      - name: Test technical delivery manifest, source isolation and safe exports
+        run: |
+          node --check ite-technical-package.js
+          node --test tests/technical-package.test.cjs
       - name: Test synthetic technical draft crosschecks and isolation
         run: node --test tests/technical-draft-crosscheck.test.cjs
       - name: Test technical consistency across customer, annex, proofs, CAD and safe prefill
