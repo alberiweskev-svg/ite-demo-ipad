@@ -390,12 +390,12 @@ function roomMeasurementReport(elements,scale=null){
 }
 function roomMeasurementCsv(elements,scale=null){
  const report=roomMeasurementReport(elements,scale);
- const cell=v=>{let s=String(v??'');if(/^[\\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
+ const cell=v=>{let s=String(v??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
  const lines=[['Contorno','Tipo','Stato','Elementi','Perimetro unità','Area unità²','Perimetro m','Area m²'].map(cell).join(';')];
  for(const r of report.rows)lines.push([r.number,r.type,r.status,r.elementIds.join(' '),r.perimeterUnits,r.areaUnits??'',r.perimeterMeters??'',r.areaSquareMeters??''].map(cell).join(';'));
  lines.push(['TOTALI INDICATIVI','','','','','',report.totalPerimeterMeters??'',report.totalAreaSquareMeters??''].map(cell).join(';'));
  lines.push([report.warning].map(cell).join(';'));
- return '\\uFEFF'+lines.join('\\r\\n');
+ return '\uFEFF'+lines.join('\r\n');
 }
 
 function references(rows,kind,id){
