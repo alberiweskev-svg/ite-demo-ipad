@@ -73,7 +73,7 @@ function install(){
  }
  function download(format){
   if(format!=='csv'&&format!=='html')throw Error('Formato non supportato.');
-  if(!current||current.empty||!current.rows.length)throw Error('Nessuna pratica nei filtri: aggiornare il quadro prima di esportare.');
+  if(!current||current.empty||!current.rows.length)throw Error('Nessuna pratica nei filtri. Aggiornare il quadro prima di esportare.');
   if(!same(filter.value,current.clientId))throw Error('Cliente cambiato: aggiornare il quadro.');
   const {core,state}=snapshot(),fresh=model(current.clientId,core,state,current.filters);
   if(fresh.empty||!fresh.rows.length)throw Error('Nessuna pratica disponibile nei filtri.');
