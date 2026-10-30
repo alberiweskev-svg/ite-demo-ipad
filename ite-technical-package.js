@@ -20,9 +20,10 @@ function manifest(practice,core,state){
   const revisionLinks=links.filter(x=>same(x.documentId,id));
   const validRevision=revisionLinks.every(x=>same(x.practiceRevision,practice.revision));
   const validHash=!!f&&/^[a-f0-9]{64}$/.test(String(f.hash||''));
+  const fileIdentityValid=!f||!d||same(f.id,d.fileId);
   return {documentId:id,kind:clean(d?.type)||'Non classificato',fileName:clean(d?.sourceName),
    fileId:clean(d?.fileId),hash:validHash?f.hash:'',status:!d?'DOCUMENTO ASSENTE':
-   !f?'FILE ASSENTE':!validHash?'HASH NON DISPONIBILE':!validRevision?'REVISIONE SUPERATA':'DA VERIFICARE'};
+   !f?'FILE ASSENTE':!fileIdentityValid?'FILE NON COERENTE':!validHash?'HASH NON DISPONIBILE':!validRevision?'REVISIONE SUPERATA':'DA VERIFICARE'};
  });
  const proofs=arr(state.settings?.technicalEvidenceLinks).filter(x=>same(x.practiceId,practice.id)&&!x.removedAt).map(x=>{
   const check=find(state.settings?.fieldChecks,x.checkId);
@@ -86,11 +87,11 @@ function bundle(practices,clientId,core,state){
 }
 function csv(reports){
  if(!Array.isArray(reports))throw Error('Report non validi.');
- const lines=[['Pratica','Tipo','Revisione','Stato','Elemento','ID','Esito','SHA-256']];
+ const lines=[['Pratica','Tipo','Revisione','Stato','Elemento','ID','Esito','SHA-256','Nome originale','ID file']];
  for(const r of reports){
   if(!r.originals.length)lines.push([r.reference,r.type,r.revision,r.state,'Originale','','ORIGINALI ASSENTI: verificare documentazione','']);
   if(!r.proofs.length)lines.push([r.reference,r.type,r.revision,r.state,'Prova','','PROVE NON COLLEGATE: verificare applicabilita','']);
-  for(const d of r.originals)lines.push([r.reference,r.type,r.revision,r.state,'Originale',d.documentId,d.status,d.hash]);
+  for(const d of r.originals)lines.push([r.reference,r.type,r.revision,r.state,'Originale',d.documentId,d.status,d.hash,d.fileName,d.fileId]);
   for(const p of r.proofs)lines.push([r.reference,r.type,r.revision,r.state,'Prova',p.checkId,p.status,'']);
   for(const i of r.issues)lines.push([r.reference,r.type,r.revision,r.state,'Controllo',i.area,i.level+': '+i.message,'']);
  }
@@ -99,10 +100,10 @@ function csv(reports){
 function html(reports){
  if(!Array.isArray(reports))throw Error('Report non validi.');
  const sections=reports.map(r=>'<section><h2>'+esc(r.type)+' — '+esc(r.reference)+'</h2><p>Revisione '+esc(r.revision)+' · '+esc(r.state)+' · '+r.blocking+' blocchi</p>'+
- '<h3>Originali</h3><ul>'+(r.originals.length?'':'<li>ORIGINALI ASSENTI: verificare documentazione</li>')+r.originals.map(x=>'<li>'+esc(x.documentId)+' — '+esc(x.status)+'</li>').join('')+'</ul>'+
- '<h3>Prove</h3><ul>'+(r.proofs.length?'':'<li>PROVE NON COLLEGATE: verificare applicabilita</li>')+r.proofs.map(x=>'<li>'+esc(x.checkId)+' — '+esc(x.status)+'</li>').join('')+'</ul>'+
+ '<h3>Originali (identità e integrità da verificare)</h3><ul>'+(r.originals.length?'':'<li>ORIGINALI ASSENTI: verificare documentazione</li>')+r.originals.map(x=>'<li>'+esc(x.documentId)+' — '+esc(x.fileName||'nome non disponibile')+' — file '+esc(x.fileId||'assente')+' — SHA-256 '+esc(x.hash||'non disponibile')+' — '+esc(x.status)+'</li>').join('')+'</ul>'+
+ '<h3>Prove (riferimento e revisione)</h3><ul>'+(r.proofs.length?'':'<li>PROVE NON COLLEGATE: verificare applicabilita</li>')+r.proofs.map(x=>'<li>'+esc(x.checkId)+' — revisione '+esc(x.revision)+' — '+esc(x.status)+'</li>').join('')+'</ul>'+
  '<h3>Controlli</h3><ul>'+r.issues.map(x=>'<li>'+esc(x.level)+' / '+esc(x.area)+': '+esc(x.message)+'</li>').join('')+'</ul></section>').join('');
- return '<!doctype html><html lang="it"><head><meta charset="utf-8"><title>ITE fascicolo interno</title><style>@page{size:A4;margin:15mm}body{font:12px Arial}section{break-after:page}li{overflow-wrap:anywhere}</style></head><body><h1>I.T.E. — Indice fascicolo tecnico</h1><p><b>BOZZA INTERNA NON FIRMATA. NON SOSTITUISCE DOCUMENTI ORIGINALI O DICHIARAZIONI.</b></p>'+sections+'</body></html>';
+ return '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;"><title>ITE fascicolo interno</title><style>@page{size:A4;margin:15mm}body{font:12px Arial}section{break-after:page}li{overflow-wrap:anywhere}</style></head><body><h1>I.T.E. — Indice fascicolo tecnico</h1><p><b>BOZZA INTERNA NON FIRMATA. NON SOSTITUISCE DOCUMENTI ORIGINALI O DICHIARAZIONI.</b></p>'+sections+'</body></html>';
 }
 const api=Object.freeze({manifest,bundle,readiness,auditPackage,csv,html});
 root.ITETechnicalPackage=api;
