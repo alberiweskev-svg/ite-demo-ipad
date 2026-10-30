@@ -24,3 +24,23 @@ test('unscaled rectangle retains geometric quantities without metric claims',()=
  assert.equal(result.contours[0].areaSquareMeters,null);
 });
 test('invalid scale is rejected',()=>assert.throws(()=>cad.roomMeasurements([],0),/Rilievo|Scala|non valida/));
+
+test('self-intersecting bow-tie room has no invented surface',()=>{
+ const rows=[wall(1,0,0,200,200),wall(2,200,200,0,200),wall(3,0,200,200,0),wall(4,200,0,0,0)];
+ const r=cad.roomMeasurements(rows,1);
+ assert.equal(r.openContours,1);
+ assert.equal(r.contours[0].areaSquareMeters,null);
+});
+test('closed concave polygon preserves valid area',()=>{
+ const pts=[[0,0],[300,0],[300,100],[100,100],[100,300],[0,300],[0,0]];
+ const rows=pts.slice(1).map((p,i)=>wall(i+1,...pts[i],...p));
+ const r=cad.roomMeasurements(rows,1);
+ assert.equal(r.openContours,0);
+ assert.equal(r.contours[0].areaSquareMeters,5);
+});
+test('non-adjacent touching edges reject ambiguous surface',()=>{
+ const pts=[[0,0],[200,0],[200,200],[100,200],[100,0],[0,200],[0,0]];
+ const rows=pts.slice(1).map((p,i)=>wall(i+1,...pts[i],...p));
+ const r=cad.roomMeasurements(rows,1);
+ assert.equal(r.contours[0].areaSquareMeters,null);
+});
