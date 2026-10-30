@@ -16,6 +16,8 @@ function render(data){
  const a=data.audit;
  return '<p><b>'+a.practices+' pratiche</b> · '+a.blocked+' bloccate · '+a.review+' da verificare</p>'+
  '<p><strong>BOZZA INTERNA — NON AUTORIZZA EMISSIONE O FIRMA.</strong></p>'+
+ '<h4>Riepilogo per tipologia</h4><ul>'+
+ Object.entries(a.groups||{}).map(([type,g])=>'<li>'+esc(type)+': '+g.count+' pratiche · '+g.blocked+' bloccate · '+g.review+' da verificare · '+g.originals+' originali · '+g.proofs+' prove</li>').join('')+'</ul>'+
  '<table><thead><tr><th>Pratica</th><th>Stato</th><th>Originali</th><th>Prove</th></tr></thead><tbody>'+
  data.rows.map((p,i)=>{const r=root.ITETechnicalPackage.manifest(p,data.core,data.state);
  return '<tr><td>'+esc(p.type)+' — '+esc(p.fields?.reference||p.id)+'</td><td>'+esc(r.state)+'</td><td>'+r.originals.length+'</td><td>'+r.proofs.length+'</td></tr>';}).join('')+
