@@ -72,7 +72,7 @@ function auditPackage(practices,clientId,core,state){
    findings.push({practiceId:r.practiceId,severity:'BLOCCANTE',code:x.status,sourceId:x.checkId});
  }
  return {clientId:summary.clientId,practices:summary.count,blocked:summary.blocked,
-  review:summary.review,findings,readyForManualReview:summary.blocked===0,
+  review:summary.review,groups:summary.groups,findings,readyForManualReview:summary.blocked===0,
   authorizedForIssue:false,disclaimer:'Esito interno: verifica tecnica, firme e modelli ufficiali sempre necessari.'};
 }
 function bundle(practices,clientId,core,state){
