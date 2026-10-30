@@ -73,3 +73,35 @@ test('CSV and A4 expose absent originals and unlinked proofs without implying ma
  assert.match(html,/PROVE NON COLLEGATE: verificare applicabilita/);
  assert.match(html,/BOZZA INTERNA NON FIRMATA/);
 });
+
+
+test('technical CSV and A4 retain original file provenance and hash for manual audit',()=>{
+ const report=api.manifest(p(),core,s());
+ const csv=api.csv([report]),html=api.html([report]);
+ assert.match(csv,/Nome originale/);
+ assert.match(csv,/ID file/);
+ assert.match(csv,/test\\.pdf/);
+ assert.match(csv,/file1/);
+ assert.match(csv,/a{64}/);
+ assert.match(html,/test\\.pdf/);
+ assert.match(html,/file1/);
+ assert.match(html,/a{64}/);
+ assert.match(html,/Content-Security-Policy/);
+ assert.match(html,/default-src/);
+ assert.match(html,/NON FIRMATA/);
+});
+test('technical export does not execute or interpolate malicious original filenames',()=>{
+ const state=s();state.documents[0].sourceName='<img src=x onerror=alert(1)>';
+ const report=api.manifest(p(),core,state);
+ const html=api.html([report]);
+ assert.doesNotMatch(html,/<img src=x/);
+ assert.match(html,/&lt;img src=x/);
+ assert.match(api.csv([report]),/onerror=alert/);
+});
+test('technical export marks absent hashes without pretending verified provenance',()=>{
+ const state=s();state.files[0].hash='';
+ const report=api.manifest(p(),core,state);
+ assert.equal(report.state,'BLOCCATA');
+ assert.match(api.html([report]),/non disponibile/);
+ assert.match(api.csv([report]),/HASH NON DISPONIBILE/);
+});
