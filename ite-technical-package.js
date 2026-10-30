@@ -58,6 +58,23 @@ function readiness(practices,clientId,core,state){
   groups,reports,releaseAllowed:false,
   warning:'SOLO PREPARAZIONE INTERNA: il sistema non autorizza firma, rilascio o dichiarazione di conformita.'};
 }
+// Gate di preparazione: controlla anche riferimenti di revisione e identita dei file.
+// I risultati sono indicativi e non abilitano emissione o firma.
+function auditPackage(practices,clientId,core,state){
+ const summary=readiness(practices,clientId,core,state);
+ const findings=[];
+ for(const r of summary.reports){
+  if(!r.originals.length)findings.push({practiceId:r.practiceId,severity:'REVISIONE',code:'ORIGINALI_ASSENTI'});
+  if(!r.proofs.length)findings.push({practiceId:r.practiceId,severity:'REVISIONE',code:'PROVE_ASSENTI'});
+  for(const x of r.originals)if(x.status!=='DA VERIFICARE')
+   findings.push({practiceId:r.practiceId,severity:'BLOCCANTE',code:x.status,sourceId:x.documentId});
+  for(const x of r.proofs)if(x.status!=='DA VERIFICARE')
+   findings.push({practiceId:r.practiceId,severity:'BLOCCANTE',code:x.status,sourceId:x.checkId});
+ }
+ return {clientId:summary.clientId,practices:summary.count,blocked:summary.blocked,
+  review:summary.review,findings,readyForManualReview:summary.blocked===0,
+  authorizedForIssue:false,disclaimer:'Esito interno: verifica tecnica, firme e modelli ufficiali sempre necessari.'};
+}
 function bundle(practices,clientId,core,state){
  if(!Array.isArray(practices)||!practices.length||practices.length>50)throw Error('Selezionare da 1 a 50 pratiche.');
  if(!clientId||!find(core?.clienti,clientId))throw Error('Cliente non valido.');
@@ -85,7 +102,7 @@ function html(reports){
  '<h3>Controlli</h3><ul>'+r.issues.map(x=>'<li>'+esc(x.level)+' / '+esc(x.area)+': '+esc(x.message)+'</li>').join('')+'</ul></section>').join('');
  return '<!doctype html><html lang="it"><head><meta charset="utf-8"><title>ITE fascicolo interno</title><style>@page{size:A4;margin:15mm}body{font:12px Arial}section{break-after:page}li{overflow-wrap:anywhere}</style></head><body><h1>I.T.E. — Indice fascicolo tecnico</h1><p><b>BOZZA INTERNA NON FIRMATA. NON SOSTITUISCE DOCUMENTI ORIGINALI O DICHIARAZIONI.</b></p>'+sections+'</body></html>';
 }
-const api=Object.freeze({manifest,bundle,readiness,csv,html});
+const api=Object.freeze({manifest,bundle,readiness,auditPackage,csv,html});
 root.ITETechnicalPackage=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
