@@ -148,3 +148,14 @@ html=html.replace(consistencyPattern,'<script src="./ite-technical-consistency.j
 if(process.argv.includes('--write'))fs.writeFileSync('index.html',html);
 else assert.equal(fs.readFileSync('index.html','utf8'),html,'Technical consistency SRI outdated');
 console.log('TECHNICAL_CONSISTENCY_SRI='+consistencyHash);
+
+for (const file of ['ite-technical-package.js', 'ite-technical-package-ui.js']) {
+  const fileHash = digest(file);
+  const escaped = file.replaceAll('.', '\\.');
+  const pattern = new RegExp('<script src="\\./' + escaped + '\\?v=4\\.0\\.0"(?: integrity="[^"]*")? crossorigin="anonymous"><\\/script>', 'g');
+  assert(pattern.test(html), 'Missing technical package script tag: ' + file);
+  html = html.replace(pattern, '<script src="./' + file + '?v=4.0.0" integrity="' + fileHash + '" crossorigin="anonymous"></script>');
+  if (process.argv.includes('--write')) fs.writeFileSync('index.html', html);
+  else assert.equal(fs.readFileSync('index.html', 'utf8'), html, 'Technical package SRI outdated: ' + file);
+  console.log('TECHNICAL_PACKAGE_SRI ' + file + '=' + fileHash);
+}
