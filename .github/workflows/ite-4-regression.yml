@@ -226,6 +226,12 @@ jobs:
         env:
           ITE_TEST_BROWSER: webkit
         run: node dev/test_400_contract_billing_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: Chromium job material stock, reversal and worksite (synthetic)
+        run: node dev/test_400_job_materials_browser.cjs "$RUNNER_TEMP/ite-4-preview"
+      - name: WebKit job material stock, reversal and worksite (synthetic)
+        env:
+          ITE_TEST_BROWSER: webkit
+        run: node dev/test_400_job_materials_browser.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: Chromium smoke test of encrypted vault and tablet layout
         run: node dev/test_400_browser_smoke.cjs "$RUNNER_TEMP/ite-4-preview"
       - name: WebKit smoke test of encrypted vault and tablet layout (Safari engine)
