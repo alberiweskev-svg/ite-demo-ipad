@@ -7,7 +7,7 @@ const id=v=>String(v??'').trim();
 const index=rows=>new Map(list(rows).map(x=>[id(x.id),x]));
 function inspect(core,commerce={}){
  if(!core||typeof core!=='object')throw Error('Archivio operativo non valido.');
- const clients=index(core.clienti),sites=index(core.immobili),plants=index(core.impianti),devices=index(core.apparecchiature),jobs=index(core.interventi),people=index(core.operatori||core.tecnici||core.dipendenti);
+ const clients=index(core.clienti),sites=index(core.immobili),plants=index(core.impianti),devices=index(core.apparecchiature),jobs=index(core.interventi),appointments=index(core.appuntamenti),people=index(core.operatori||core.tecnici||core.dipendenti);
  const documents=index(commerce.documents),issues=[],counts={clients:clients.size,sites:sites.size,plants:plants.size,devices:devices.size,jobs:jobs.size,documents:documents.size};
  const add=(severity,code,entity,entityId,detail)=>issues.push({severity,code,entity,id:id(entityId),detail});
  const requireUnique=(rows,entity)=>{
@@ -18,7 +18,7 @@ function inspect(core,commerce={}){
    seen.add(id(row.id));
   }
  };
- for(const [rows,entity] of [[core.clienti,'anagrafica'],[core.immobili,'sede'],[core.impianti,'impianto'],[core.apparecchiature,'apparecchiatura'],[core.interventi,'intervento'],[commerce.documents,'documento']])requireUnique(rows,entity);
+ for(const [rows,entity] of [[core.clienti,'anagrafica'],[core.immobili,'sede'],[core.impianti,'impianto'],[core.apparecchiature,'apparecchiatura'],[core.interventi,'intervento'],[core.appuntamenti,'appuntamento'],[commerce.documents,'documento']])requireUnique(rows,entity);
  for(const s of list(core.immobili))if(!clients.has(id(s.client_id)))add('BLOCCANTE','CLIENTE_ASSENTE','sede',s.id,'Sede priva di cliente');
  for(const p of list(core.impianti))if(!sites.has(id(p.immobile_id)))add('BLOCCANTE','SEDE_ASSENTE','impianto',p.id,'Impianto privo di sede');
  for(const d of list(core.apparecchiature))if(!plants.has(id(d.impianto_id)))add('BLOCCANTE','IMPIANTO_ASSENTE','apparecchiatura',d.id,'Apparecchiatura priva di impianto');
@@ -36,6 +36,7 @@ function inspect(core,commerce={}){
    if(!owner)add('BLOCCANTE','APPARECCHIATURA_ASSENTE','intervento',j.id,'Apparecchiatura o gerarchia non disponibile');
    else if(owner.client!==id(j.client_id)||owner.site!==id(j.immobile_id))add('BLOCCANTE','APPARECCHIATURA_ALTRA_SEDE','intervento',j.id,'Apparecchiatura di altra sede o cliente');
   }
+  if(id(j.appointmentId||j.appuntamento_id)&&!appointments.has(id(j.appointmentId||j.appuntamento_id)))add('REVISIONE','APPUNTAMENTO_ASSENTE','intervento',j.id,'Appuntamento collegato non presente');
   if(id(j.technician_id)&&people.size&&!people.has(id(j.technician_id)))add('REVISIONE','OPERATORE_ASSENTE','intervento',j.id,'Operatore assegnato non presente in anagrafica');
   if(j.workflow_status==='Chiuso'&&!j.finished_at)add('REVISIONE','CHIUSURA_SENZA_ORA','intervento',j.id,'Intervento chiuso senza ora di uscita');
   if(j.scheduled_start&&j.finished_at&&Date.parse(j.finished_at)<Date.parse(j.scheduled_start))add('REVISIONE','TEMPI_INCOERENTI','intervento',j.id,'Uscita precedente all’appuntamento');
