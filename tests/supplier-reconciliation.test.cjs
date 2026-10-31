@@ -1,0 +1,10 @@
+const test=require('node:test'),assert=require('node:assert/strict');const {compare,decimal}=require('../ite-supplier-reconciliation.js');
+const q={supplierId:'SUPPLIER-DEMO',documentId:'QUOTE-DEMO',validUntil:'2026-02-11',lines:[{brand:'ABB',code:'00001',unit:'PZ',quantity:'1',netUnitPrice:'460,00'},{brand:'GCA',code:'CABLE',unit:'MT',quantity:'100',netUnitPrice:'2,48076'}]};
+const inv=lines=>({supplierId:'SUPPLIER-DEMO',documentId:'INV-DEMO',date:'2026-02-12',lines});
+test('retains five decimal precision',()=>assert.equal(decimal('2,48076'),248076));
+test('detects cable increase to cent after quantity',()=>{const r=compare(q,inv([{brand:'GCA',code:'CABLE',unit:'MT',quantity:'100',netUnitPrice:'2,49076'}]));assert.equal(r.rows[0].unitDifference,'0.01000');assert.equal(r.rows[0].estimatedDifferenceCents,100);assert.equal(r.quoteExpiredAtInvoice,true);assert.equal(r.stockChanged,false)});
+test('unchanged price with different quantity is not an increase',()=>{const r=compare(q,inv([{brand:'ABB',code:'00001',unit:'PZ',quantity:'2',netUnitPrice:'460,00'}]));assert.equal(r.rows[0].status,'UNCHANGED');assert.equal(r.rows[0].quantityChanged,true)});
+test('reports missing and extra articles',()=>{const r=compare(q,inv([{brand:'ABB',code:'NEW',unit:'PZ',quantity:'1',netUnitPrice:'10'}]));assert.equal(r.rows.filter(x=>x.status==='MISSING').length,2);assert.equal(r.rows.filter(x=>x.status==='EXTRA').length,1)});
+test('rejects different suppliers',()=>assert.throws(()=>compare(q,{...inv([]),supplierId:'OTHER'})));
+test('rejects invalid monetary precision',()=>assert.equal(decimal('2,123456'),null));
+test('does not compare duplicate lines as unique',()=>{const r=compare(q,inv([{brand:'ABB',code:'00001',quantity:'1',netUnitPrice:'460'},{brand:'ABB',code:'00001',quantity:'1',netUnitPrice:'470'}]));assert.equal(r.issues[0].type,'INVOICE_DUPLICATE')});
