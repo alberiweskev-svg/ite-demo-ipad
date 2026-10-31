@@ -12,7 +12,7 @@
 <label>Fine<input name="end" type="datetime-local" required></label>
 <button type="submit">Aggiungi appuntamento</button></form></section>
 <section class="panel"><h2>Strumenti di collaudo</h2><div class="actions"><button type="button" id="load-samples">Carica appuntamenti di esempio</button><button type="button" id="reset-demo" class="danger">Azzera demo</button></div><p class="small">Tutti i dati sono temporanei: ricaricando la pagina vengono cancellati.</p></section>
-<section class="panel"><h2>Agenda tecnici demo</h2><label>Filtra per tecnico<select id="operator-filter"><option value="">Tutti i tecnici</option><option value="DEMO-T">Tecnico demo 1</option><option value="DEMO-T2">Tecnico demo 2</option></select></label><div id="summary" role="status"></div><div id="appointments"></div></section>
+<section class="panel"><h2>Agenda tecnici demo</h2><label>Filtra per tecnico<select id="operator-filter"><option value="">Tutti i tecnici</option><option value="DEMO-T">Tecnico demo 1</option><option value="DEMO-T2">Tecnico demo 2</option></select></label><label>Giorno<input type="date" id="day-filter"></label><div class="actions"><button type="button" id="clear-day">Tutti i giorni</button><button type="button" id="print-agenda">Stampa agenda</button></div><div id="summary" role="status"></div><div id="appointments"></div></section>
 <section class="panel"><h2>Storico operazioni</h2><div id="audit"></div></section>
 <p id="message" role="alert"></p>
 </main>
