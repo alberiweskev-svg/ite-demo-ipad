@@ -1,0 +1,24 @@
+name: ITE 4.0 procurement review gate
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-procurement-review.js'
+      - 'ite-procurement-document-bridge.js'
+      - 'ite-procurement-audit.js'
+      - 'ite-core-reconciliation.js'
+      - 'test-procurement-review-gate.js'
+      - '.github/workflows/ite-procurement-review-gate.yml'
+  workflow_dispatch:
+jobs:
+  supplier-document-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-procurement-review.js
+      - run: node --check ite-procurement-document-bridge.js
+      - run: node test-procurement-review-gate.js
+      - run: node test-procurement-document-bridge.js
