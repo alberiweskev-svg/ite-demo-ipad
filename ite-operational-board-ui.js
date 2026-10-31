@@ -28,6 +28,7 @@ function refresh(){
  try{
   const data=options(),board=root.ITEOperationalBoard.build(data.core,data.commerce,filters());
   const reconciliation=root.ITECoreReconciliation?.inspect(data.core,data.commerce);
+  const hierarchy=root.ITECoreOperationsBridge?.bridge(data.core);
   current=board;signature=inputSignature(data);
   $('ops-summary').textContent=board.summary.items+' elementi · '+board.summary.blocking+' anomalie bloccanti · '+board.summary.review+' da verificare · '+board.workflow.totals.linked+' collegamenti operativi · '+board.workflow.totals.unlinked+' elementi scollegati';
   const kind=$('ops-kind').value,query=$('ops-search').value.trim().toLocaleLowerCase('it');
@@ -50,6 +51,20 @@ function refresh(){
   }
   for(const issue of board.issues.slice(0,200)){
    const p=document.createElement('p');p.className='item';p.textContent=issue.severity+' · '+issue.entity+' '+issue.id+' · '+issue.detail;issues.append(p);
+  }
+  if(hierarchy){
+   const heading=document.createElement('h3');
+   heading.textContent='Gerarchia cliente, sede, impianto, apparecchiatura';
+   issues.append(heading);
+   const counts=document.createElement('p');counts.className='item';
+   const h=hierarchy.state;
+   counts.textContent=h.clients.length+' clienti · '+h.sites.length+' sedi · '+h.systems.length+' impianti · '+h.devices.length+' apparecchiature · '+hierarchy.issues.length+' riferimenti da verificare';
+   issues.append(counts);
+   for(const issue of hierarchy.issues.slice(0,100)){
+    const p=document.createElement('p');p.className='item';
+    p.textContent='Gerarchia · '+issue.table+' · '+(issue.id||'senza ID')+' · '+issue.code;
+    issues.append(p);
+   }
   }
   if(reconciliation){
    const heading=document.createElement('h3');heading.textContent='Riconciliazione archivi (sola lettura)';issues.prepend(heading);
