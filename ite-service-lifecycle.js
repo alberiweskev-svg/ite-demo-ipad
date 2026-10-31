@@ -47,6 +47,18 @@ function event(state,appointmentId,action,{at,operatorId,notes='',attachments=[]
  if(action==='REOPEN'){visit.status='REOPENED';visit.revisionCount++}
  return next;
 }
+function cancel(state,appointmentId,{at,operatorId,notes=''}={}){
+ const next=copy(state),app=next.appointments.find(x=>x.id===appointmentId);
+ if(!app)throw Error('Appuntamento inesistente');
+ if(app.status!=='PLANNED')throw Error('Solo appuntamenti programmati possono essere annullati');
+ if(s(operatorId)!==app.operatorId)throw Error('Operatore diverso da quello assegnato');
+ iso(at,'Ora annullamento');
+ const history=next.audit.filter(x=>x.appointmentId===appointmentId);
+ if(history.length&&Date.parse(at)<Date.parse(history[history.length-1].at))throw Error('Orario precedente allo storico');
+ app.status='CANCELLED';
+ next.audit.push({id:'AUD-'+appointmentId+'-'+(history.length+1),appointmentId,action:'CANCEL',at,operatorId,notes:s(notes),attachments:[]});
+ return next;
+}
 function addExtra(state,appointmentId,{description,attachments=[]}={}){
  const next=copy(state),visit=next.interventions.find(x=>x.appointmentId===appointmentId);
  if(!visit||!['OPEN','REOPENED'].includes(visit.status))throw Error('Intervento non aperto');
@@ -58,7 +70,7 @@ function agenda(state,{from,to,operatorId}={}){
  const start=iso(from,'Da'),end=iso(to,'A');if(end<=start)throw Error('Intervallo non valido');
  return state.appointments.filter(x=>(!operatorId||x.operatorId===operatorId)&&Date.parse(x.start)<end&&Date.parse(x.end)>start).map(copy).sort((a,b)=>a.start.localeCompare(b.start));
 }
-const api=Object.freeze({empty,add,appointment,event,addExtra,agenda});
+const api=Object.freeze({empty,add,appointment,event,cancel,addExtra,agenda});
 root.ITEServiceLifecycle=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
