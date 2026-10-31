@@ -25,7 +25,7 @@ function prepare(core,commerce,steps,expected){
   }
   if(before.some(x=>!after.some(y=>id(y.id)===id(x.id))))throw Error('Eliminazione implicita vietata');
  }
- if(changes.length!==result.staged.length)throw Error('Sequenza non riconciliata');
+ if(changes.length>result.staged.length)throw Error('Sequenza non riconciliata');
  return {changes,audit:copy(result.audit),requiresReview:result.requiresReview,
   base:actual,preview:copy(result.preview),persisted:false,fiscalIssued:false,
   warning:'Proposta non salvata: serve un adattatore di persistenza con backup e conferma.'};
