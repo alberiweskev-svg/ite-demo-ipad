@@ -1,0 +1,37 @@
+name: Package isolated ITE 4 calendar demo
+on:
+  workflow_dispatch:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-demo.html'
+      - 'ite-operations-demo.js'
+      - 'ite-operations-demo.css'
+      - 'ite-service-lifecycle.js'
+      - 'ite-operations-integrity.js'
+      - 'ite-operations-projection.js'
+      - 'ite-operations-workspace.js'
+      - '.github/workflows/ite-operations-demo-package.yml'
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble demo without production files
+        run: |
+          mkdir -p dist/ite4-calendar-demo
+          cp ite-operations-demo.html dist/ite4-calendar-demo/index.html
+          cp ite-operations-demo.js ite-operations-demo.css dist/ite4-calendar-demo/
+          cp ite-service-lifecycle.js ite-operations-integrity.js ite-operations-projection.js ite-operations-workspace.js dist/ite4-calendar-demo/
+          test "$(find dist/ite4-calendar-demo -maxdepth 1 -type f | wc -l)" -eq 7
+          if grep -R -E 'ITEVault|localStorage|indexedDB' dist/ite4-calendar-demo; then
+            echo "Isolation validation failed"
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ite4-calendar-demo-isolata
+          path: dist/ite4-calendar-demo/
+          retention-days: 14
