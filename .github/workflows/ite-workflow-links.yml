@@ -1,0 +1,20 @@
+name: ITE operational workflow link tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operational-board.js'
+      - 'ite-operational-integrity.js'
+      - 'tests/workflow-parent-type-regression.test.cjs'
+      - '.github/workflows/ite-workflow-links.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-operational-board.js
+      - run: node --test tests/workflow-parent-type-regression.test.cjs
