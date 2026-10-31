@@ -31,6 +31,10 @@ function event(state,appointmentId,action,{at,operatorId,notes='',attachments=[]
  if(s(operatorId)!==app.operatorId)throw Error('Operatore diverso da quello assegnato');
  const time=iso(at,'Ora evento'),history=next.audit.filter(x=>x.appointmentId===appointmentId);
  if(history.length&&time<Date.parse(history[history.length-1].at))throw Error('Orario precedente allo storico');
+ if(action==='CLOSE'){
+  const current=next.interventions.find(x=>x.appointmentId===appointmentId);
+  if(!current||time<Date.parse(current.arrivalAt))throw Error('Uscita precedente all’arrivo');
+ }
  const transitions={PLANNED:{ARRIVE:'OPEN'},OPEN:{CLOSE:'CLOSED'},CLOSED:{REOPEN:'REOPENED'},REOPENED:{CLOSE:'CLOSED'}};
  const status=transitions[app.status]?.[action];if(!status)throw Error('Transizione non consentita');
  if(!Array.isArray(attachments))throw Error('Allegati non validi');
