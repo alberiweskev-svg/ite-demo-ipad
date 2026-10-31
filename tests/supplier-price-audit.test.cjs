@@ -1,0 +1,9 @@
+const test=require('node:test'),assert=require('node:assert/strict');const {compare}=require('../ite-supplier-price-audit.js');
+const q={supplierId:'FABBI',documentId:'Q1',validUntil:'2026-02-11',lines:[{brand:'ABB',code:'6AGC101252',unit:'PZ',quantity:1,netUnitPrice:'460,00'},{brand:'GCA',code:'FG16OR16.3G6,00.B',unit:'MT',quantity:100,netUnitPrice:'2,48076'}]};
+const inv=lines=>({supplierId:'FABBI',documentId:'F1',date:'2026-02-10',lines});
+test('detects increase by supplier code, not row order',()=>{const x=compare(q,inv([{brand:'GCA',code:'FG16OR16.3G6,00.B',unit:'MT',quantity:100,netUnitPrice:'2,75'},{brand:'ABB',code:'6AGC101252',unit:'PZ',quantity:1,netUnitPrice:'470,00'}]));assert.equal(x.increases,2);assert.equal(x.rows[1].differenceUnitCents,1000);assert.equal(x.stockChanged,false)});
+test('identical unit price is unchanged',()=>{const x=compare(q,inv([{brand:'ABB',code:'6AGC101252',unit:'PZ',quantity:1,netUnitPrice:'460,00'}]));assert.equal(x.rows[0].status,'UNCHANGED');assert.equal(x.rows[1].status,'NOT_IN_INVOICE')});
+test('decrease is distinguished from increase',()=>{const x=compare(q,inv([{brand:'ABB',code:'6AGC101252',unit:'PZ',quantity:1,netUnitPrice:'450,00'}]));assert.equal(x.rows[0].status,'DECREASE')});
+test('rejects cross-supplier comparisons',()=>assert.throws(()=>compare(q,{supplierId:'OTHER',lines:[]}),/Fornitore/));
+test('flags changed quantities without claiming price increase',()=>{const x=compare(q,inv([{brand:'ABB',code:'6AGC101252',unit:'PZ',quantity:2,netUnitPrice:'460,00'}]));assert.equal(x.rows[0].quantityChanged,true);assert.equal(x.rows[0].status,'UNCHANGED')});
+test('does not invent match for an extra article',()=>{const x=compare(q,inv([{brand:'ABB',code:'OTHER',unit:'PZ',quantity:1,netUnitPrice:'10'}]));assert.equal(x.rows[0].status,'NOT_IN_QUOTE')});
