@@ -36,7 +36,12 @@ function inspect(core,commerce={}){
    if(!owner)add('BLOCCANTE','APPARECCHIATURA_ASSENTE','intervento',j.id,'Apparecchiatura o gerarchia non disponibile');
    else if(owner.client!==id(j.client_id)||owner.site!==id(j.immobile_id))add('BLOCCANTE','APPARECCHIATURA_ALTRA_SEDE','intervento',j.id,'Apparecchiatura di altra sede o cliente');
   }
-  if(id(j.appointmentId||j.appuntamento_id)&&!appointments.has(id(j.appointmentId||j.appuntamento_id)))add('REVISIONE','APPUNTAMENTO_ASSENTE','intervento',j.id,'Appuntamento collegato non presente');
+  const appointmentId=id(j.appointmentId||j.appuntamento_id),appointment=appointments.get(appointmentId);
+  if(appointmentId&&!appointment)add('REVISIONE','APPUNTAMENTO_ASSENTE','intervento',j.id,'Appuntamento collegato non presente');
+  if(appointment){
+   const appointmentClient=id(appointment.client_id||appointment.clientId),appointmentSite=id(appointment.immobile_id||appointment.siteId);
+   if(appointmentClient&&appointmentClient!==id(j.client_id)||appointmentSite&&appointmentSite!==id(j.immobile_id))add('BLOCCANTE','APPUNTAMENTO_ALTRA_SEDE','intervento',j.id,'Appuntamento di cliente o sede differente');
+  }
   if(id(j.technician_id)&&people.size&&!people.has(id(j.technician_id)))add('REVISIONE','OPERATORE_ASSENTE','intervento',j.id,'Operatore assegnato non presente in anagrafica');
   if(j.workflow_status==='Chiuso'&&!j.finished_at)add('REVISIONE','CHIUSURA_SENZA_ORA','intervento',j.id,'Intervento chiuso senza ora di uscita');
   if(j.scheduled_start&&j.finished_at&&Date.parse(j.finished_at)<Date.parse(j.scheduled_start))add('REVISIONE','TEMPI_INCOERENTI','intervento',j.id,'Uscita precedente all’appuntamento');
