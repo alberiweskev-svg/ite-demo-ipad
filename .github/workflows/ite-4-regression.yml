@@ -68,6 +68,10 @@ jobs:
         run: |
           node --check ite-operational-integrity.js
           node --test tests/operational-integrity.test.cjs
+      - name: Test integrated operational dashboard UI and local export safeguards
+        run: |
+          node --check ite-operational-board-ui.js
+          node --test tests/operational-board-ui.test.cjs
       - name: Test integrated operational board, client isolation and safe exports (synthetic)
         run: |
           node --check ite-operational-board.js
