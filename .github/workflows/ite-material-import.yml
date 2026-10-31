@@ -1,0 +1,22 @@
+name: ITE 4.0 material import validation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-material-import.js'
+      - 'tests/material-import.test.cjs'
+      - '.github/workflows/ite-material-import.yml'
+  workflow_dispatch:
+jobs:
+  material-import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: node --check ite-material-import.js
+      - name: Run synthetic import tests
+        run: node --test tests/material-import.test.cjs
