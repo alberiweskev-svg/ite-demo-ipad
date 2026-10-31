@@ -80,10 +80,10 @@ test('technical CSV and A4 retain original file provenance and hash for manual a
  const csv=api.csv([report]),html=api.html([report]);
  assert.match(csv,/Nome originale/);
  assert.match(csv,/ID file/);
- assert.match(csv,/test\\.pdf/);
+ assert.match(csv,/test\.pdf/);
  assert.match(csv,/file1/);
  assert.match(csv,/a{64}/);
- assert.match(html,/test\\.pdf/);
+ assert.match(html,/test\.pdf/);
  assert.match(html,/file1/);
  assert.match(html,/a{64}/);
  assert.match(html,/Content-Security-Policy/);
