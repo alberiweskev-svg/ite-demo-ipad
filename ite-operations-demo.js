@@ -72,5 +72,11 @@ $('load-samples').addEventListener('click',()=>{
 });
 $('reset-demo').addEventListener('click',()=>{state=fresh();sequence=1;$('message').textContent='Demo azzerata: nessun dato salvato.';render()});
 $('operator-filter').addEventListener('change',render);
+const startField=document.querySelector('[name="start"]'),endField=document.querySelector('[name="end"]');
+if(startField&&endField){
+ const next=new Date();next.setDate(next.getDate()+1);next.setHours(9,0,0,0);
+ startField.value=localInput(next);
+ next.setHours(10,0,0,0);endField.value=localInput(next);
+}
 render();
 })(window);
