@@ -1,0 +1,8 @@
+const test=require('node:test'),assert=require('node:assert/strict');const {check}=require('../ite-operations-integrity.js');
+const base=()=>({clients:[{id:'c'}],sites:[{id:'s',clientId:'c'}],systems:[{id:'y',siteId:'s'}],devices:[{id:'d',systemId:'y'}],operators:[{id:'o'}],appointments:[{id:'a',deviceId:'d',operatorId:'o',start:'2026-11-01T08:00:00+01:00',end:'2026-11-01T09:00:00+01:00',status:'PLANNED'}],interventions:[],audit:[]});
+test('valid linked hierarchy and schedule',()=>{const r=check(base());assert.equal(r.valid,true);assert.equal(r.summary.appointments,1);assert.equal(r.stockChanged,false)});
+test('broken hierarchy detected',()=>{const s=base();s.sites[0].clientId='missing';assert.equal(check(s).issues[0].type,'BROKEN_REFERENCE')});
+test('overlap detected per technician',()=>{const s=base();s.appointments.push({...s.appointments[0],id:'b',start:'2026-11-01T08:30:00+01:00'});assert.ok(check(s).issues.some(x=>x.type==='OVERLAP'))});
+test('closed visit must match appointment and have valid times',()=>{const s=base();s.appointments[0].status='CLOSED';s.interventions.push({id:'i',appointmentId:'a',status:'CLOSED',arrivalAt:'2026-11-01T10:00:00+01:00',exitAt:'2026-11-01T09:00:00+01:00'});assert.ok(check(s).issues.some(x=>x.type==='INVALID_CLOSED_VISIT'))});
+test('extras require explicit supply or installation lines',()=>{const r=check(base(),{extras:[{appointmentId:'a',lines:[{line_type:'Other',qty:1,price:5}]}]});assert.ok(r.issues.some(x=>x.type==='INVALID_EXTRA_LINE'))});
+test('cancelled appointment does not block technician',()=>{const s=base();s.appointments[0].status='CANCELLED';s.appointments.push({...s.appointments[0],id:'b',status:'PLANNED'});assert.equal(check(s).valid,true)});
