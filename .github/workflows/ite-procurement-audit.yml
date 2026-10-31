@@ -1,0 +1,24 @@
+name: ITE 4.0 procurement audit
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-procurement-audit.js'
+      - 'ite-core-reconciliation.js'
+      - 'test-supplier-price-audit.js'
+      - 'tests/procurement-audit.test.cjs'
+      - 'index.html'
+      - '.github/workflows/ite-procurement-audit.yml'
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-procurement-audit.js
+      - run: node --check ite-core-reconciliation.js
+      - run: node --test tests/procurement-audit.test.cjs
+      - run: node test-supplier-price-audit.js
