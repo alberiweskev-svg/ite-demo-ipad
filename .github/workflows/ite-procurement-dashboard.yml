@@ -1,0 +1,23 @@
+name: ITE procurement dashboard regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-core-reconciliation.js'
+      - 'ite-operational-board-ui.js'
+      - 'test-supplier-price-audit.js'
+      - 'test-procurement-dashboard.js'
+      - '.github/workflows/ite-procurement-dashboard.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-core-reconciliation.js
+      - run: node --check ite-operational-board-ui.js
+      - run: node test-supplier-price-audit.js
+      - run: node test-procurement-dashboard.js
