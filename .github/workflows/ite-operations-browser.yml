@@ -26,5 +26,12 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Serve isolated demo
         run: python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/ite-demo-http.log 2>&1 &
+      - name: Wait for local demo server
+        run: |
+          for i in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:8765/ite-operations-demo.html > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
       - name: Browser smoke
         run: node tests/operations-demo-browser-smoke.cjs
