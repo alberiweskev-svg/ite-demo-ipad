@@ -30,3 +30,6 @@ test('appointment matching client and site is accepted',()=>{
 });
 
 test('appointment invalid customer is flagged',()=>{const x=fixture();x.appuntamenti[0].client_id='UNKNOWN';assert.ok(integrity.inspect(x).issues.some(i=>i.entity==='appuntamento'&&i.code==='CLIENTE_ASSENTE'))});
+
+test('appointment invalid site is flagged',()=>{const x=fixture();x.appuntamenti[0].immobile_id='UNKNOWN';assert.ok(integrity.inspect(x).issues.some(i=>i.entity==='appuntamento'&&i.code==='SEDE_ASSENTE'))});
+test('appointment with mismatched site ownership is flagged',()=>{const x=fixture();x.clienti.push({id:'C2'});x.appuntamenti[0].client_id='C2';x.appuntamenti[0].immobile_id='S';assert.ok(integrity.inspect(x).issues.some(i=>i.entity==='appuntamento'&&i.code==='CLIENTE_SEDE_DIVERSI'))});
