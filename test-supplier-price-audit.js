@@ -24,5 +24,5 @@ assert.equal(report.supplierAudit[0].status,'NON_ASSOCIATA');
 report=run({...invoice,lines:[{code:'C',unitPrice:2}]});
 assert.deepEqual(report.supplierAudit[0].differences.map(x=>x.kind),['NUOVO_ARTICOLO','NON_FATTURATO','NON_FATTURATO']);
 report=run({...invoice,lines:[{code:'A',unitPrice:NaN}]});
-assert.ok(report.issues.some(x=>x.code==='PREZZO_NON_VALIDO'));
+assert.ok(report.issues.some(x=>x.code==='INVALID_INVOICE_LINE'));
 console.log('Supplier quote/invoice audit: 7 synthetic scenarios passed');
