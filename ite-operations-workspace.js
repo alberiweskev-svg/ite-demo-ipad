@@ -35,7 +35,7 @@ function dashboard(state,options={}){
  return {validation,projection:projection.project(state,options),readOnly:true};
 }
 function batch(state,commands,options={}){
- if(!Array.isArray(commands)||!commands.length)throw Error('Lotto vuoto');
+ if(!Array.isArray(commands)||!commands.length||commands.length>100)throw Error('Lotto non valido');
  let next=copy(state);
  for(const command of commands)next=execute(next,command,options).state;
  return {state:next,persisted:false};
