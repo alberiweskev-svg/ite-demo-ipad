@@ -1,0 +1,19 @@
+name: ITE appointment rescheduling
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-service-lifecycle.js'
+      - 'ite-operations-workspace.js'
+      - 'tests/appointment-rescheduling.test.cjs'
+      - '.github/workflows/ite-appointment-rescheduling.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/appointment-rescheduling.test.cjs
