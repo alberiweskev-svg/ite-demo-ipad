@@ -9,7 +9,8 @@ const seed=[
  ['ADD_SITE',{id:'DEMO-S',name:'Sede fittizia',clientId:'DEMO-C'}],
  ['ADD_SYSTEM',{id:'DEMO-P',name:'Impianto fittizio',siteId:'DEMO-S'}],
  ['ADD_DEVICE',{id:'DEMO-D',name:'Caldaia fittizia',systemId:'DEMO-P'}],
- ['ADD_OPERATOR',{id:'DEMO-T',name:'Tecnico demo'}]
+ ['ADD_OPERATOR',{id:'DEMO-T',name:'Tecnico demo 1'}],
+ ['ADD_OPERATOR',{id:'DEMO-T2',name:'Tecnico demo 2'}]
 ];
 state=ops.batch(state,seed).state;
 const isoLocal=value=>{const date=new Date(value);if(!value||!Number.isFinite(date.getTime()))throw Error('Data non valida');return date.toISOString()};
@@ -17,7 +18,7 @@ const fmt=value=>new Date(value).toLocaleString('it-IT',{dateStyle:'short',timeS
 const localInput=value=>{const d=new Date(value),pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())};
 function apply(command){try{state=ops.execute(state,command).state;$('message').textContent='Operazione eseguita nella demo (non salvata).';render()}catch(error){$('message').textContent=error.message}}
 function action(appointment,type){
- const at=new Date().toISOString(),base={type,appointmentId:appointment.id,operatorId:'DEMO-T',at};
+ const at=new Date().toISOString(),base={type,appointmentId:appointment.id,operatorId:appointment.operatorId,at};
  if(type==='RESCHEDULE_APPOINTMENT'){
   const start=prompt('Nuovo inizio (AAAA-MM-GGTHH:MM)',localInput(appointment.start));
   if(start===null)return;
@@ -31,13 +32,13 @@ function action(appointment,type){
  apply(base);
 }
 function render(){
- const view=ops.dashboard(state),list=$('appointments'),audit=$('audit');
+ const view=ops.dashboard(state),list=$('appointments'),audit=$('audit'),filter=$('operator-filter').value;
  list.replaceChildren();audit.replaceChildren();
  $('summary').textContent=state.appointments.length+' appuntamenti · '+state.interventions.length+' interventi · '+state.audit.length+' eventi storici';
  if(!view.validation.valid){list.append(el('p','Anomalie: '+view.validation.issues.map(x=>x.type).join(', ')));return}
- for(const appointment of [...state.appointments].sort((a,b)=>a.start.localeCompare(b.start))){
+ for(const appointment of [...state.appointments].filter(x=>!filter||x.operatorId===filter).sort((a,b)=>a.start.localeCompare(b.start))){
   const card=el('article',undefined,'appointment'),visit=state.interventions.find(x=>x.appointmentId===appointment.id);
-  card.append(el('h3',appointment.type+' · '+appointment.id),el('p',fmt(appointment.start)+' – '+fmt(appointment.end)),el('p','Stato: '+appointment.status+(visit?' · Intervento: '+visit.status:''),'small'));
+  card.append(el('h3',appointment.type+' · '+appointment.id),el('p','Tecnico: '+(appointment.operatorId==='DEMO-T'?'Tecnico demo 1':'Tecnico demo 2'),'small'),el('p',fmt(appointment.start)+' – '+fmt(appointment.end)),el('p','Stato: '+appointment.status+(visit?' · Intervento: '+visit.status:''),'small'));
   const actions=el('div',undefined,'actions');
   const allowed=appointment.status==='PLANNED'?['ARRIVE','RESCHEDULE_APPOINTMENT','CANCEL_APPOINTMENT']:appointment.status==='OPEN'||appointment.status==='REOPENED'?['CLOSE']:appointment.status==='CLOSED'?['REOPEN']:[];
   const labels={ARRIVE:'Sono arrivato',CLOSE:'Chiudi intervento',REOPEN:'Revisiona intervento',RESCHEDULE_APPOINTMENT:'Sposta',CANCEL_APPOINTMENT:'Annulla'};
@@ -51,8 +52,9 @@ function render(){
 $('new-appointment').addEventListener('submit',event=>{
  event.preventDefault();const data=new FormData(event.currentTarget);
  try{const start=isoLocal(data.get('start')),end=isoLocal(data.get('end'));
-  apply({type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:'DEMO-T',start,end,type:String(data.get('type')||'Manutenzione')}});
+  apply({type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:String(data.get('operatorId')),start,end,type:String(data.get('type')||'Manutenzione')}});
  }catch(error){$('message').textContent=error.message}
 });
+$('operator-filter').addEventListener('change',render);
 render();
 })(window);
