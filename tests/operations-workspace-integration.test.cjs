@@ -9,3 +9,24 @@ test('extra work is recorded without becoming a commercial approval',()=>{let s=
 test('rejects audit events assigned to a different operator',()=>{const s=fixture();s.audit.push({appointmentId:'A',operatorId:'UNKNOWN',at:'2026-11-03T09:00:00+01:00'});const result=ops.dashboard(s);assert.equal(result.validation.valid,false);assert.equal(result.projection,null)});
 test('rejects reversed audit chronology',()=>{const s=fixture();s.audit.push({appointmentId:'A',operatorId:'T',at:'2026-11-03T10:00:00+01:00'});s.audit.push({appointmentId:'A',operatorId:'T',at:'2026-11-03T09:00:00+01:00'});assert.equal(ops.dashboard(s).validation.issues.some(x=>x.type==='AUDIT_TIME_REVERSED'),true)});
 test('rejects closed visits with malformed exit timestamp',()=>{const s=fixture();s.appointments[0].status='CLOSED';s.interventions.push({id:'INT-A',appointmentId:'A',status:'CLOSED',arrivalAt:'2026-11-03T09:00:00+01:00',exitAt:'invalid'});assert.equal(ops.dashboard(s).validation.issues.some(x=>x.type==='INVALID_CLOSED_VISIT'),true)});
+
+test('batch creates hierarchy and appointment in one immutable transition',()=>{
+ const initial=ops.empty();
+ const commands=[
+  {type:'ADD_CLIENT',item:{id:'C1',name:'Cliente sintetico'}},
+  {type:'ADD_SITE',item:{id:'S1',name:'Sede sintetica',clientId:'C1'}},
+  {type:'ADD_SYSTEM',item:{id:'I1',name:'Impianto sintetico',siteId:'S1'}},
+  {type:'ADD_DEVICE',item:{id:'D1',name:'Apparecchiatura sintetica',systemId:'I1'}},
+  {type:'ADD_OPERATOR',item:{id:'T1',name:'Tecnico sintetico'}},
+  {type:'SCHEDULE',item:{id:'A1',deviceId:'D1',operatorId:'T1',start:'2026-11-03T09:00:00+01:00',end:'2026-11-03T10:00:00+01:00',type:'Manutenzione'}}
+ ];
+ const result=ops.batch(initial,commands);
+ assert.equal(result.state.appointments.length,1);
+ assert.equal(initial.clients.length,0);
+ assert.equal(result.persisted,false);
+});
+test('failed batch does not mutate the input state',()=>{
+ const initial=ops.empty();
+ assert.throws(()=>ops.batch(initial,[{type:'ADD_CLIENT',item:{id:'C1',name:'Demo'}},{type:'ADD_SITE',item:{id:'S1',name:'Sede',clientId:'NON_EXISTENT'}}]));
+ assert.equal(initial.clients.length,0);
+});
