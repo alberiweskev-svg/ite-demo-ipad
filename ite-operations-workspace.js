@@ -21,6 +21,7 @@ function execute(state,command,{extras=[]}={}){
   case 'SCHEDULE':next=lifecycle.appointment(state,command.item);break;
   case 'ARRIVE':case 'CLOSE':case 'REOPEN':
    next=lifecycle.event(state,command.appointmentId,command.type,{at:command.at,operatorId:command.operatorId,notes:command.notes,attachments:command.attachments||[]});break;
+  case 'CANCEL_APPOINTMENT':next=lifecycle.cancel(state,command.appointmentId,{at:command.at,operatorId:command.operatorId,notes:command.notes});break;
   case 'ADD_EXTRA_WORK':
    next=lifecycle.addExtra(state,command.appointmentId,{description:command.description,attachments:command.attachments||[]});break;
   default:throw Error('Comando non supportato: '+command.type);
