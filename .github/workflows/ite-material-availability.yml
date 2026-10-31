@@ -1,0 +1,19 @@
+name: ITE 4.0 material availability tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-material-availability.js'
+      - 'tests/material-availability.test.cjs'
+      - '.github/workflows/ite-material-availability.yml'
+  workflow_dispatch:
+jobs:
+  availability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-material-availability.js
+      - run: node --test tests/material-availability.test.cjs
