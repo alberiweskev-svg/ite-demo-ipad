@@ -18,7 +18,7 @@ function extract(commerce={}){
   if(!id||seen.has(id)){issues.push({code:'DOCUMENT_ID_MISSING_OR_DUPLICATE',id});continue}seen.add(id);
   const supplierId=str(doc.supplierId||doc.supplier_id||doc.party?.supplierId);
   const rawLines=arr(doc.lines||doc.items);
-  const lines=rawLines.map(x=>({code:str(x?.code||x?.sku),unitPrice:x?.unitPrice}));
+  const lines=rawLines.map(x=>({code:str(x?.code||x?.sku),unitPrice:x?.unitPrice,qty:x?.qty??x?.quantity,quantity:x?.qty??x?.quantity}));
   const validation=review.validate(doc);
   const ready=!!supplierId&&validation.valid;
   if(!ready){issues.push({code:'SUPPLIER_LINES_NEED_REVIEW',id,details:validation.issues});continue}
