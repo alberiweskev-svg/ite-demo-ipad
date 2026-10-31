@@ -7,10 +7,11 @@
 <header><h1>I.T.E. 4.0 — Calendario di collaudo</h1><p>Ambiente isolato con dati fittizi. Nessun dato cliente viene letto o salvato.</p></header>
 <section class="panel"><h2>Nuovo appuntamento</h2><form id="new-appointment">
 <label>Tipo intervento<input name="type" value="Manutenzione" required></label>
+<label>Tecnico<select name="operatorId" required><option value="DEMO-T">Tecnico demo 1</option><option value="DEMO-T2">Tecnico demo 2</option></select></label>
 <label>Inizio<input name="start" type="datetime-local" required></label>
 <label>Fine<input name="end" type="datetime-local" required></label>
 <button type="submit">Aggiungi appuntamento</button></form></section>
-<section class="panel"><h2>Agenda tecnico demo</h2><div id="summary" role="status"></div><div id="appointments"></div></section>
+<section class="panel"><h2>Agenda tecnici demo</h2><label>Filtra per tecnico<select id="operator-filter"><option value="">Tutti i tecnici</option><option value="DEMO-T">Tecnico demo 1</option><option value="DEMO-T2">Tecnico demo 2</option></select></label><div id="summary" role="status"></div><div id="appointments"></div></section>
 <section class="panel"><h2>Storico operazioni</h2><div id="audit"></div></section>
 <p id="message" role="alert"></p>
 </main>
