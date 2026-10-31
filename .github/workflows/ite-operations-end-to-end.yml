@@ -1,0 +1,23 @@
+name: ITE 4.0 operational regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-service-lifecycle.js'
+      - 'ite-operations-integrity.js'
+      - 'ite-operations-workspace.js'
+      - 'tests/operations-end-to-end-regression.test.cjs'
+      - '.github/workflows/ite-operations-end-to-end.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-service-lifecycle.js
+      - run: node --check ite-operations-integrity.js
+      - run: node --check ite-operations-workspace.js
+      - run: node --test tests/operations-end-to-end-regression.test.cjs
