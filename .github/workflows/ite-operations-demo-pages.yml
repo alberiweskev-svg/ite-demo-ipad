@@ -1,0 +1,46 @@
+name: Publish isolated ITE 4 calendar demo
+on:
+  workflow_dispatch:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-demo.html'
+      - 'ite-operations-demo.js'
+      - 'ite-operations-demo.css'
+      - 'ite-service-lifecycle.js'
+      - 'ite-operations-integrity.js'
+      - 'ite-operations-projection.js'
+      - 'ite-operations-workspace.js'
+      - '.github/workflows/ite-operations-demo-pages.yml'
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: ite-operations-demo-pages
+  cancel-in-progress: true
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare demo-only website
+        run: |
+          mkdir -p /tmp/ite-pages
+          cp ite-operations-demo.html /tmp/ite-pages/index.html
+          cp ite-operations-demo.js ite-operations-demo.css /tmp/ite-pages/
+          cp ite-service-lifecycle.js ite-operations-integrity.js ite-operations-projection.js ite-operations-workspace.js /tmp/ite-pages/
+          test "$(find /tmp/ite-pages -maxdepth 1 -type f | wc -l)" -eq 7
+          if grep -R -E 'ITEVault|localStorage|indexedDB' /tmp/ite-pages; then
+            echo "Demo isolation check failed"
+            exit 1
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: /tmp/ite-pages
+      - id: deployment
+        uses: actions/deploy-pages@v4
