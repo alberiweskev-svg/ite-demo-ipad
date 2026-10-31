@@ -12,7 +12,8 @@ const seed=[
  ['ADD_OPERATOR',{id:'DEMO-T',name:'Tecnico demo 1'}],
  ['ADD_OPERATOR',{id:'DEMO-T2',name:'Tecnico demo 2'}]
 ];
-state=ops.batch(state,seed).state;
+function fresh(){return ops.batch(ops.empty(),seed.map(([type,item])=>({type,item}))).state}
+state=fresh();
 const isoLocal=value=>{const date=new Date(value);if(!value||!Number.isFinite(date.getTime()))throw Error('Data non valida');return date.toISOString()};
 const fmt=value=>new Date(value).toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'});
 const localInput=value=>{const d=new Date(value),pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())};
@@ -55,6 +56,21 @@ $('new-appointment').addEventListener('submit',event=>{
   apply({type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:String(data.get('operatorId')),start,end,type:String(data.get('type')||'Manutenzione')}});
  }catch(error){$('message').textContent=error.message}
 });
+$('load-samples').addEventListener('click',()=>{
+ try{
+  const day=new Date();day.setDate(day.getDate()+1);day.setHours(9,0,0,0);
+  const slot=(hour,minutes)=>{const d=new Date(day);d.setHours(hour,minutes,0,0);return d.toISOString()};
+  const commands=[
+   {type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:'DEMO-T',start:slot(9,0),end:slot(10,0),type:'Manutenzione caldaia'}},
+   {type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:'DEMO-T2',start:slot(9,0),end:slot(10,30),type:'Riparazione climatizzatore'}},
+   {type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:'DEMO-T',start:slot(11,0),end:slot(12,0),type:'Controllo impianto'}}
+  ];
+  state=ops.batch(state,commands).state;
+  $('message').textContent='Tre appuntamenti fittizi aggiunti. Nessun dato salvato.';
+  render();
+ }catch(error){$('message').textContent=error.message}
+});
+$('reset-demo').addEventListener('click',()=>{state=fresh();sequence=1;$('message').textContent='Demo azzerata: nessun dato salvato.';render()});
 $('operator-filter').addEventListener('change',render);
 render();
 })(window);
