@@ -14,13 +14,14 @@ const seed=[
 state=ops.batch(state,seed).state;
 const isoLocal=value=>{const date=new Date(value);if(!value||!Number.isFinite(date.getTime()))throw Error('Data non valida');return date.toISOString()};
 const fmt=value=>new Date(value).toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'});
+const localInput=value=>{const d=new Date(value),pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())};
 function apply(command){try{state=ops.execute(state,command).state;$('message').textContent='Operazione eseguita nella demo (non salvata).';render()}catch(error){$('message').textContent=error.message}}
 function action(appointment,type){
  const at=new Date().toISOString(),base={type,appointmentId:appointment.id,operatorId:'DEMO-T',at};
  if(type==='RESCHEDULE_APPOINTMENT'){
-  const start=prompt('Nuovo inizio (AAAA-MM-GGTHH:MM)',appointment.start.slice(0,16));
+  const start=prompt('Nuovo inizio (AAAA-MM-GGTHH:MM)',localInput(appointment.start));
   if(start===null)return;
-  const end=prompt('Nuova fine (AAAA-MM-GGTHH:MM)',appointment.end.slice(0,16));
+  const end=prompt('Nuova fine (AAAA-MM-GGTHH:MM)',localInput(appointment.end));
   if(end===null)return;
   try{base.start=isoLocal(start);base.end=isoLocal(end)}catch(error){$('message').textContent=error.message;return}
  }
