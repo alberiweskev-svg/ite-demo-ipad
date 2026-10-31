@@ -1,0 +1,29 @@
+name: ITE 4 procurement document bridge tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-procurement-document-bridge.js'
+      - 'ite-core-reconciliation.js'
+      - 'ite-procurement-audit.js'
+      - 'test-procurement-document-bridge.js'
+      - '.github/workflows/ite-procurement-document-bridge.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static checks
+        run: |
+          node --check ite-procurement-document-bridge.js
+          node --check ite-core-reconciliation.js
+          node --check ite-procurement-audit.js
+          node --check test-procurement-document-bridge.js
+      - name: Synthetic procurement tests
+        run: node test-procurement-document-bridge.js
