@@ -1,0 +1,19 @@
+name: ITE 4.0 core operations bridge
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-core-operations-bridge.js'
+      - 'tests/core-operations-bridge.test.cjs'
+      - '.github/workflows/ite-core-operations-bridge.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-core-operations-bridge.js
+      - run: node --test tests/core-operations-bridge.test.cjs
