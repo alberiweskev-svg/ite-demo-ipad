@@ -26,6 +26,12 @@ function inspect(core,commerce={}){
   const d=devices.get(id(deviceId)),p=d&&plants.get(id(d.impianto_id)),s=p&&sites.get(id(p.immobile_id));
   return s?{client:id(s.client_id),site:id(s.id)}:null;
  }
+ for(const a of list(core.appuntamenti)){
+  const clientId=id(a.client_id||a.clientId),siteId=id(a.immobile_id||a.siteId);
+  if(clientId&&!clients.has(clientId))add('BLOCCANTE','CLIENTE_ASSENTE','appuntamento',a.id,'Cliente appuntamento inesistente');
+  if(siteId&&!sites.has(siteId))add('BLOCCANTE','SEDE_ASSENTE','appuntamento',a.id,'Sede appuntamento inesistente');
+  if(clientId&&siteId&&sites.has(siteId)&&id(sites.get(siteId).client_id)!==clientId)add('BLOCCANTE','CLIENTE_SEDE_DIVERSI','appuntamento',a.id,'Sede appuntamento di altro cliente');
+ }
  for(const j of list(core.interventi)){
   const site=sites.get(id(j.immobile_id)),client=clients.get(id(j.client_id));
   if(!client)add('BLOCCANTE','CLIENTE_ASSENTE','intervento',j.id,'Cliente intervento inesistente');
