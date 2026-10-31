@@ -1,0 +1,11 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {prepare}=require('../ite-material-import.js');
+const {reconcile}=require('../ite-material-receipts.js');
+const item={brand:'RBM',code:'123',description:'Raccordo',quantity:5};
+const preview=(kind='DDT',received=true,linkedDdtId='')=>prepare('warehouse',[],[{documentId:'D1',kind,received,linkedDdtId,rows:[item]}]);
+test('received DDT can be staged without loading stock',()=>{const p=preview(),r=reconcile(p,[]);assert.equal(r.candidates.length,1);assert.equal(r.stockChanged,false)});
+test('unreceived goods cannot be staged for loading',()=>{const r=reconcile(preview('DDT',false),[]);assert.equal(r.candidates.length,0);assert.equal(r.issues[0].code,'NOT_RECEIVED')});
+test('repeated document line is blocked',()=>{const p=preview(),r=reconcile(p,[{documentId:'D1',lineIndex:0,key:p.rows[0].key}]);assert.equal(r.issues[0].code,'ALREADY_LOADED')});
+test('invoice linked to loaded DDT cannot load same article again',()=>{const p=prepare('warehouse',[],[{documentId:'F1',kind:'FATTURA_ACQUISTO',received:true,linkedDdtId:'D1',rows:[item]}]);const r=reconcile(p,[{documentId:'D1',lineIndex:0,key:p.rows[0].key}]);assert.equal(r.issues[0].code,'DDT_ALREADY_LOADED')});
+test('invoice linked to unverified DDT requires manual reconciliation',()=>{const p=prepare('warehouse',[],[{documentId:'F1',kind:'FATTURA_ACQUISTO',received:true,linkedDdtId:'D2',rows:[item]}]);const r=reconcile(p,[]);assert.equal(r.issues[0].code,'DDT_RECONCILIATION')});
