@@ -33,11 +33,12 @@ function action(appointment,type){
  apply(base);
 }
 function render(){
- const view=ops.dashboard(state),list=$('appointments'),audit=$('audit'),filter=$('operator-filter').value;
+ const view=ops.dashboard(state),list=$('appointments'),audit=$('audit'),filter=$('operator-filter').value,day=$('day-filter').value;
+ const visible=state.appointments.filter(x=>{if(filter&&x.operatorId!==filter)return false;if(!day)return true;const start=new Date(day+'T00:00:00'),end=new Date(start);end.setDate(end.getDate()+1);return Date.parse(x.start)<end.getTime()&&Date.parse(x.end)>start.getTime()});
  list.replaceChildren();audit.replaceChildren();
- $('summary').textContent=state.appointments.length+' appuntamenti · '+state.interventions.length+' interventi · '+state.audit.length+' eventi storici';
+ $('summary').textContent=visible.length+' appuntamenti visualizzati su '+state.appointments.length+' totali · '+state.interventions.length+' interventi · '+state.audit.length+' eventi storici';
  if(!view.validation.valid){list.append(el('p','Anomalie: '+view.validation.issues.map(x=>x.type).join(', ')));return}
- for(const appointment of [...state.appointments].filter(x=>!filter||x.operatorId===filter).sort((a,b)=>a.start.localeCompare(b.start))){
+ for(const appointment of [...visible].sort((a,b)=>a.start.localeCompare(b.start))){
   const card=el('article',undefined,'appointment'),visit=state.interventions.find(x=>x.appointmentId===appointment.id);
   card.append(el('h3',appointment.type+' · '+appointment.id),el('p','Tecnico: '+(appointment.operatorId==='DEMO-T'?'Tecnico demo 1':'Tecnico demo 2'),'small'),el('p',fmt(appointment.start)+' – '+fmt(appointment.end)),el('p','Stato: '+appointment.status+(visit?' · Intervento: '+visit.status:''),'small'));
   const actions=el('div',undefined,'actions');
@@ -46,7 +47,7 @@ function render(){
   for(const type of allowed){const button=el('button',labels[type]);button.type='button';if(type==='CANCEL_APPOINTMENT')button.className='danger';button.addEventListener('click',()=>action(appointment,type));actions.append(button)}
   card.append(actions);list.append(card);
  }
- if(!state.appointments.length)list.append(el('p','Nessun appuntamento. Inseriscine uno con il modulo.'));
+ if(!visible.length)list.append(el('p','Nessun appuntamento. Inseriscine uno con il modulo.'));
  for(const event of [...state.audit].reverse()){const row=el('article');row.append(el('strong',event.action+' · '+event.appointmentId),el('p',fmt(event.at)+' · '+event.operatorId+(event.notes?' · '+event.notes:'')));if(event.previous)row.append(el('p','Da '+fmt(event.previous.start)+' a '+fmt(event.updated.start),'small'));audit.append(row)}
  if(!state.audit.length)audit.append(el('p','Nessuna operazione registrata.'));
 }
@@ -72,6 +73,9 @@ $('load-samples').addEventListener('click',()=>{
 });
 $('reset-demo').addEventListener('click',()=>{state=fresh();sequence=1;$('message').textContent='Demo azzerata: nessun dato salvato.';render()});
 $('operator-filter').addEventListener('change',render);
+$('day-filter').addEventListener('change',render);
+$('clear-day').addEventListener('click',()=>{$('day-filter').value='';render()});
+$('print-agenda').addEventListener('click',()=>window.print());
 const startField=document.querySelector('[name="start"]'),endField=document.querySelector('[name="end"]');
 if(startField&&endField){
  const next=new Date();next.setDate(next.getDate()+1);next.setHours(9,0,0,0);
