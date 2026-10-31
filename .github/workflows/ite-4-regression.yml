@@ -64,6 +64,10 @@ jobs:
         run: |
           node --check ite-site-reconciliation.js
           node dev/test_400_site_reconciliation.cjs
+      - name: Test integrated operational integrity across hierarchy, jobs, billing and technical drafts (synthetic)
+        run: |
+          node --check ite-operational-integrity.js
+          node --test tests/operational-integrity.test.cjs
       - name: Test warehouse stock and references
         run: node dev/test_400_warehouse.cjs
       - name: Test itemized quotes and supply/install separation
