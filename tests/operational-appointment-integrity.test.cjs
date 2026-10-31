@@ -28,3 +28,5 @@ test('appointment matching client and site is accepted',()=>{
  const report=integrity.inspect(core);
  assert.equal(report.issues.some(x=>x.code==='APPUNTAMENTO_ALTRA_SEDE'),false);
 });
+
+test('appointment invalid customer is flagged',()=>{const x=fixture();x.appuntamenti[0].client_id='UNKNOWN';assert.ok(integrity.inspect(x).issues.some(i=>i.entity==='appuntamento'&&i.code==='CLIENTE_ASSENTE'))});
