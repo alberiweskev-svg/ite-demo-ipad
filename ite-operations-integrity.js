@@ -35,10 +35,16 @@ function check(state,{extras=[]}={}){
   if(!maps.appointments.has(s(v.appointmentId)))issues.push({severity:'error',type:'ORPHAN_VISIT',id:v.id});
   if(visits.has(v.appointmentId))issues.push({severity:'error',type:'DUPLICATE_VISIT',id:v.id});
   visits.set(v.appointmentId,v);
-  if(v.status==='CLOSED'&&(!v.arrivalAt||!v.exitAt||Date.parse(v.exitAt)<Date.parse(v.arrivalAt)))issues.push({severity:'error',type:'INVALID_CLOSED_VISIT',id:v.id});
+  if(v.status==='CLOSED'&&(!v.arrivalAt||!v.exitAt||!Number.isFinite(Date.parse(v.arrivalAt))||!Number.isFinite(Date.parse(v.exitAt))||Date.parse(v.exitAt)<Date.parse(v.arrivalAt)))issues.push({severity:'error',type:'INVALID_CLOSED_VISIT',id:v.id});
  }
+ const historyByAppointment=new Map();
  for(const [i,event] of state.audit.entries()){
   if(!maps.appointments.has(s(event.appointmentId))||!maps.operators.has(s(event.operatorId))||!Number.isFinite(Date.parse(event.at)))issues.push({severity:'error',type:'INVALID_AUDIT',index:i});
+  const app=maps.appointments.get(s(event.appointmentId));
+  if(app&&s(event.operatorId)!==s(app.operatorId))issues.push({severity:'error',type:'AUDIT_OPERATOR_MISMATCH',index:i});
+  const previous=historyByAppointment.get(s(event.appointmentId));
+  if(previous&&Date.parse(event.at)<Date.parse(previous.at))issues.push({severity:'error',type:'AUDIT_TIME_REVERSED',index:i});
+  historyByAppointment.set(s(event.appointmentId),event);
  }
  for(const a of state.appointments){
   const v=visits.get(a.id);
