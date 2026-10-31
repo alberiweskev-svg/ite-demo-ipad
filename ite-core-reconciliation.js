@@ -26,13 +26,16 @@ function inspect(core,commerce={}){
   checkOwner(x,'extras');
   for(const [i,line] of list(x.lines).entries())if(!['Fornitura','Posa'].includes(line.line_type)||!Number.isFinite(Number(line.qty))||Number(line.qty)<=0||!Number.isFinite(Number(line.price))||Number(line.price)<0)issues.push({domain:'extras',id:str(x.id),line:i,code:'RIGA_EXTRA_NON_VALIDA'});
  }
- const supplierQuotes=list(commerce.supplierQuotes||commerce.supplier_quotes);
- const purchaseInvoices=list(commerce.purchaseInvoices||commerce.purchase_invoices);
+ const documentBridge=typeof module!=='undefined'&&module.exports?require('./ite-procurement-document-bridge.js'):root.ITEProcurementDocumentBridge;
+ const sourceAudit=documentBridge.merge(commerce);
+ const supplierQuotes=sourceAudit.quotes;
+ const purchaseInvoices=sourceAudit.invoices;
+ for(const item of sourceAudit.issues)issues.push({...item,domain:'procurement-import'});
  const procurement=typeof module!=='undefined'&&module.exports?require('./ite-procurement-audit.js'):root.ITEProcurementAudit;
  const result=procurement.analyze(supplierQuotes,purchaseInvoices);
  const supplierAudit=result.records;
  for(const item of result.issues)issues.push({...item,domain:'procurement'});
- return {summary:{clients:mapped.state.clients.length,sites:mapped.state.sites.length,systems:mapped.state.systems.length,devices:mapped.state.devices.length,appointments:appointments.length,interventions:visits.length,documents:documents.length,quotes:quotes.length,extras:extras.length,supplierQuotes:supplierQuotes.length,purchaseInvoices:purchaseInvoices.length},issues,supplierAudit,procurementSummary:result.summary,readOnly:true,persisted:false,releaseAllowed:false,importedAppointments:false,importedInterventions:false};
+ return {summary:{clients:mapped.state.clients.length,sites:mapped.state.sites.length,systems:mapped.state.systems.length,devices:mapped.state.devices.length,appointments:appointments.length,interventions:visits.length,documents:documents.length,quotes:quotes.length,extras:extras.length,supplierQuotes:supplierQuotes.length,purchaseInvoices:purchaseInvoices.length},issues,supplierAudit,procurementSources:sourceAudit.sources,procurementSummary:result.summary,readOnly:true,persisted:false,releaseAllowed:false,importedAppointments:false,importedInterventions:false};
 }
 const api=Object.freeze({inspect});root.ITECoreReconciliation=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
