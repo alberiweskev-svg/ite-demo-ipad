@@ -38,7 +38,7 @@ function event(state,appointmentId,action,{at,operatorId,notes='',attachments=[]
  const transitions={PLANNED:{ARRIVE:'OPEN'},OPEN:{CLOSE:'CLOSED'},CLOSED:{REOPEN:'REOPENED'},REOPENED:{CLOSE:'CLOSED'}};
  const status=transitions[app.status]?.[action];if(!status)throw Error('Transizione non consentita');
  if(!Array.isArray(attachments))throw Error('Allegati non validi');
- const record={appointmentId,action,at,operatorId,notes:s(notes),attachments:copy(attachments)};
+ const record={id:'AUD-'+appointmentId+'-'+(history.length+1),appointmentId,action,at,operatorId,notes:s(notes),attachments:copy(attachments)};
  app.status=status;
  next.audit.push(record);
  if(action==='ARRIVE')next.interventions.push({id:'INT-'+appointmentId,appointmentId,deviceId:app.deviceId,operatorId,arrivalAt:at,exitAt:null,status:'OPEN',revisionCount:0,extraWorks:[]});
