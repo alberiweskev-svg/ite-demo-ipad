@@ -1,0 +1,22 @@
+name: ITE 4.0 supplier audit tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-supplier-reconciliation.js'
+      - 'ite-supplier-reconciliation-ui.js'
+      - 'supplier-price-audit-preview.html'
+      - 'tests/supplier-reconciliation.test.cjs'
+      - '.github/workflows/ite-supplier-audit.yml'
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-supplier-reconciliation.js
+      - run: node --check ite-supplier-reconciliation-ui.js
+      - run: node --test tests/supplier-reconciliation.test.cjs tests/supplier-price-audit.test.cjs
