@@ -74,7 +74,7 @@ function workflows(core,commerce={},options={}){
   const src=item.source;
   const parentId=key(src.interventionId||src.intervento_id||src.jobId||src.job_id||src.appointmentId||src.appuntamento_id||src.quoteId||src.preventivo_id);
   if(parentId){
-   const candidates=records.filter(x=>x.id===parentId&&x.kind!==item.kind);
+   const candidates=records.filter(x=>x.id===parentId&&x.kind!==item.kind&&x.kind!=='Documento');
    const allowed=candidates.find(x=>x.clientId===item.clientId&&x.siteId===item.siteId);
    if(!allowed)issues.push({kind:item.kind,id:item.id,code:'COLLEGAMENTO_NON_VALIDO',detail:'Riferimento a un altro cliente/sede oppure inesistente'});
    else linked.push({from:allowed.kind+':'+allowed.id,to:identity});
