@@ -1,0 +1,10 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {report}=require('../ite-material-procurement.js');
+const commerce=()=>({articles:[{id:'a',kind:'Materiale',code:'R16',description:'Raccordo',unit:'pz'}],movements:[{articleId:'a',quantity:20}],settings:{materialDispatches:[]}});
+const site=(id,q,unit='pz')=>({id,ite_quotes:JSON.stringify([{id:'q'+id,status:'Accettato',lines:[{line_type:'Fornitura',articleId:'a',qty:q,unit}]}])});
+test('aggregates accepted supplies from two sites into purchase shortage',()=>{const r=report({cantieri:[site('1',12),site('2',10)]},commerce());assert.equal(r.materials[0].committed,22);assert.equal(r.materials[0].toPurchase,2)});
+test('does not count unlinked supplies as valid commitments',()=>{const s=site('1',8);s.ite_quotes=JSON.stringify([{id:'q1',status:'Accettato',lines:[{line_type:'Fornitura',qty:8}]}]);const r=report({cantieri:[s]},commerce());assert.equal(r.materials.length,0);assert.equal(r.readyForPurchase,false)});
+test('invalid units cannot enter purchase quantities',()=>{const r=report({cantieri:[site('1',10,'m')]},commerce());assert.equal(r.materials.length,0);assert.equal(r.issues[0].code,'UNIT_MISMATCH')});
+test('dispatched materials reduce both physical stock and remaining commitment',()=>{const c=commerce();c.movements.push({articleId:'a',quantity:-4});c.settings.materialDispatches.push({siteId:'1',type:'quote',sourceId:'q1',lineIndex:0,articleId:'a',quantity:4});const r=report({cantieri:[site('1',12)]},c);assert.equal(r.materials[0].physical,16);assert.equal(r.materials[0].committed,8);assert.equal(r.materials[0].available,8)});
+test('purchase report never mutates source data',()=>{const c=commerce(),s={cantieri:[site('1',3)]},before=JSON.stringify([c,s]);report(s,c);assert.equal(JSON.stringify([c,s]),before)});
