@@ -1,0 +1,10 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {audit}=require('../ite-material-link-audit.js');
+const commerce=()=>({articles:[{id:'a',kind:'Materiale',unit:'pz'}],movements:[{articleId:'a',quantity:8}],settings:{}});
+const core=lines=>({cantieri:[{id:'site',ite_quotes:JSON.stringify([{id:'quote',status:'Accettato',lines}])}]});
+test('valid accepted material is audited and reserved',()=>{const r=audit(core([{line_type:'Fornitura',articleId:'a',unit:'pz',qty:5}]),commerce());assert.equal(r.issues.length,0);assert.equal(r.stock[0].available,3)});
+test('missing article link is visible and cannot reserve',()=>{const r=audit(core([{line_type:'Fornitura',qty:2}]),commerce());assert.equal(r.issues[0].code,'UNLINKED');assert.equal(r.canAutoReserve,false)});
+test('unit mismatch blocks linking',()=>{const r=audit(core([{line_type:'Fornitura',articleId:'a',unit:'m',qty:2}]),commerce());assert.equal(r.issues[0].code,'UNIT_MISMATCH')});
+test('installation lines do not consume stock',()=>{const r=audit(core([{line_type:'Posa',articleId:'a',qty:4}]),commerce());assert.equal(r.stock[0].available,8)});
+test('audit does not mutate data',()=>{const c=commerce(),s=core([{line_type:'Fornitura',articleId:'a',qty:3}]),before=JSON.stringify([s,c]);audit(s,c);assert.equal(JSON.stringify([s,c]),before)});
