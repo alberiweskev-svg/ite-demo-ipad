@@ -37,6 +37,9 @@ function check(state,{extras=[]}={}){
   visits.set(v.appointmentId,v);
   if(v.status==='CLOSED'&&(!v.arrivalAt||!v.exitAt||Date.parse(v.exitAt)<Date.parse(v.arrivalAt)))issues.push({severity:'error',type:'INVALID_CLOSED_VISIT',id:v.id});
  }
+ for(const [i,event] of state.audit.entries()){
+  if(!maps.appointments.has(s(event.appointmentId))||!maps.operators.has(s(event.operatorId))||!Number.isFinite(Date.parse(event.at)))issues.push({severity:'error',type:'INVALID_AUDIT',index:i});
+ }
  for(const a of state.appointments){
   const v=visits.get(a.id);
   if(['OPEN','REOPENED','CLOSED'].includes(a.status)&&!v)issues.push({severity:'error',type:'MISSING_VISIT',id:a.id});
