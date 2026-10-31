@@ -1,0 +1,20 @@
+name: ITE 4.0 material link audit tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-material-link-audit.js'
+      - 'ite-material-availability.js'
+      - 'tests/material-link-audit.test.cjs'
+      - '.github/workflows/ite-material-link-audit.yml'
+  workflow_dispatch:
+jobs:
+  link-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-material-link-audit.js
+      - run: node --test tests/material-link-audit.test.cjs
