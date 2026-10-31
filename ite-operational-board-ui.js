@@ -54,6 +54,21 @@ function refresh(){
   if(reconciliation){
    const heading=document.createElement('h3');heading.textContent='Riconciliazione archivi (sola lettura)';issues.prepend(heading);
    const summary=document.createElement('p');summary.className='item';summary.textContent='Controlli incrociati: '+reconciliation.summary.appointments+' appuntamenti · '+reconciliation.summary.interventions+' interventi · '+reconciliation.summary.quotes+' preventivi · '+reconciliation.summary.extras+' Extra · '+reconciliation.summary.documents+' documenti · '+reconciliation.issues.length+' anomalie';heading.after(summary);
+   if(reconciliation.supplierAudit?.length){
+    const procurement=document.createElement('h3');procurement.textContent='Confronto preventivi fornitori / fatture acquisto';issues.append(procurement);
+    const count=document.createElement('p');count.className='item';count.textContent=reconciliation.supplierAudit.length+' fatture controllate · '+reconciliation.supplierAudit.filter(x=>x.status==='DIFFERENZE').length+' con differenze · '+reconciliation.supplierAudit.filter(x=>x.status==='NON_ASSOCIATA').length+' non associate';issues.append(count);
+    for(const audit of reconciliation.supplierAudit.slice(0,100)){
+     const article=document.createElement('article');article.className='item';
+     const heading=document.createElement('strong');heading.textContent='Fattura '+text(audit.invoiceId)+' · '+text(audit.status);article.append(heading);
+     if(audit.quoteId){const ref=document.createElement('small');ref.textContent='Preventivo fornitore '+text(audit.quoteId);article.append(ref)}
+     for(const change of rows(audit.differences).slice(0,100)){
+      const line=document.createElement('p');
+      line.textContent=text(change.code)+' · '+text(change.kind)+(Number.isFinite(change.delta)?' · differenza '+change.delta.toFixed(2)+' €':'')+(Number.isFinite(change.percent)?' ('+change.percent.toFixed(2)+'%)':'');
+      article.append(line);
+     }
+     issues.append(article);
+    }
+   }
    for(const issue of reconciliation.issues.slice(0,100)){
     const p=document.createElement('p');p.className='item';p.textContent='Riconciliazione · '+text(issue.domain||issue.table)+' · '+text(issue.id)+' · '+text(issue.code||issue.type);issues.append(p);
    }
