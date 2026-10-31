@@ -34,7 +34,13 @@ function dashboard(state,options={}){
  if(!validation.valid)return {validation,projection:null,readOnly:true};
  return {validation,projection:projection.project(state,options),readOnly:true};
 }
-const api=Object.freeze({execute,dashboard,empty:lifecycle.empty});
+function batch(state,commands,options={}){
+ if(!Array.isArray(commands)||!commands.length)throw Error('Lotto vuoto');
+ let next=copy(state);
+ for(const command of commands)next=execute(next,command,options).state;
+ return {state:next,persisted:false};
+}
+const api=Object.freeze({execute,batch,dashboard,empty:lifecycle.empty});
 root.ITEOperationsWorkspace=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
