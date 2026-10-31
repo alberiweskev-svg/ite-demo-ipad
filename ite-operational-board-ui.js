@@ -27,6 +27,7 @@ function refresh(){
  const status=$('ops-status');
  try{
   const data=options(),board=root.ITEOperationalBoard.build(data.core,data.commerce,filters());
+  const reconciliation=root.ITECoreReconciliation?.inspect(data.core,data.commerce);
   current=board;signature=inputSignature(data);
   $('ops-summary').textContent=board.summary.items+' elementi · '+board.summary.blocking+' anomalie bloccanti · '+board.summary.review+' da verificare · '+board.workflow.totals.linked+' collegamenti operativi · '+board.workflow.totals.unlinked+' elementi scollegati';
   const kind=$('ops-kind').value,query=$('ops-search').value.trim().toLocaleLowerCase('it');
@@ -50,7 +51,14 @@ function refresh(){
   for(const issue of board.issues.slice(0,200)){
    const p=document.createElement('p');p.className='item';p.textContent=issue.severity+' · '+issue.entity+' '+issue.id+' · '+issue.detail;issues.append(p);
   }
-  status.textContent='Quadro aggiornato. Esportazione disponibile solo se i dati non cambiano.';
+  if(reconciliation){
+   const heading=document.createElement('h3');heading.textContent='Riconciliazione archivi (sola lettura)';issues.prepend(heading);
+   const summary=document.createElement('p');summary.className='item';summary.textContent='Controlli incrociati: '+reconciliation.summary.appointments+' appuntamenti · '+reconciliation.summary.interventions+' interventi · '+reconciliation.summary.quotes+' preventivi · '+reconciliation.summary.extras+' Extra · '+reconciliation.summary.documents+' documenti · '+reconciliation.issues.length+' anomalie';heading.after(summary);
+   for(const issue of reconciliation.issues.slice(0,100)){
+    const p=document.createElement('p');p.className='item';p.textContent='Riconciliazione · '+text(issue.domain||issue.table)+' · '+text(issue.id)+' · '+text(issue.code||issue.type);issues.append(p);
+   }
+  }
+  status.textContent='Quadro aggiornato. Controlli incrociati in sola lettura; esportazione disponibile solo se i dati non cambiano.';
  }catch(e){current=null;signature='';$('ops-summary').textContent='';$('ops-results').replaceChildren();$('ops-issues').replaceChildren();status.textContent='Impossibile aggiornare: '+e.message;}
 }
 function download(type){
