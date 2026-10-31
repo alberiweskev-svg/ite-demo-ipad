@@ -1,0 +1,21 @@
+name: ITE core hierarchy bridge checks
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-core-operations-bridge.js'
+      - 'ite-operational-board-ui.js'
+      - 'tests/core-operations-bridge-regression.test.cjs'
+      - '.github/workflows/ite-core-bridge-checks.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-core-operations-bridge.js
+      - run: node --check ite-operational-board-ui.js
+      - run: node --test tests/core-operations-bridge-regression.test.cjs
