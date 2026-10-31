@@ -17,6 +17,11 @@ function manifest(practice,core,state){
  const originals=ids.map(id=>{
   const d=find(docs,id),f=d?find(files,d.fileId):null;
   if(d&&!same(d.clientId||d.subjectId,practice.clientId))throw Error('Documento di altro cliente.');
+  if(d&&practice.propertyId&&(d.propertyId||d.siteId)&&!same(d.propertyId||d.siteId,practice.propertyId))
+   throw Error('Documento riferito a sede differente.');
+  if(f&&f.clientId&&!same(f.clientId,practice.clientId))throw Error('File originale di altro cliente.');
+  if(f&&practice.propertyId&&(f.propertyId||f.siteId)&&!same(f.propertyId||f.siteId,practice.propertyId))
+   throw Error('File originale riferito a sede differente.');
   const revisionLinks=links.filter(x=>same(x.documentId,id));
   const validRevision=revisionLinks.every(x=>same(x.practiceRevision,practice.revision));
   const validHash=!!f&&/^[a-f0-9]{64}$/.test(String(f.hash||''));
@@ -28,6 +33,8 @@ function manifest(practice,core,state){
  const proofs=arr(state.settings?.technicalEvidenceLinks).filter(x=>same(x.practiceId,practice.id)&&!x.removedAt).map(x=>{
   const check=find(state.settings?.fieldChecks,x.checkId);
   if(check&&!same(check.clientId,practice.clientId))throw Error('Prova di altro cliente.');
+  if(check&&practice.propertyId&&(check.propertyId||check.siteId)&&!same(check.propertyId||check.siteId,practice.propertyId))
+   throw Error('Prova riferita a sede differente.');
   if(check&&practice.interventionId&&!same(check.jobId,practice.interventionId))
    throw Error('Prova riferita a intervento differente.');
   if(check&&practice.deviceId&&check.deviceId&&!same(check.deviceId,practice.deviceId))
