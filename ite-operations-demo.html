@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+<title>I.T.E. 4.0 | Collaudo appuntamenti</title>
+<link rel="stylesheet" href="ite-operations-demo.css"></head>
+<body><main>
+<header><h1>I.T.E. 4.0 — Calendario di collaudo</h1><p>Ambiente isolato con dati fittizi. Nessun dato cliente viene letto o salvato.</p></header>
+<section class="panel"><h2>Nuovo appuntamento</h2><form id="new-appointment">
+<label>Tipo intervento<input name="type" value="Manutenzione" required></label>
+<label>Inizio<input name="start" type="datetime-local" required></label>
+<label>Fine<input name="end" type="datetime-local" required></label>
+<button type="submit">Aggiungi appuntamento</button></form></section>
+<section class="panel"><h2>Agenda tecnico demo</h2><div id="summary" role="status"></div><div id="appointments"></div></section>
+<section class="panel"><h2>Storico operazioni</h2><div id="audit"></div></section>
+<p id="message" role="alert"></p>
+</main>
+<script src="ite-service-lifecycle.js"></script>
+<script src="ite-operations-integrity.js"></script>
+<script src="ite-operations-projection.js"></script>
+<script src="ite-operations-workspace.js"></script>
+<script src="ite-operations-demo.js"></script>
+</body></html>
