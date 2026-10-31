@@ -1,0 +1,10 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {calculate}=require('../ite-material-availability.js');
+const site=(id,qty,status='Accettato')=>({id,ite_quotes:JSON.stringify([{id:'q'+id,status,lines:[{line_type:'Fornitura',articleId:'A',qty,unit:'pz'},{line_type:'Posa',articleId:'A',qty:100}]}])});
+const state=()=>({movements:[{articleId:'A',quantity:20}],settings:{materialDispatches:[]}});
+test('accepted quotations from multiple sites reserve without stock deduction',()=>{const s=state(),before=JSON.stringify(s),r=calculate('A',s,[site('1',7),site('2',5)],{requested:10});assert.equal(r.physical,20);assert.equal(r.reserved,12);assert.equal(r.available,8);assert.equal(r.toPurchase,2);assert.equal(JSON.stringify(s),before)});
+test('draft quotes and installation lines do not reserve',()=>{const r=calculate('A',state(),[site('1',7,'Da accettare')]);assert.equal(r.reserved,0)});
+test('recorded dispatch releases commitment, without double stock deduction',()=>{const s=state();s.movements.push({articleId:'A',quantity:-3});s.settings.materialDispatches.push({siteId:'1',sourceId:'q1',type:'quote',lineIndex:0,articleId:'A',quantity:3});const r=calculate('A',s,[site('1',7)]);assert.equal(r.physical,17);assert.equal(r.reserved,4);assert.equal(r.available,13)});
+test('insufficient physical stock is explicitly flagged',()=>{const r=calculate('A',state(),[site('1',22)]);assert.equal(r.overcommitted,true);assert.equal(r.available,-2)});
+test('missing article link does not invent reservations',()=>{const r=calculate('OTHER',state(),[site('1',5)]);assert.equal(r.reserved,0)});
