@@ -76,6 +76,10 @@ jobs:
         run: |
           node --check ite-operational-board.js
           node --test tests/operational-board.test.cjs
+      - name: Test integrated operational transaction planning with synthetic data
+        run: |
+          node --check ite-operational-transitions.js
+          node --test tests/operational-transitions.test.cjs
       - name: Test warehouse stock and references
         run: node dev/test_400_warehouse.cjs
       - name: Test itemized quotes and supply/install separation
