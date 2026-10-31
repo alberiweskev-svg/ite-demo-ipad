@@ -28,7 +28,7 @@ function check(state,{extras=[]}={}){
  }
  for(const [operatorId,entries] of times){
   entries.sort((a,b)=>a.start-b.start);
-  for(let i=1;i<entries.length;i++)if(entries[i].start<entries[i-1].end)issues.push({severity:'error',type:'OVERLAP',operatorId,ids:[entries[i-1].id,entries[i].id]});
+  for(let i=0;i<entries.length;i++)for(let j=i+1;j<entries.length&&entries[j].start<entries[i].end;j++)issues.push({severity:'error',type:'OVERLAP',operatorId,ids:[entries[i].id,entries[j].id]});
  }
  const visits=new Map();
  for(const v of state.interventions){
