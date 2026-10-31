@@ -54,7 +54,7 @@ function check(state,{extras=[]}={}){
  for(const [i,e] of extras.entries()){
   if(!maps.appointments.has(s(e.appointmentId)))issues.push({severity:'error',type:'ORPHAN_EXTRA',index:i});
   if(!Array.isArray(e.lines)||!e.lines.length)issues.push({severity:'warning',type:'EMPTY_EXTRA',index:i});
-  else e.lines.forEach((l,j)=>{if(!['Fornitura','Posa'].includes(l.line_type)||!(Number(l.qty)>0)||!(Number(l.price)>=0))issues.push({severity:'error',type:'INVALID_EXTRA_LINE',index:i,line:j})});
+  else e.lines.forEach((l,j)=>{if(!['Fornitura','Posa'].includes(l.line_type)||!Number.isFinite(Number(l.qty))||!(Number(l.qty)>0)||!Number.isFinite(Number(l.price))||!(Number(l.price)>=0))issues.push({severity:'error',type:'INVALID_EXTRA_LINE',index:i,line:j})});
  }
  summary.extras=extras.length;
  return {valid:!issues.some(x=>x.severity==='error'),issues,summary,readOnly:true,stockChanged:false,invoiceChanged:false};
