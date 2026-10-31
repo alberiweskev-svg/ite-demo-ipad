@@ -1,0 +1,20 @@
+name: ITE 4.0 material CSV preview tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-material-delimited-import.js'
+      - 'ite-material-import.js'
+      - 'tests/material-delimited-import.test.cjs'
+      - '.github/workflows/ite-material-delimited-import.yml'
+  workflow_dispatch:
+jobs:
+  csv-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-material-delimited-import.js
+      - run: node --test tests/material-delimited-import.test.cjs
