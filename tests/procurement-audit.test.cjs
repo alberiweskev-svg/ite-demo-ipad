@@ -1,0 +1,14 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+const {analyze}=require('../ite-procurement-audit.js');
+const q={id:'Q',supplierId:'S',lines:[{code:'A',unitPrice:10},{code:'B',unitPrice:20}]};
+const i={id:'I',supplierId:'S',supplierQuoteId:'Q',lines:[{code:'A',unitPrice:12},{code:'B',unitPrice:19}]};
+test('increase and reduction are measured in cents',()=>{const r=analyze([q],[i]);assert.equal(r.records[0].status,'DIFFERENZE');assert.equal(r.records[0].differences[0].delta,2);assert.equal(r.records[0].differences[1].percent,-5);assert.equal(r.summary.aumenti,1);assert.equal(r.summary.riduzioni,1)});
+test('matching invoice is conforming',()=>{const r=analyze([q],[{...i,lines:q.lines}]);assert.equal(r.records[0].status,'CONFORME')});
+test('supplier mismatch cannot be compared',()=>{assert.equal(analyze([q],[{...i,supplierId:'OTHER'}]).records[0].status,'FORNITORE_DIVERSO')});
+test('missing explicit quote is not guessed',()=>{assert.equal(analyze([q],[{...i,supplierQuoteId:''}]).records[0].status,'NON_ASSOCIATA')});
+test('missing quote is flagged',()=>{assert.equal(analyze([q],[{...i,supplierQuoteId:'BAD'}]).records[0].status,'PREVENTIVO_ASSENTE')});
+test('missing and extra articles are reported',()=>{assert.deepEqual(analyze([q],[{...i,lines:[{code:'Z',unitPrice:5}]}]).records[0].differences.map(x=>x.kind),['NUOVO_ARTICOLO','NON_FATTURATO','NON_FATTURATO'])});
+test('duplicate article codes make report unverified',()=>{const r=analyze([q],[{...i,lines:[{code:'A',unitPrice:10},{code:'A',unitPrice:10}]}]);assert.equal(r.records[0].status,'DATI_DA_VERIFICARE')});
+test('missing or invalid prices cannot silently match zero',()=>{for(const value of [undefined,null,'',-1,Infinity,NaN]){const r=analyze([q],[{...i,lines:[{code:'A',unitPrice:value}]}]);assert.equal(r.records[0].status,'DATI_DA_VERIFICARE')}});
+test('zero baseline has null percentage',()=>{const r=analyze([{...q,lines:[{code:'A',unitPrice:0}]}],[{...i,lines:[{code:'A',unitPrice:1}]}]);assert.equal(r.records[0].differences[0].percent,null)});
+test('original records remain untouched',()=>{const before=JSON.stringify({q,i});analyze([q],[i]);assert.equal(JSON.stringify({q,i}),before)});
