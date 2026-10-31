@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const ui=fs.readFileSync(__dirname+'/ite-operational-board-ui.js','utf8');
+const recon=require('./ite-core-reconciliation.js');
+assert.match(ui,/supplierAudit/);
+assert.match(ui,/Confronto preventivi fornitori/);
+assert.match(ui,/document\.createElement\('article'\)/);
+const core={clienti:[],immobili:[],impianti:[],apparecchiature:[]};
+const q={id:'Q',supplierId:'S',lines:[{code:'A',unitPrice:100}]};
+const i={id:'I',supplierId:'S',supplierQuoteId:'Q',lines:[{code:'A',unitPrice:120}]};
+const commerce={supplierQuotes:[q],purchaseInvoices:[i]};
+const before=JSON.stringify(commerce);
+const result=recon.inspect(core,commerce);
+assert.equal(result.supplierAudit[0].differences[0].delta,20);
+assert.equal(result.supplierAudit[0].differences[0].percent,20);
+assert.equal(JSON.stringify(commerce),before);
+console.log('Procurement dashboard integration checks passed');
