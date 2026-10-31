@@ -54,7 +54,8 @@ function render(){
 $('new-appointment').addEventListener('submit',event=>{
  event.preventDefault();const data=new FormData(event.currentTarget);
  try{const start=isoLocal(data.get('start')),end=isoLocal(data.get('end'));
-  apply({type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:String(data.get('operatorId')),start,end,type:String(data.get('type')||'Manutenzione')}});
+  apply({type:'SCHEDULE',item:{id:'DEMO-A-'+sequence,deviceId:'DEMO-D',operatorId:String(data.get('operatorId')),start,end,type:String(data.get('type')||'Manutenzione')}});
+  if(state.appointments.some(x=>x.id==='DEMO-A-'+sequence))sequence++;
  }catch(error){$('message').textContent=error.message}
 });
 $('load-samples').addEventListener('click',()=>{
@@ -66,7 +67,8 @@ $('load-samples').addEventListener('click',()=>{
    {type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:'DEMO-T2',start:slot(9,0),end:slot(10,30),type:'Riparazione climatizzatore'}},
    {type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:'DEMO-T',start:slot(11,0),end:slot(12,0),type:'Controllo impianto'}}
   ];
-  state=ops.batch(state,commands).state;
+  const result=ops.batch(state,commands);
+  state=result.state;
   $('message').textContent='Tre appuntamenti fittizi aggiunti. Nessun dato salvato.';
   render();
  }catch(error){$('message').textContent=error.message}
