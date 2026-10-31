@@ -63,12 +63,12 @@ $('load-samples').addEventListener('click',()=>{
   const day=new Date();day.setDate(day.getDate()+1);day.setHours(9,0,0,0);
   const slot=(hour,minutes)=>{const d=new Date(day);d.setHours(hour,minutes,0,0);return d.toISOString()};
   const commands=[
-   {type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:'DEMO-T',start:slot(9,0),end:slot(10,0),type:'Manutenzione caldaia'}},
-   {type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:'DEMO-T2',start:slot(9,0),end:slot(10,30),type:'Riparazione climatizzatore'}},
-   {type:'SCHEDULE',item:{id:'DEMO-A-'+sequence++,deviceId:'DEMO-D',operatorId:'DEMO-T',start:slot(11,0),end:slot(12,0),type:'Controllo impianto'}}
+   {type:'SCHEDULE',item:{id:'DEMO-A-'+sequence,deviceId:'DEMO-D',operatorId:'DEMO-T',start:slot(9,0),end:slot(10,0),type:'Manutenzione caldaia'}},
+   {type:'SCHEDULE',item:{id:'DEMO-A-'+(sequence+1),deviceId:'DEMO-D',operatorId:'DEMO-T2',start:slot(9,0),end:slot(10,30),type:'Riparazione climatizzatore'}},
+   {type:'SCHEDULE',item:{id:'DEMO-A-'+(sequence+2),deviceId:'DEMO-D',operatorId:'DEMO-T',start:slot(11,0),end:slot(12,0),type:'Controllo impianto'}}
   ];
   const result=ops.batch(state,commands);
-  state=result.state;
+  state=result.state;sequence+=3;
   $('message').textContent='Tre appuntamenti fittizi aggiunti. Nessun dato salvato.';
   render();
  }catch(error){$('message').textContent=error.message}
