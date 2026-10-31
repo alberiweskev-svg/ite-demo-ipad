@@ -17,7 +17,9 @@ $('preview').addEventListener('click',async()=>{
    const parsed=ITEMaterialDelimitedImport.parse(text,{delimiter:extension==='tsv'?'\t':undefined});
    docs.push({documentId:files.length===1?id:id+'#'+(i+1),kind,received:$('received').checked,linkedDdtId:$('ddt').value.trim(),rows:parsed.rows});
   }
-  const result=ITEMaterialWorkflow.plan(mode,[],docs,[]);
+  const validation=ITEMaterialDocumentValidation.validate(mode,docs);
+  if(!validation.canPreview){setReport('Documenti non validi. Nessuna importazione.\\n'+validation.issues.join('\\n'));return;}
+  const result=ITEMaterialWorkflow.plan(mode,[],validation.accepted,[]);
   const lines=result.preview.rows;
   for(const row of lines){
    const tr=document.createElement('tr');
