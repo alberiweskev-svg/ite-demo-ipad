@@ -1,0 +1,25 @@
+name: ITE 4.0 multi-sheet material import
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-material-workbook-router.js'
+      - 'ite-material-legacy-workbook.js'
+      - 'ite-material-legacy-staging.js'
+      - 'ite-material-excel-import.js'
+      - 'ite-material-import-ui.js'
+      - 'material-import-preview.html'
+      - 'tests/material-workbook-router.test.cjs'
+      - '.github/workflows/ite-material-multisheet.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-material-workbook-router.js
+      - run: node --check ite-material-import-ui.js
+      - run: node --test tests/material-workbook-router.test.cjs tests/material-legacy-staging.test.cjs tests/material-legacy-workbook.test.cjs tests/material-excel-import.test.cjs
