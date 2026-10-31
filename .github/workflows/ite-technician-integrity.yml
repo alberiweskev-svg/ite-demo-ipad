@@ -5,6 +5,7 @@ on:
     paths:
       - 'ite-operational-integrity.js'
       - 'tests/operational-technician-regression.test.cjs'
+      - 'tests/operational-appointment-integrity.test.cjs'
       - '.github/workflows/ite-technician-integrity.yml'
   workflow_dispatch:
 jobs:
@@ -16,4 +17,4 @@ jobs:
         with:
           node-version: '22'
       - run: node --check ite-operational-integrity.js
-      - run: node --test tests/operational-technician-regression.test.cjs
+      - run: node --test tests/operational-technician-regression.test.cjs tests/operational-appointment-integrity.test.cjs
