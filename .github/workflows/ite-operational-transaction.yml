@@ -1,0 +1,25 @@
+name: ITE 4.0 transaction validation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operational-transaction.js'
+      - 'ite-operational-changeset.js'
+      - 'ite-operational-batch.js'
+      - 'ite-operational-transitions.js'
+      - 'tests/operational-transaction.test.cjs'
+      - '.github/workflows/ite-operational-transaction.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-transaction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: node --check ite-operational-transaction.js && node --check tests/operational-transaction.test.cjs
+      - name: Integration tests with synthetic records
+        run: node --test tests/operational-batch.test.cjs tests/operational-changeset.test.cjs tests/operational-transaction.test.cjs
