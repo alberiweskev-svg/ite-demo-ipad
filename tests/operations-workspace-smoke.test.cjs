@@ -1,0 +1,1 @@
+const test=require('node:test');const assert=require('node:assert/strict');const ops=require('../ite-operations-workspace.js');test('empty workspace has valid dashboard',()=>{const result=ops.dashboard(ops.empty());assert.equal(result.readOnly,true);assert.equal(result.validation.valid,true)});
