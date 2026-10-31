@@ -1,0 +1,7 @@
+const test=require('node:test');const assert=require('node:assert/strict');const {bridge}=require('../ite-core-operations-bridge.js');
+const fixture=()=>({clienti:[{id:'C1',name:'Cliente fittizio'}],immobili:[{id:'S1',client_id:'C1',indirizzo:'Via prova'}],impianti:[{id:'I1',immobile_id:'S1',tipo:'Termico'}],apparecchiature:[{id:'D1',impianto_id:'I1',modello:'Generatore prova'}],appuntamenti:[{id:'A1',status:'PROGRAMMATO'}],interventi:[{id:'J1',workflow_status:'Chiuso'}]});
+test('maps four-level hierarchy without altering source',()=>{const core=fixture(),before=JSON.stringify(core),result=bridge(core);assert.equal(result.issues.length,0);assert.equal(result.state.devices[0].systemId,'I1');assert.equal(result.state.sites[0].clientId,'C1');assert.equal(JSON.stringify(core),before)});
+test('does not infer appointments, interventions or operator from incompatible schemas',()=>{const result=bridge(fixture());assert.equal(result.state.appointments.length,0);assert.equal(result.state.interventions.length,0);assert.equal(result.importedAppointments,false);assert.equal(result.persisted,false)});
+test('flags orphan hierarchy',()=>{const core=fixture();core.immobili[0].client_id='OTHER';assert.equal(bridge(core).issues[0].code,'CLIENTE_ASSENTE')});
+test('flags duplicate IDs',()=>{const core=fixture();core.impianti.push({...core.impianti[0]});assert.equal(bridge(core).issues[0].code,'ID_DUPLICATO')});
+test('requires core arrays',()=>assert.throws(()=>bridge({clienti:[]}),/non valido/));
