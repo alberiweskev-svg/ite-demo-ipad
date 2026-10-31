@@ -30,3 +30,10 @@ test('failed batch does not mutate the input state',()=>{
  assert.throws(()=>ops.batch(initial,[{type:'ADD_CLIENT',item:{id:'C1',name:'Demo'}},{type:'ADD_SITE',item:{id:'S1',name:'Sede',clientId:'NON_EXISTENT'}}]));
  assert.equal(initial.clients.length,0);
 });
+
+test('rejects empty or oversized operational batches',()=>{
+ const s=ops.empty();
+ assert.throws(()=>ops.batch(s,[]),/Lotto/);
+ assert.throws(()=>ops.batch(s,Array.from({length:101},()=>({type:'ADD_CLIENT',item:{id:'C',name:'Demo'}}))),/Lotto/);
+ assert.equal(s.clients.length,0);
+});
