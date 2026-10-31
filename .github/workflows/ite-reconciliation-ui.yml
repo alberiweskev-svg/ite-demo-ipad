@@ -1,0 +1,24 @@
+name: ITE 4.0 integrated reconciliation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-core-reconciliation.js'
+      - 'ite-core-operations-bridge.js'
+      - 'ite-operations-integrity.js'
+      - 'ite-operational-board-ui.js'
+      - 'index.html'
+      - 'tests/ite-reconciliation-ui-integration.test.cjs'
+      - '.github/workflows/ite-reconciliation-ui.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-operational-board-ui.js
+      - run: node --check ite-core-reconciliation.js
+      - run: node --test tests/ite-reconciliation-ui-integration.test.cjs
