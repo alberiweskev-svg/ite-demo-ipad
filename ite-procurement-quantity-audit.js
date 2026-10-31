@@ -16,7 +16,7 @@ function audit(quotes,invoices){
   for(const [doc,lines,map] of [['quote',quote.lines,qlines],['invoice',invoice.lines,ilines]]){
    for(const line of arr(lines)){
     const code=txt(line?.code||line?.sku),quantity=decimal(line?.qty??line?.quantity),price=decimal(line?.unitPrice);
-    if(!code||map.has(code)||quantity===null||price===null){issues.push({code:'INVALID_LINE',document:doc,invoiceId,quoteId,article:code});invalid=true;continue}
+    if(!code||map.has(code)||quantity===null||quantity<=0||price===null){issues.push({code:'INVALID_LINE',document:doc,invoiceId,quoteId,article:code});invalid=true;continue}
     map.set(code,{quantity,price});
    }
   }
