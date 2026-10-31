@@ -1,0 +1,21 @@
+name: ITE 4.0 material procurement tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-material-procurement.js'
+      - 'ite-material-link-audit.js'
+      - 'ite-material-availability.js'
+      - 'tests/material-procurement.test.cjs'
+      - '.github/workflows/ite-material-procurement.yml'
+  workflow_dispatch:
+jobs:
+  procurement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-material-procurement.js
+      - run: node --test tests/material-procurement.test.cjs
