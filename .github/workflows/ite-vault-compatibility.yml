@@ -1,0 +1,22 @@
+name: ITE 4.0 vault compatibility validation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-vault-compatibility.js'
+      - 'tests/vault-compatibility.test.cjs'
+      - '.github/workflows/ite-vault-compatibility.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate syntax
+        run: node --check ite-vault-compatibility.js
+      - name: Validate synthetic hierarchy
+        run: node --test tests/vault-compatibility.test.cjs
