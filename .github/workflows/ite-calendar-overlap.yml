@@ -1,0 +1,18 @@
+name: ITE calendar overlap regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-integrity.js'
+      - 'tests/calendar-nested-overlap.test.cjs'
+      - '.github/workflows/ite-calendar-overlap.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/calendar-nested-overlap.test.cjs
