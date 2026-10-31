@@ -7,7 +7,7 @@ const id=v=>String(v??'').trim();
 const index=rows=>new Map(list(rows).map(x=>[id(x.id),x]));
 function inspect(core,commerce={}){
  if(!core||typeof core!=='object')throw Error('Archivio operativo non valido.');
- const clients=index(core.clienti),sites=index(core.immobili),plants=index(core.impianti),devices=index(core.apparecchiature),jobs=index(core.interventi),people=index(core.clienti);
+ const clients=index(core.clienti),sites=index(core.immobili),plants=index(core.impianti),devices=index(core.apparecchiature),jobs=index(core.interventi),people=index(core.operatori||core.tecnici||core.dipendenti);
  const documents=index(commerce.documents),issues=[],counts={clients:clients.size,sites:sites.size,plants:plants.size,devices:devices.size,jobs:jobs.size,documents:documents.size};
  const add=(severity,code,entity,entityId,detail)=>issues.push({severity,code,entity,id:id(entityId),detail});
  const requireUnique=(rows,entity)=>{
@@ -36,7 +36,7 @@ function inspect(core,commerce={}){
    if(!owner)add('BLOCCANTE','APPARECCHIATURA_ASSENTE','intervento',j.id,'Apparecchiatura o gerarchia non disponibile');
    else if(owner.client!==id(j.client_id)||owner.site!==id(j.immobile_id))add('BLOCCANTE','APPARECCHIATURA_ALTRA_SEDE','intervento',j.id,'Apparecchiatura di altra sede o cliente');
   }
-  if(id(j.technician_id)&&!people.has(id(j.technician_id)))add('REVISIONE','OPERATORE_ASSENTE','intervento',j.id,'Operatore assegnato non presente in anagrafica');
+  if(id(j.technician_id)&&people.size&&!people.has(id(j.technician_id)))add('REVISIONE','OPERATORE_ASSENTE','intervento',j.id,'Operatore assegnato non presente in anagrafica');
   if(j.workflow_status==='Chiuso'&&!j.finished_at)add('REVISIONE','CHIUSURA_SENZA_ORA','intervento',j.id,'Intervento chiuso senza ora di uscita');
   if(j.scheduled_start&&j.finished_at&&Date.parse(j.finished_at)<Date.parse(j.scheduled_start))add('REVISIONE','TEMPI_INCOERENTI','intervento',j.id,'Uscita precedente all’appuntamento');
  }
