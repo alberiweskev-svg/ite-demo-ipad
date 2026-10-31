@@ -1,0 +1,10 @@
+(function(){'use strict';const $=id=>document.getElementById(id);
+const sampleQuote={supplierId:'FORNITORE-DEMO',documentId:'PREV-DEMO-01',validUntil:'2026-02-11',lines:[{brand:'MARCA-A',code:'00001',unit:'PZ',quantity:'1',netUnitPrice:'460,00'},{brand:'MARCA-B',code:'CAVO-DEMO',unit:'MT',quantity:'100',netUnitPrice:'2,48076'}]};
+const sampleInvoice={supplierId:'FORNITORE-DEMO',documentId:'FATT-DEMO-01',date:'2026-02-12',lines:[{brand:'MARCA-A',code:'00001',unit:'PZ',quantity:'1',netUnitPrice:'470,00'},{brand:'MARCA-B',code:'CAVO-DEMO',unit:'MT',quantity:'100',netUnitPrice:'2,49076'}]};
+$('demo').addEventListener('click',()=>{$('quote').value=JSON.stringify(sampleQuote,null,2);$('invoice').value=JSON.stringify(sampleInvoice,null,2);$('report').textContent='Esempio fittizio caricato. Premi Confronta prezzi.'});
+$('compare').addEventListener('click',()=>{const tbody=$('results');tbody.replaceChildren();try{
+ const quote=JSON.parse($('quote').value),invoice=JSON.parse($('invoice').value),r=ITESupplierReconciliation.compare(quote,invoice);
+ for(const item of r.rows){const tr=document.createElement('tr');for(const value of [item.key,item.status,item.quotedUnitPrice??'—',item.invoiceUnitPrice??'—',item.unitDifference??'—',item.estimatedDifferenceCents===undefined?'—':(item.estimatedDifferenceCents/100).toFixed(2),item.quantityChanged?'Sì':'No']){const td=document.createElement('td');td.textContent=String(value);tr.append(td)}tbody.append(tr)}
+ $('report').textContent='Aumenti: '+r.increases+' | Aumento netto stimato sulle quantità fatturate: € '+(r.estimatedNetIncreaseCents/100).toFixed(2)+'\n'+(r.quoteExpiredAtInvoice?'ATTENZIONE: offerta scaduta alla data fattura.\n':'')+'Segnalazioni: '+r.issues.length+'\n'+r.warning;
+ }catch(e){$('report').textContent='Confronto non eseguito: '+e.message}});
+})();
