@@ -1,0 +1,28 @@
+/* Synthetic fixtures only. Run: node test-supplier-price-audit.js */
+'use strict';
+const assert=require('node:assert/strict');
+const {inspect}=require('./ite-core-reconciliation.js');
+const core={clienti:[],immobili:[],impianti:[],apparecchiature:[],appuntamenti:[],interventi:[]};
+const quote={id:'Q1',supplierId:'S1',lines:[{code:'A',unitPrice:10},{code:'B',unitPrice:20}]};
+const invoice={id:'F1',supplierId:'S1',supplierQuoteId:'Q1',lines:[{code:'A',unitPrice:12},{code:'B',unitPrice:19}]};
+const run=(inv,q=quote)=>inspect(core,{supplierQuotes:[q],purchaseInvoices:[inv]});
+let report=run(invoice);
+assert.equal(report.supplierAudit[0].status,'DIFFERENZE');
+assert.deepEqual(report.supplierAudit[0].differences.map(x=>x.kind),['AUMENTO','RIDUZIONE']);
+assert.equal(report.supplierAudit[0].differences[0].percent,20);
+assert.equal(report.supplierAudit[0].differences[1].delta,-1);
+assert.equal(report.readOnly,true);
+assert.equal(invoice.lines[0].unitPrice,12);
+report=run({...invoice,lines:[{code:'A',unitPrice:10},{code:'B',unitPrice:20}]});
+assert.equal(report.supplierAudit[0].status,'CONFORME');
+report=run({...invoice,supplierId:'S2'});
+assert.equal(report.supplierAudit[0].status,'FORNITORE_DIVERSO');
+report=run({...invoice,supplierQuoteId:'MISSING'});
+assert.equal(report.supplierAudit[0].status,'PREVENTIVO_ASSENTE');
+report=run({...invoice,supplierQuoteId:''});
+assert.equal(report.supplierAudit[0].status,'NON_ASSOCIATA');
+report=run({...invoice,lines:[{code:'C',unitPrice:2}]});
+assert.deepEqual(report.supplierAudit[0].differences.map(x=>x.kind),['NUOVO_ARTICOLO','NON_FATTURATO','NON_FATTURATO']);
+report=run({...invoice,lines:[{code:'A',unitPrice:NaN}]});
+assert.ok(report.issues.some(x=>x.code==='PREZZO_NON_VALIDO'));
+console.log('Supplier quote/invoice audit: 7 synthetic scenarios passed');
