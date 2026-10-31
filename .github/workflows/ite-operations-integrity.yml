@@ -1,0 +1,21 @@
+name: ITE 4.0 operations integrity
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-integrity.js'
+      - 'ite-operations-projection.js'
+      - 'ite-service-lifecycle.js'
+      - 'tests/operations-integrity.test.cjs'
+      - '.github/workflows/ite-operations-integrity.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-operations-integrity.js
+      - run: node --test tests/operations-integrity.test.cjs
