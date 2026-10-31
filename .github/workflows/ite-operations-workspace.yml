@@ -1,0 +1,22 @@
+name: ITE 4.0 integrated operations workspace
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-workspace.js'
+      - 'ite-service-lifecycle.js'
+      - 'ite-operations-integrity.js'
+      - 'ite-operations-projection.js'
+      - 'tests/operations-workspace.test.cjs'
+      - '.github/workflows/ite-operations-workspace.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-operations-workspace.js
+      - run: node --test tests/operations-workspace.test.cjs
