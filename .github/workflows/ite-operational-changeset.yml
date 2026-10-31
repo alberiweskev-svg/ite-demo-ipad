@@ -1,0 +1,24 @@
+name: ITE 4.0 operational changeset checks
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operational-changeset.js'
+      - 'ite-operational-batch.js'
+      - 'ite-operational-transitions.js'
+      - 'tests/operational-changeset.test.cjs'
+      - '.github/workflows/ite-operational-changeset.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-changeset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: node --check ite-operational-changeset.js && node --check tests/operational-changeset.test.cjs
+      - name: Workflow and changeset synthetic tests
+        run: node --test tests/operational-batch.test.cjs tests/operational-changeset.test.cjs
