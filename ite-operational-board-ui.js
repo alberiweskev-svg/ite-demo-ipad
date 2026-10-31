@@ -28,7 +28,7 @@ function refresh(){
  try{
   const data=options(),board=root.ITEOperationalBoard.build(data.core,data.commerce,filters());
   current=board;signature=inputSignature(data);
-  $('ops-summary').textContent=board.summary.items+' elementi · '+board.summary.blocking+' anomalie bloccanti · '+board.summary.review+' da verificare';
+  $('ops-summary').textContent=board.summary.items+' elementi · '+board.summary.blocking+' anomalie bloccanti · '+board.summary.review+' da verificare · '+board.workflow.totals.linked+' collegamenti operativi · '+board.workflow.totals.unlinked+' elementi scollegati';
   const kind=$('ops-kind').value,query=$('ops-search').value.trim().toLocaleLowerCase('it');
   const items=board.items.filter(x=>(!kind||x.kind===kind)&&(!query||[x.kind,x.id,x.status,x.description].join(' ').toLocaleLowerCase('it').includes(query)));
   $('ops-count').textContent=items.length+' elementi visualizzati';
@@ -41,6 +41,12 @@ function refresh(){
   }
   if(items.length>500){const p=document.createElement('p');p.textContent='Mostrati i primi 500 risultati. Usa i filtri.';list.append(p);}
   const issues=$('ops-issues');issues.replaceChildren();
+  for(const link of board.workflow.links.slice(0,100)){
+   const p=document.createElement('p');p.className='item';p.textContent='Flusso collegato · '+link.from+' → '+link.to;issues.append(p);
+  }
+  for(const warning of board.workflow.issues.slice(0,100)){
+   const p=document.createElement('p');p.className='item';p.textContent='Flusso da verificare · '+warning.kind+' '+warning.id+' · '+warning.detail;issues.append(p);
+  }
   for(const issue of board.issues.slice(0,200)){
    const p=document.createElement('p');p.className='item';p.textContent=issue.severity+' · '+issue.entity+' '+issue.id+' · '+issue.detail;issues.append(p);
   }
