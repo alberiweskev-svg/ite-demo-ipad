@@ -105,3 +105,28 @@ test('technical export marks absent hashes without pretending verified provenanc
  assert.match(api.html([report]),/non disponibile/);
  assert.match(api.csv([report]),/HASH NON DISPONIBILE/);
 });
+
+test('technical originals cannot cross sites even within the same customer',()=>{
+ const state=s();state.documents[0].siteId='other-site';
+ assert.throws(()=>api.manifest(p(),core,state),/Documento riferito a sede differente/);
+ state.documents[0].siteId='10';assert.equal(api.manifest(p(),core,state).originals.length,1);
+});
+test('stored original file metadata cannot cross customers or sites',()=>{
+ const state=s();state.files[0].clientId='2';
+ assert.throws(()=>api.manifest(p(),core,state),/File originale di altro cliente/);
+ state.files[0].clientId='1';state.files[0].propertyId='other-site';
+ assert.throws(()=>api.manifest(p(),core,state),/File originale riferito a sede differente/);
+ state.files[0].propertyId='10';assert.equal(api.manifest(p(),core,state).originals[0].status,'DA VERIFICARE');
+});
+test('field proof cannot be attached across different customer sites',()=>{
+ const state=s();state.settings.fieldChecks=[{id:'check-site',clientId:'1',siteId:'other-site'}];
+ state.settings.technicalEvidenceLinks=[{practiceId:'draft1',checkId:'check-site',practiceRevision:2,removedAt:''}];
+ assert.throws(()=>api.manifest(p(),core,state),/Prova riferita a sede differente/);
+ state.settings.fieldChecks[0].siteId='10';
+ assert.equal(api.manifest(p(),core,state).proofs[0].status,'DA VERIFICARE');
+});
+test('site and ownership checks do not mutate input data',()=>{
+ const practice=p(),state=s();state.files[0].clientId='1';state.files[0].siteId='10';
+ const original=JSON.stringify({practice,state});api.manifest(practice,core,state);
+ assert.equal(JSON.stringify({practice,state}),original);
+});
