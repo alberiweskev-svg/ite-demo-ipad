@@ -36,6 +36,7 @@ function check(state,{extras=[]}={}){
   if(visits.has(v.appointmentId))issues.push({severity:'error',type:'DUPLICATE_VISIT',id:v.id});
   visits.set(v.appointmentId,v);
   const app=maps.appointments.get(s(v.appointmentId));
+  if(app&&s(v.deviceId)!==s(app.deviceId))issues.push({severity:'error',type:'VISIT_DEVICE_MISMATCH',id:v.id});
   if(app&&s(v.operatorId)!==s(app.operatorId))issues.push({severity:'error',type:'VISIT_OPERATOR_MISMATCH',id:v.id});
   if(v.status==='CLOSED'&&(!v.arrivalAt||!v.exitAt||!Number.isFinite(Date.parse(v.arrivalAt))||!Number.isFinite(Date.parse(v.exitAt))||Date.parse(v.exitAt)<Date.parse(v.arrivalAt)))issues.push({severity:'error',type:'INVALID_CLOSED_VISIT',id:v.id});
  }
