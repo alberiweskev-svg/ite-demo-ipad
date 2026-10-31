@@ -1,0 +1,6 @@
+const test=require('node:test'),assert=require('node:assert/strict');const {read,code}=require('../ite-material-legacy-workbook.js');
+const XLSX={utils:{sheet_to_json:s=>s}};
+test('keeps leading zeros and formula-like codes',()=>{assert.equal(code('03981'),'03981');assert.equal(code('="30210.G"'),'30210.G')});
+test('reads headers from second row and never loads historical stock',()=>{const wb={SheetNames:['linea bianca'],Sheets:{'linea bianca':[['LINEA'],['','Codice','Descrizione','Prezzo','tot acquistati','giacenza'],['','03981','Modulo IoT',54.21,20,30]]}};const r=read(wb,{XLSX});assert.equal(r.articles[0].manufacturerCode,'03981');assert.equal(r.articles[0].stockImported,false);assert.equal(r.stockChanged,false)});
+test('detects duplicate codes across sheets',()=>{const wb={SheetNames:['A','B'],Sheets:{A:[['Codice','Descrizione'],['19000','Interruttore']],B:[['Codice','Descrizione'],['19000','Interruttore']]}};const r=read(wb,{XLSX});assert.equal(r.articles.length,1);assert.equal(r.issues[0].code,'DUPLICATE_CODE')});
+test('ignores empty sheets and rejects incomplete rows',()=>{const wb={SheetNames:['Empty','Data'],Sheets:{Empty:[],Data:[['Codice','Descrizione'],['123',null]]}};const r=read(wb,{XLSX});assert.equal(r.articles.length,0);assert.equal(r.issues[0].code,'INCOMPLETE')});
