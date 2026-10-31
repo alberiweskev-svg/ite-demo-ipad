@@ -34,8 +34,13 @@ function inspect(core,commerce={}){
  const procurement=typeof module!=='undefined'&&module.exports?require('./ite-procurement-audit.js'):root.ITEProcurementAudit;
  const result=procurement.analyze(supplierQuotes,purchaseInvoices);
  const supplierAudit=result.records;
+ const quantityEngine=typeof module!=='undefined'&&module.exports?require('./ite-procurement-quantity-audit.js'):root.ITEProcurementQuantityAudit;
+ const quantityResult=quantityEngine.audit(supplierQuotes,purchaseInvoices);
+ for(const item of quantityResult.issues)issues.push({...item,domain:'procurement-quantity'});
+ const supplierQuantityAudit=quantityResult.records;
+
  for(const item of result.issues)issues.push({...item,domain:'procurement'});
- return {summary:{clients:mapped.state.clients.length,sites:mapped.state.sites.length,systems:mapped.state.systems.length,devices:mapped.state.devices.length,appointments:appointments.length,interventions:visits.length,documents:documents.length,quotes:quotes.length,extras:extras.length,supplierQuotes:supplierQuotes.length,purchaseInvoices:purchaseInvoices.length},issues,supplierAudit,procurementSources:sourceAudit.sources,procurementSummary:result.summary,readOnly:true,persisted:false,releaseAllowed:false,importedAppointments:false,importedInterventions:false};
+ return {summary:{clients:mapped.state.clients.length,sites:mapped.state.sites.length,systems:mapped.state.systems.length,devices:mapped.state.devices.length,appointments:appointments.length,interventions:visits.length,documents:documents.length,quotes:quotes.length,extras:extras.length,supplierQuotes:supplierQuotes.length,purchaseInvoices:purchaseInvoices.length},issues,supplierAudit,supplierQuantityAudit,procurementSources:sourceAudit.sources,procurementSummary:result.summary,readOnly:true,persisted:false,releaseAllowed:false,importedAppointments:false,importedInterventions:false};
 }
 const api=Object.freeze({inspect});root.ITECoreReconciliation=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
