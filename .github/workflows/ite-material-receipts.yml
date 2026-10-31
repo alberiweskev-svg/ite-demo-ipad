@@ -1,0 +1,20 @@
+name: ITE 4.0 material receipts tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-material-receipts.js'
+      - 'ite-material-import.js'
+      - 'tests/material-receipts.test.cjs'
+      - '.github/workflows/ite-material-receipts.yml'
+  workflow_dispatch:
+jobs:
+  receipts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-material-receipts.js
+      - run: node --test tests/material-receipts.test.cjs
