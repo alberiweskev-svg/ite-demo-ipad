@@ -1,0 +1,30 @@
+name: ITE 4 browser demo
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-demo.html'
+      - 'ite-operations-demo.js'
+      - 'ite-operations-demo.css'
+      - 'ite-service-lifecycle.js'
+      - 'ite-operations-workspace.js'
+      - 'ite-operations-integrity.js'
+      - 'ite-operations-projection.js'
+      - 'tests/operations-demo-browser-smoke.cjs'
+      - '.github/workflows/ite-operations-browser.yml'
+  workflow_dispatch:
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - name: Serve isolated demo
+        run: python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/ite-demo-http.log 2>&1 &
+      - name: Browser smoke
+        run: node tests/operations-demo-browser-smoke.cjs
