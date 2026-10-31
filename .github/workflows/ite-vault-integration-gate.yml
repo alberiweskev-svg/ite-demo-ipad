@@ -1,0 +1,22 @@
+name: ITE 4.0 vault integration gate
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-vault-integration-gate.js'
+      - 'tests/vault-integration-gate.test.cjs'
+      - '.github/workflows/ite-vault-integration-gate.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: node --check ite-vault-integration-gate.js
+      - name: Synthetic safety tests
+        run: node --test tests/vault-integration-gate.test.cjs
