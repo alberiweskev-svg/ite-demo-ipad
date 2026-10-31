@@ -1,0 +1,27 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const api=require('../ite-operational-transitions.js');
+const fixture=()=>({core:{clienti:[{id:'c1'},{id:'c2'}],immobili:[{id:'s1',client_id:'c1'},{id:'s2',client_id:'c2'}],impianti:[{id:'p1',immobile_id:'s1'}],apparecchiature:[{id:'d1',impianto_id:'p1'}],dipendenti:[{id:'op1'}],appuntamenti:[],interventi:[]},commerce:{quotes:[],extras:[],documents:[]}});
+test('full synthetic operational chain, no archive mutation',()=>{
+ const f=fixture(),before=JSON.stringify(f);
+ const a=api.appointment(f.core,f.commerce,{id:'a1',clientId:'c1',siteId:'s1',plantId:'p1',deviceId:'d1',operatorId:'op1',start:'2026-11-02T08:00:00Z',end:'2026-11-02T09:00:00Z'});
+ f.core.appuntamenti.push(a.record);
+ const j=api.arrival(f.core,f.commerce,{id:'j1',appointmentId:'a1',arrivedAt:'2026-11-02T08:15:00Z'});
+ f.core.interventi.push(j.record);
+ const closed=api.closure(f.core,f.commerce,{interventionId:'j1',departedAt:'2026-11-02T09:45:00Z',additionalWork:'Verifica valvole'});
+ assert.equal(closed.patch.minutes,90);
+ const q=api.quote(f.core,f.commerce,{id:'q1',clientId:'c1',siteId:'s1',interventionId:'j1',lines:[{kind:'FORNITURA',description:'Valvola',quantity:2,unitPrice:30},{kind:'POSA',description:'Montaggio',quantity:1,unitPrice:58}]});
+ assert.equal(q.record.subtotal,118);assert.deepEqual(q.record.lines.map(x=>x.kind),['FORNITURA','POSA']);
+ f.commerce.quotes.push({...q.record,status:'ACCETTATO'});
+ const e=api.extra(f.core,f.commerce,{id:'e1',quoteId:'q1',category:'IDRICO',lines:[{kind:'POSA',description:'Lavoro aggiuntivo',quantity:1,unitPrice:44}]});
+ assert.equal(e.record.status,'DA APPROVARE');
+ const inv=api.invoiceDraft(f.core,f.commerce,{id:'f1',quoteId:'q1',type:'PROFORMA',amount:118});
+ assert.equal(inv.record.fiscalIssued,false);assert.equal(inv.requiresReview,true);
+ assert.equal(JSON.stringify(f.core.clienti),JSON.stringify(JSON.parse(before).core.clienti));
+});
+test('rejects foreign plant and device',()=>{const f=fixture();assert.throws(()=>api.context(f.core,f.commerce,'c2','s2','p1'),/Impianto/);assert.throws(()=>api.context(f.core,f.commerce,'c1','s1',null,'d1'),/Apparecchiatura/);});
+test('rejects missing operator and reversed appointment times',()=>{const f=fixture(),i={id:'a',clientId:'c1',siteId:'s1',start:'2026-11-02T10:00Z',end:'2026-11-02T09:00Z',operatorId:'op1'};assert.throws(()=>api.appointment(f.core,f.commerce,i),/Fine/);i.end='2026-11-02T11:00Z';i.operatorId='missing';assert.throws(()=>api.appointment(f.core,f.commerce,i),/Operatore/);});
+test('requires appointment for intervention and validates departure',()=>{const f=fixture();assert.throws(()=>api.arrival(f.core,f.commerce,{id:'j1',appointmentId:'missing',arrivedAt:'2026-11-02T09:00Z'}),/inesistente/);f.core.interventi=[{id:'j1',client_id:'c1',immobile_id:'s1',arrivedAt:'2026-11-02T10:00Z',operatorId:'op1',workflow_status:'APERTO'}];assert.throws(()=>api.closure(f.core,f.commerce,{interventionId:'j1',departedAt:'2026-11-02T09:00Z'}),/precedente/);});
+test('rejects invalid quote lines and mismatched intervention',()=>{const f=fixture();f.core.interventi=[{id:'j1',client_id:'c2',immobile_id:'s2'}];const i={id:'q1',clientId:'c1',siteId:'s1',interventionId:'j1',lines:[{kind:'POSA',description:'Lavoro',quantity:1,unitPrice:44}]};assert.throws(()=>api.quote(f.core,f.commerce,i),/non coerente/);delete i.interventionId;i.lines[0].unitPrice=-1;assert.throws(()=>api.quote(f.core,f.commerce,i),/Prezzo/);});
+test('extra only for accepted quote, TD04 requires matching original',()=>{const f=fixture();f.commerce.quotes=[{id:'q1',clientId:'c1',siteId:'s1',status:'DA ACCETTARE'}];assert.throws(()=>api.extra(f.core,f.commerce,{id:'e1',quoteId:'q1',lines:[]}),/accettato/);f.commerce.quotes[0].status='ACCETTATO';assert.throws(()=>api.invoiceDraft(f.core,f.commerce,{id:'n1',quoteId:'q1',type:'TD04',amount:20}),/originaria/);f.commerce.documents=[{id:'f0',clientId:'c2'}];assert.throws(()=>api.invoiceDraft(f.core,f.commerce,{id:'n1',quoteId:'q1',type:'TD04',amount:20,originalInvoiceId:'f0'}),/non coerente/);});
+test('duplicate IDs across operational collections rejected',()=>{const f=fixture();f.commerce.documents=[{id:'taken'}];assert.throws(()=>api.appointment(f.core,f.commerce,{id:'taken',clientId:'c1',siteId:'s1',operatorId:'op1',start:'2026-11-02T08:00Z',end:'2026-11-02T09:00Z'}),/già utilizzato/);});
