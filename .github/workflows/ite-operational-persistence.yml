@@ -1,0 +1,26 @@
+name: ITE 4.0 operational persistence validation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operational-persistence.js'
+      - 'ite-operational-transaction.js'
+      - 'ite-operational-changeset.js'
+      - 'ite-operational-batch.js'
+      - 'ite-operational-transitions.js'
+      - 'tests/operational-persistence.test.cjs'
+      - '.github/workflows/ite-operational-persistence.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-persistence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: node --check ite-operational-persistence.js && node --check tests/operational-persistence.test.cjs
+      - name: Synthetic integration tests
+        run: node --test tests/operational-batch.test.cjs tests/operational-changeset.test.cjs tests/operational-transaction.test.cjs tests/operational-persistence.test.cjs
