@@ -18,7 +18,7 @@ function slots(appointments,{day,operatorId,durationMinutes=60,startHour=8,endHo
  const result=[];
  for(let offset=startHour*60;offset+durationMinutes<=endHour*60;offset+=stepMinutes){
   const from=new Date(start.getFullYear(),start.getMonth(),start.getDate(),0,offset),to=new Date(from.getTime()+durationMinutes*60000);
-  if(from.getDate()!==start.getDate()||to.getDate()!==start.getDate())continue;
+  if(from.getFullYear()!==start.getFullYear()||from.getMonth()!==start.getMonth()||from.getDate()!==start.getDate()||to.getFullYear()!==start.getFullYear()||to.getMonth()!==start.getMonth()||to.getDate()!==start.getDate()||to.getHours()*60+to.getMinutes()!==offset+durationMinutes)continue;
   if(busy.some(a=>from.getTime()<Date.parse(a.endsAt)&&Date.parse(a.startsAt)<to.getTime()))continue;
   result.push({startsAt:from.toISOString(),endsAt:to.toISOString(),label:pad(from.getHours())+':'+pad(from.getMinutes())+'–'+pad(to.getHours())+':'+pad(to.getMinutes())});
  }
