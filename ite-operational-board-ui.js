@@ -129,6 +129,9 @@ function initSupplierWorkspace(){
  const raw=document.createElement('textarea');raw.rows=4;raw.placeholder='CODICE | QUANTITÀ | PREZZO | TOTALE (facoltativo)';
  const manual=document.createElement('textarea');manual.rows=4;manual.placeholder='Correggi: CODICE | QUANTITÀ | PREZZO, una riga per articolo';
  const operator=document.createElement('input');operator.placeholder='Operatore revisore (fittizio)';
+ const quoteRef=document.createElement('input');quoteRef.placeholder='ID preventivo collegato (solo per fattura)';
+ const compareButton=document.createElement('button');compareButton.type='button';compareButton.textContent='Confronta documenti confermati (solo anteprima)';
+ let session=root.ITEProcurementReviewSession?.create();
  const output=document.createElement('pre');output.style.whiteSpace='pre-wrap';
  const stageButton=document.createElement('button');stageButton.type='button';stageButton.textContent='Prepara righe';
  const validateButton=document.createElement('button');validateButton.type='button';validateButton.textContent='Valida correzioni';
@@ -145,10 +148,17 @@ function initSupplierWorkspace(){
   output.textContent=workspace.ready?'Righe valide. Puoi confermare l’anteprima.':'Correzioni necessarie: '+workspace.issues.join(', ');
  }catch(e){output.textContent=e.message}});
  confirmButton.addEventListener('click',()=>{try{
-  const confirmed=root.ITEProcurementReviewWorkspace.confirm(workspace,operator.value,new Date().toISOString());
-  output.textContent='Anteprima confermata, NON SALVATA: '+confirmed.id+' · '+confirmed.lines.length+' righe · operatore '+confirmed.review.operator;
+  if(!root.ITEProcurementReviewSession)throw Error('Modulo sessione non caricato');
+  session=root.ITEProcurementReviewSession.add(session,workspace,root.ITEProcurementReviewWorkspace.parseManual(manual.value),operator.value,new Date().toISOString(),quoteRef.value);
+  const confirmed=session.documents[session.documents.length-1];
+  output.textContent='Documento aggiunto alla sessione temporanea, NON SALVATO: '+confirmed.id+' · '+confirmed.lines.length+' righe · totale '+session.documents.length+' documenti';
  }catch(e){output.textContent=e.message}});
- for(const element of [title,intro,type,id,supplier,raw,stageButton,manual,operator,validateButton,confirmButton,output])panel.append(element);
+ compareButton.addEventListener('click',()=>{try{
+  if(!session)throw Error('Nessuna sessione disponibile');
+  const result=root.ITEProcurementReviewSession.inspect(session);
+  output.textContent='CONFRONTO TEMPORANEO (non salvato)\n'+JSON.stringify({documenti:result.documents,problemi:result.issues,prezzi:result.priceResult.records,quantita:result.quantityResult.records},null,2);
+ }catch(e){output.textContent=e.message}});
+ for(const element of [title,intro,type,id,supplier,raw,stageButton,manual,operator,quoteRef,validateButton,confirmButton,compareButton,output])panel.append(element);
  host.parentElement.append(panel);
 }
 function init(){
