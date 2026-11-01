@@ -6,6 +6,18 @@ const s=v=>String(v??'').trim(),rows=v=>Array.isArray(v)?v:[];
 const esc=v=>s(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function validate(catalog,appointments){
  const issues=[],ids=new Set(),byOperator=new Map();
+ if(!catalog||typeof catalog!=='object')return {issues:[{code:'CATALOGO_NON_VALIDO'}],valid:false,readOnly:true};
+ for(const key of ['clients','sites','systems','equipment','operators']){
+  if(!Array.isArray(catalog[key]))issues.push({code:'CATALOGO_MANCANTE_'+key});
+  else {const known=new Set();for(const row of catalog[key]){
+   const rid=s(row?.id);if(!rid||known.has(rid))issues.push({id:rid,code:'ID_CATALOGO_ASSENTE_O_DUPLICATO_'+key});known.add(rid);
+  }}
+ }
+ for(const [child,parent,field] of [['sites','clients','clientId'],['systems','sites','siteId'],['equipment','systems','systemId']]){
+  const parents=new Set(rows(catalog[parent]).map(x=>s(x.id)));
+  for(const row of rows(catalog[child]))if(!parents.has(s(row[field])))issues.push({id:s(row.id),code:'GERARCHIA_ORFANA_'+child});
+ }
+
  for(const a of rows(appointments)){
   const id=s(a.id);
   if(!id||ids.has(id))issues.push({id,code:'ID_APPUNTAMENTO_ASSENTE_O_DUPLICATO'});ids.add(id);
