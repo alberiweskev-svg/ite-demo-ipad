@@ -15,8 +15,10 @@ function start(){
  const calendarNext=document.createElement('button');calendarNext.type='button';calendarNext.textContent='Periodo successivo';
  const calendarStatus=document.createElement('select');calendarStatus.setAttribute('aria-label','Filtra stato appuntamenti');
  for(const [value,label] of [['','Tutti gli stati'],['scheduled','Programmato'],['in_progress','In corso'],['closed','Chiuso'],['revision','In revisione'],['cancelled','Annullato']])calendarStatus.add(new Option(label,value));
+ const calendarPrint=document.createElement('button');calendarPrint.type='button';calendarPrint.textContent='Stampa calendario';
+ const calendarQuickAdd=document.createElement('button');calendarQuickAdd.type='button';calendarQuickAdd.textContent='Nuovo appuntamento nel giorno selezionato';
  const calendarTarget=document.createElement('div');calendarTarget.className='ite-field-calendar';calendarTarget.setAttribute('aria-label','Calendario interventi');
- calendarControls.append(calendarMode,calendarDate,calendarPrevious,calendarNext,calendarStatus);
+ calendarControls.append(calendarMode,calendarDate,calendarPrevious,calendarNext,calendarStatus,calendarPrint,calendarQuickAdd);
  target.parentElement.insertBefore(calendarControls,target);calendarControls.after(calendarTarget);
  const demoCatalog={clients:[{id:'DEMO-C',name:'Cliente dimostrativo'}],sites:[{id:'DEMO-S',clientId:'DEMO-C',address:'Via Esempio 1'}],systems:[{id:'DEMO-I',siteId:'DEMO-S'}],equipment:[{id:'DEMO-E',systemId:'DEMO-I',name:'Caldaia demo'}],operators:[{id:'DEMO-O',name:'Tecnico demo',active:true}]};
  const demoItem={id:'DEMO-A',clientId:'DEMO-C',siteId:'DEMO-S',systemId:'DEMO-I',equipmentId:'DEMO-E',operatorId:'DEMO-O',kind:'Manutenzione',startsAt:'2026-11-02T09:00:00+01:00',endsAt:'2026-11-02T10:00:00+01:00'};
