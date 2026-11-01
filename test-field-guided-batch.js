@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const guided=require('./ite-field-guided-batch.js');
+const catalog={clients:[{id:'C',name:'Cliente demo'}],sites:[{id:'S',clientId:'C'}],systems:[{id:'I',siteId:'S'}],equipment:[{id:'E',systemId:'I'}],operators:[{id:'O',active:true},{id:'X',active:false}]};
+const data={catalog,appointments:[]};
+const form={id:'A',clientId:'C',siteId:'S',systemId:'I',equipmentId:'E',operatorId:'O',kind:'Manutenzione',startsAt:'2026-11-05T09:00',endsAt:'2026-11-05T10:00'};
+const p=guided.proposal(data,form);assert.equal(p.id,'A');assert.equal(p.operatorId,'O');assert.equal(guided.append(data,[],form).length,1);
+assert.throws(()=>guided.append(data,[p],form),/DUPLICATO/);
+assert.throws(()=>guided.proposal(data,{...form,operatorId:'X'}),/GERARCHIA/);
+assert.throws(()=>guided.proposal(data,{...form,siteId:'missing'}),/GERARCHIA/);
+assert.throws(()=>guided.proposal(data,{...form,endsAt:'2026-11-05T08:00'}),/FINE/);
+assert.throws(()=>guided.proposal(data,{...form,startsAt:'2026-02-30T09:00'}),/INESISTENTE/);
+if(process.env.TZ==='Europe/Rome')assert.throws(()=>guided.proposal(data,{...form,startsAt:'2026-03-29T02:30'}),/INESISTENTE/);
+console.log('PASS guided batch hierarchy, duplicates, times and invalid inputs');
