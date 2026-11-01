@@ -149,7 +149,7 @@ function start(){
   const records=historySelect.value?summary.byEquipment[historySelect.value]||[]:Object.values(summary.byEquipment).flat().sort((a,b)=>Date.parse(b.startsAt)-Date.parse(a.startsAt));
   for(const entry of records.slice(0,100)){const li=document.createElement('li');li.textContent=entry.startsAt+' | '+entry.id+' | '+entry.kind+' | '+entry.status+' | '+entry.minutes+' min | Extra '+money(entry.extraCents);historyList.append(li)}
  }
- const localISO=value=>{if(!value)throw Error('DATA_ORA_OBBLIGATORIA');const d=new Date(value);if(!Number.isFinite(d.getTime()))throw Error('DATA_ORA_NON_VALIDA');return d.toISOString()};
+ const localISO=value=>root.ITEFieldLocalTime.parseLocal(value);
  const cents=value=>{const v=Number(value);if(!Number.isFinite(v)||v<0||!Number.isSafeInteger(Math.round(v*100))||Math.abs(v*100-Math.round(v*100))>1e-6)throw Error('PREZZO_NON_VALIDO');return Math.round(v*100)};
  const applyOperation=op=>{if(!current)throw Error('CARICARE_PRIMA_UN_ARCHIVIO');current=root.ITEFieldWorkspace.apply(current,op);render()};
  scheduleButton.addEventListener('click',()=>{try{applyOperation({type:'schedule',appointment:{id:scheduleId.value,clientId:clientId.value,siteId:siteId.value,systemId:systemId.value,equipmentId:equipmentId.value,operatorId:scheduleOperator.value,kind:kind.value,startsAt:localISO(startsAt.value),endsAt:localISO(endsAt.value)}})}catch(e){status.textContent='Programmazione rifiutata: '+String(e.message)}});
@@ -260,7 +260,7 @@ function start(){
     const client=current.catalog.clients.find(x=>x.id===appointment.clientId);
     item.textContent=new Date(appointment.startsAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})+' '+(client?.name||appointment.clientId)+' — '+(technician?.name||appointment.operatorId);
     if(technician?.color&&/^#[0-9a-fA-F]{6}$/.test(technician.color))item.style.borderLeft='5px solid '+technician.color;
-    item.addEventListener('click',()=>{appointmentId.value=appointment.id;operator.value=appointment.operatorId;const d=new Date(appointment.startsAt);at.value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')});
+    item.addEventListener('click',()=>{appointmentId.value=appointment.id;operator.value=appointment.operatorId;at.value=root.ITEFieldLocalTime.toLocal(appointment.startsAt)});
     cell.append(item);
    }
    cell.addEventListener('dblclick',event=>{
