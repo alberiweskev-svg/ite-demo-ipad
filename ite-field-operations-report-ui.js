@@ -231,7 +231,7 @@ function start(){
     const client=current.catalog.clients.find(x=>x.id===appointment.clientId);
     item.textContent=new Date(appointment.startsAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})+' '+(client?.name||appointment.clientId)+' — '+(technician?.name||appointment.operatorId);
     if(technician?.color&&/^#[0-9a-fA-F]{6}$/.test(technician.color))item.style.borderLeft='5px solid '+technician.color;
-    item.addEventListener('click',()=>{appointmentId.value=appointment.id;operator.value=appointment.operatorId;at.value=appointment.startsAt.slice(0,16)});
+    item.addEventListener('click',()=>{appointmentId.value=appointment.id;operator.value=appointment.operatorId;const d=new Date(appointment.startsAt);at.value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')});
     cell.append(item);
    }
    cell.addEventListener('dblclick',event=>{
