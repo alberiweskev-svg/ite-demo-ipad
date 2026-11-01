@@ -33,7 +33,7 @@ function equipmentHistory(appointments,equipmentId){
 }
 function extrasTotals(a){
  const result={FORNITURA:0,POSA:0,SMONTAGGIO:0,SMALTIMENTO:0};
- for(const x of a.extraWorks||[]){if(x.status!=='accettato')continue;for(const line of x.lines){const amount=Math.round(line.quantity*line.unitCents);if(!Number.isSafeInteger(amount)||amount<0)throw Error('TOTALE_NON_VALIDO');result[line.type]+=amount;if(!Number.isSafeInteger(result[line.type]))throw Error('TOTALE_NON_VALIDO');}}
+ for(const x of a.extraWorks||[]){if(!['accettato','parzialmente_accettato'].includes(x.status))continue;for(const line of x.lines){const quantity=x.status==='accettato'?line.quantity:line.acceptedQuantity;if(!Number.isFinite(quantity)||quantity<0||quantity>line.quantity)throw Error('QUANTITA_ACCETTATA_NON_VALIDA');const amount=Math.round(quantity*line.unitCents);if(!Number.isSafeInteger(amount)||amount<0)throw Error('TOTALE_NON_VALIDO');result[line.type]+=amount;if(!Number.isSafeInteger(result[line.type]))throw Error('TOTALE_NON_VALIDO');}}
  return {...result,totalCents:Object.values(result).reduce((a,b)=>a+b,0),currency:'EUR',readOnly:true};
 }
 const api=Object.freeze({refs,schedule,transition,calendar,equipmentHistory,extrasTotals});
