@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict'),p=require('./ite-field-planning.js'),r=require('./ite-field-operations-report.js');
+const catalog={clients:[{id:'C1',name:'Cliente <Prova>'}],sites:[{id:'S1',clientId:'C1',address:'Via Test 1'}],systems:[{id:'I1',siteId:'S1'}],equipment:[{id:'E1',systemId:'I1',name:'Caldaia prova'}],operators:[{id:'O1',name:'Tecnico A',active:true},{id:'O2',active:true}]};
+const a={id:'A1',clientId:'C1',siteId:'S1',systemId:'I1',equipmentId:'E1',operatorId:'O1',kind:'manutenzione',startsAt:'2026-11-02T09:00:00+01:00',endsAt:'2026-11-02T10:00:00+01:00'};
+const appointments=p.schedule(catalog,[],a),before=JSON.stringify(appointments);
+let out=r.report(catalog,appointments,{operatorId:'O1'});
+assert.equal(out.entries.length,1);assert.equal(out.printReady,true);
+assert.match(out.html,/Cliente &lt;Prova&gt;/);assert.doesNotMatch(out.html,/Cliente <Prova>/);
+assert.equal(r.report(catalog,appointments,{operatorId:'O2'}).entries.length,0);
+assert.equal(JSON.stringify(appointments),before);
+const conflicting={...appointments[0],id:'A2',startsAt:'2026-11-02T09:30:00+01:00',endsAt:'2026-11-02T10:30:00+01:00'};
+out=r.report(catalog,[...appointments,conflicting]);assert.equal(out.printReady,false);
+assert.ok(out.issues.some(x=>x.code==='CONFLITTO_OPERATORE'));
+out=r.validate(catalog,[{...appointments[0],siteId:'UNKNOWN'}]);assert.ok(out.issues.some(x=>x.code.includes('RIFERIMENTO')));
+out=r.validate(catalog,[{...appointments[0],visits:[{arrivedAt:'2026-11-02T11:00:00+01:00',leftAt:'2026-11-02T10:00:00+01:00'}],status:'closed'}]);assert.ok(out.issues.some(x=>x.code==='VISITA_ORARI_NON_VALIDI'));
+console.log('PASS: synthetic agenda, operator filter, HTML escaping, overlap, hierarchy, visit audit, immutable input');
