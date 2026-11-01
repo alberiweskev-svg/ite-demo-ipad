@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 52 parziale: validazione rigorosa date e orari dell'Agenda, compresi orari inesistenti e ambigui nei cambi ora legale/solare; test sintetici aggiunti. CI e Safari/iPad non ancora verificati. Non pubblicata; versioni operative precedenti invariate."
+  "notes": "Milestone 53 parziale: editor guidato integrato per gruppi di appuntamenti, selezioni gerarchiche cliente/sede/impianto/apparecchiatura/tecnico, aggiunta e rimozione, controllo duplicati e orari locali; riusa verifica atomica esistente. Test sintetici aggiunti, CI e Safari/iPad non verificati. Non pubblicata; 3.0.74 e 2.7.5 invariati."
 }
