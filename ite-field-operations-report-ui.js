@@ -177,6 +177,31 @@ function start(){
   status.textContent='Copia locale eliminata; anteprima corrente invariata.';
  }catch(e){status.textContent='Eliminazione rifiutata: '+String(e.message)}});
  const reset=()=>{current=null;dirtyGuard.reset();html='';target.textContent='';filter.replaceChildren(new Option('Tutti gli operatori',''));upload.value='';status.textContent='Anteprima cancellata dalla memoria della pagina.';};
+ calendarQuickAdd.addEventListener('click',()=>{
+  const day=calendarDate.value;if(!day)return;
+  startsAt.value=day+'T09:00';endsAt.value=day+'T10:00';
+  scheduleId.focus();status.textContent='Compila il nuovo appuntamento per '+day+'; cliente, sede, impianto e tecnico devono essere selezionati.';
+ });
+ calendarPrint.addEventListener('click',()=>{
+  if(!current){status.textContent='Caricare prima un archivio.';return}
+  const period=root.ITEFieldCalendarViews.view(current.appointments,{mode:calendarMode.value,anchor:calendarDate.value,operatorId:filter.value||undefined,status:calendarStatus.value||undefined});
+  const printable=document.createElement('div');
+  const heading=document.createElement('h2');heading.textContent='Agenda I.T.E. — '+period.startDay+' / '+period.endExclusive;printable.append(heading);
+  const table=document.createElement('table');const header=document.createElement('tr');
+  for(const name of ['Giorno','Ora','Cliente','Indirizzo','Apparecchiatura','Tecnico','Stato']){const th=document.createElement('th');th.textContent=name;header.append(th)}table.append(header);
+  const lookup=(key,id)=>current.catalog[key].find(x=>x.id===id)||{};
+  for(const day of period.days)for(const appointment of day.appointments){
+   const client=lookup('clients',appointment.clientId),site=lookup('sites',appointment.siteId),equipment=lookup('equipment',appointment.equipmentId),technician=lookup('operators',appointment.operatorId);
+   const tr=document.createElement('tr');
+   for(const value of [day.date,new Date(appointment.startsAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),client.name||appointment.clientId,site.address||site.name||appointment.siteId,equipment.name||equipment.model||appointment.equipmentId,technician.name||appointment.operatorId,appointment.status]){const td=document.createElement('td');td.textContent=value;tr.append(td)}
+   table.append(tr);
+  }
+  printable.append(table);
+  const popup=root.open('','_blank');if(!popup){status.textContent='Finestra di stampa bloccata.';return}
+  popup.document.title='Calendario I.T.E. — stampa';
+  const style=popup.document.createElement('style');style.textContent='body{font:12px sans-serif;margin:16px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #aaa;padding:5px;text-align:left}';popup.document.head.append(style);
+  popup.document.body.append(popup.document.importNode(printable,true));popup.focus();popup.print();
+ });
  const renderCalendar=()=>{
   calendarTarget.replaceChildren();
   if(!current)return;
