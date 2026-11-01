@@ -1,22 +1,46 @@
-/* I.T.E. 4.0 — synthetic field-report demonstration, no vault writes. */
+/* I.T.E. 4.0 — local read-only field workspace. No vault writes, network or persistence. */
 (function(root){'use strict';
 if(!root.document)return;
 function start(){
- const show=document.getElementById('field-report-demo'),print=document.getElementById('field-report-print'),status=document.getElementById('field-report-status'),target=document.getElementById('field-report-result');
- if(!show||!print||!status||!target)return;
- const catalog={clients:[{id:'DEMO-C',name:'Cliente dimostrativo'}],sites:[{id:'DEMO-S',clientId:'DEMO-C',address:'Via Esempio 1'}],systems:[{id:'DEMO-I',siteId:'DEMO-S'}],equipment:[{id:'DEMO-E',systemId:'DEMO-I',name:'Caldaia demo'}],operators:[{id:'DEMO-O',name:'Tecnico demo',active:true}]};
- const item={id:'DEMO-A',clientId:'DEMO-C',siteId:'DEMO-S',systemId:'DEMO-I',equipmentId:'DEMO-E',operatorId:'DEMO-O',kind:'Manutenzione',startsAt:'2026-11-02T09:00:00+01:00',endsAt:'2026-11-02T10:00:00+01:00'};
- let html='';
+ const byId=id=>document.getElementById(id);
+ const show=byId('field-report-demo'),upload=byId('field-report-import'),filter=byId('field-report-operator'),clear=byId('field-report-clear'),print=byId('field-report-print'),status=byId('field-report-status'),target=byId('field-report-result');
+ if(!show||!upload||!filter||!clear||!print||!status||!target)return;
+ const demoCatalog={clients:[{id:'DEMO-C',name:'Cliente dimostrativo'}],sites:[{id:'DEMO-S',clientId:'DEMO-C',address:'Via Esempio 1'}],systems:[{id:'DEMO-I',siteId:'DEMO-S'}],equipment:[{id:'DEMO-E',systemId:'DEMO-I',name:'Caldaia demo'}],operators:[{id:'DEMO-O',name:'Tecnico demo',active:true}]};
+ const demoItem={id:'DEMO-A',clientId:'DEMO-C',siteId:'DEMO-S',systemId:'DEMO-I',equipmentId:'DEMO-E',operatorId:'DEMO-O',kind:'Manutenzione',startsAt:'2026-11-02T09:00:00+01:00',endsAt:'2026-11-02T10:00:00+01:00'};
+ let current=null,html='';
+ const reset=()=>{current=null;html='';target.textContent='';filter.replaceChildren(new Option('Tutti gli operatori',''));upload.value='';status.textContent='Anteprima cancellata dalla memoria della pagina.';};
+ function render(){
+  if(!current){status.textContent='Caricare un JSON locale oppure utilizzare la dimostrazione.';return}
+  const result=root.ITEFieldOperationsReport.report(current.catalog,current.appointments,{operatorId:filter.value||undefined});
+  html=result.printReady?result.html:'';target.innerHTML=result.html;
+  const skipped=current.skippedLegacyAppointments||0;
+  status.textContent='Appuntamenti: '+result.entries.length+'; anomalie: '+result.issues.length+'; record incompatibili esclusi: '+skipped+'. '+(result.printReady?'Stampa disponibile.':'Stampa disabilitata: verificare i dati.');
+ }
+ function setData(data){
+  current=data;filter.replaceChildren(new Option('Tutti gli operatori',''));
+  for(const op of data.catalog.operators){const option=new Option(op.name||op.id,op.id);filter.add(option)}
+  render();
+ }
  show.addEventListener('click',()=>{
-  try{
-   const a=root.ITEFieldPlanning.schedule(catalog,[],item),result=root.ITEFieldOperationsReport.report(catalog,a);
-   html=result.html;target.innerHTML=html;status.textContent=result.printReady?'Esempio sintetico valido: 1 appuntamento, nessun conflitto.':'Anomalie rilevate: '+result.issues.length;
-  }catch(e){status.textContent='Errore del modulo: '+String(e.message);html='';}
+  try{setData({catalog:demoCatalog,appointments:root.ITEFieldPlanning.schedule(demoCatalog,[],demoItem),skippedLegacyAppointments:0})}
+  catch(e){reset();status.textContent='Errore dimostrazione: '+String(e.message)}
  });
+ upload.addEventListener('change',async()=>{
+  const file=upload.files&&upload.files[0];if(!file)return;
+  reset();
+  try{
+   if(file.size>5*1024*1024)throw Error('FILE_TROPPO_GRANDE_5_MB');
+   const raw=JSON.parse(await file.text());
+   const result=root.ITEFieldLegacyAdapter.adapt(raw);
+   if(result.issues.length){status.textContent='Importazione non attivata: '+result.issues.length+' anomalie. Verificare formato, gerarchie e appuntamenti; nessun dato salvato.';return}
+   setData(result);
+  }catch(e){status.textContent='Importazione rifiutata: '+String(e.message)}
+ });
+ filter.addEventListener('change',render);clear.addEventListener('click',reset);
  print.addEventListener('click',()=>{
-  if(!html){status.textContent='Generare prima il report dimostrativo.';return}
+  if(!html){status.textContent='Stampa non disponibile: generare un report valido.';return}
   const popup=root.open('','_blank');if(!popup){status.textContent='Finestra di stampa bloccata dal browser.';return}
-  popup.document.write('<!doctype html><html lang="it"><meta charset="utf-8"><title>Agenda demo I.T.E.</title><style>body{font:14px sans-serif;margin:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #aaa;padding:6px;text-align:left}@media print{body{margin:8mm}}</style>'+html+'</html>');popup.document.close();popup.focus();popup.print();
+  popup.document.write('<!doctype html><html lang="it"><meta charset="utf-8"><title>Agenda I.T.E. — anteprima locale</title><style>body{font:14px sans-serif;margin:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #aaa;padding:6px;text-align:left}@media print{body{margin:8mm}}</style>'+html+'</html>');popup.document.close();popup.focus();popup.print();
  });
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
