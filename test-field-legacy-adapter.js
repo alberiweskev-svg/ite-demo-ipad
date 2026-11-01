@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict'),bridge=require('./ite-field-legacy-adapter.js'),wf=require('./ite-field-workflow.js'),planning=require('./ite-field-planning.js');
+const core={clienti:[{id:'C',ragione_sociale:'Cliente fittizio'}],immobili:[{id:'S',client_id:'C',indirizzo:'Via Test'}],impianti:[{id:'I',immobile_id:'S'}],apparecchiature:[{id:'E',impianto_id:'I'}],operatori:[{id:'O',nome:'Operatore demo'}],appuntamenti:[]};
+const input={id:'A',clientId:'C',siteId:'S',systemId:'I',equipmentId:'E',operatorId:'O',kind:'manutenzione',startsAt:'2026-11-02T09:00:00+01:00',endsAt:'2026-11-02T10:00:00+01:00'};
+const appointment=wf.appointment(input);core.appuntamenti=[appointment];const original=JSON.stringify(core);
+let out=bridge.adapt(core);assert.equal(out.issues.length,0);assert.equal(out.appointments.length,1);assert.equal(out.catalog.equipment[0].id,'E');assert.equal(planning.calendar(out.appointments).length,1);assert.equal(JSON.stringify(core),original);
+out=bridge.adapt({...core,appuntamenti:[{id:'LEGACY',data:'2026-11-02'}]});assert.equal(out.appointments.length,0);assert.equal(out.skippedLegacyAppointments,1);assert.match(out.issues[0].code,/SCHEMA/);
+out=bridge.adapt({...core,appuntamenti:[{...appointment,operatorId:'NOT_FOUND'}]});assert.equal(out.appointments.length,0);assert.match(out.issues[0].code,/RIFERIMENTI/);
+out=bridge.adapt({...core,appuntamenti:[appointment,appointment]});assert.equal(out.appointments.length,1);assert.ok(out.issues.some(x=>x.code==='APPUNTAMENTO_DUPLICATO'));
+out=bridge.adapt({...core,immobili:[{id:'S',client_id:'UNKNOWN'}]});assert.ok(out.issues.some(x=>x.code==='RIFERIMENTO_ORFANO_clientId'));
+assert.throws(()=>bridge.adapt({}),/ARCHIVIO_NON_VALIDO/);
+console.log('PASS: synthetic hierarchy, compatible appointment, legacy quarantine, duplicate, orphan and immutable input');
