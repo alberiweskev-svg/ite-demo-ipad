@@ -1,0 +1,24 @@
+/* Run: node test-commercial-workflow.js — fictional data only */
+'use strict';
+const assert=require('node:assert/strict'),core=require('./ite-commercial-domain.js'),w=require('./ite-commercial-workflow.js');
+const pair=core.addPair([],{id:'lavabo',description:'lavabo con colonna',supplyPrice:200,installationPrice:120});
+const q=core.build({id:'Q-DEMO',clientId:'C-DEMO',siteId:'S-DEMO',issuedAt:'2026-11-01',lines:pair});
+let x=w.extra({id:'E-DEMO',quoteId:q.id,description:'Rubinetto aggiuntivo',lines:core.addPair([],{id:'rubinetto',description:'rubinetto',supplyPrice:70,installationPrice:45})});
+assert.equal(w.quoteWithExtras(q,[x]).totals.net,320,'draft must not change quote');
+assert.throws(()=>w.changeExtra(x,'ACCETTATO',{at:'2026-11-01T10:00:00Z',operator:'Tecnico demo'}),/TRANSIZIONE/);
+x=w.changeExtra(x,'INVIATO',{at:'2026-11-01T10:00:00Z',operator:'Tecnico demo'});
+x=w.changeExtra(x,'ACCETTATO',{at:'2026-11-01T11:00:00Z',operator:'Tecnico demo'});
+assert.equal(x.history.length,2);
+assert.equal(w.quoteWithExtras(q,[x]).totals.net,435);
+assert.equal(q.totals.net,320,'original quote remains unchanged');
+assert.throws(()=>w.quoteWithExtras(q,[x,x]),/DUPLICATO/);
+assert.throws(()=>w.changeExtra(x,'BOZZA',{at:'2026-11-01T12:00:00Z',operator:'Tecnico demo'}),/TRANSIZIONE/);
+assert.throws(()=>w.extra({id:'E',quoteId:'Q',description:'x',lines:[pair[0],pair[0]]}),/DUPLICATE/);
+const docs=w.classifyLedger([{id:'N1',type:'TD04',issuerIsITE:false,amount:100,recovered:0},{id:'N2',type:'TD04',issuerIsITE:true,amount:100,recovered:40},{id:'N3',type:'TD04',amount:100,recovered:100},{id:'P1',type:'PR',amount:500},{id:'F1',type:'TD01',issuerIsITE:true,amount:200}]);
+assert.deepEqual(docs.slice(0,3).map(d=>d.recoveryStatus),['DA_RECUPERARE','PARZIALMENTE_RECUPERATA','RECUPERATA']);
+assert.equal(docs[1].balance,60);
+assert.equal(docs[3].paymentDue,false);
+assert.equal(docs[4].category,'FATTURA_VENDITA');
+assert.throws(()=>w.classifyLedger([{id:'a',type:'TD04',amount:10,recovered:11}]),/RECUPERO/);
+assert.throws(()=>w.classifyLedger([{id:'a',type:'PR',amount:10},{id:'a',type:'PR',amount:10}]),/DUPLICATO/);
+console.log('OK: commercial workflow synthetic regression suite');
