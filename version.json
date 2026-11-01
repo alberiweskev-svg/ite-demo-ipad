@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 48 (parziale, 2026-11-01): carico giornaliero operatori e ricerca fasce libere nel calendario integrato; test sintetici aggiunti, esecuzione CI e Safari/iPad da verificare. Nessuna pubblicazione; 3.0.74 e 2.7.5 invariati."
+  "notes": "Milestone 49 parziale: test automatici sintetici e controlli di sintassi in due fusi orari, correzioni orari locali e cambio ora legale. Test CI e Safari/iPad non ancora verificati. Nessuna pubblicazione. Versioni operative precedenti invariate."
 }
