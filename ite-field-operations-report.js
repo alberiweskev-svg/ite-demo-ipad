@@ -15,7 +15,22 @@ function validate(catalog,appointments){
   const audit=rows(a.audit),visits=rows(a.visits);
   if(!audit.length)issues.push({id,code:'STORICO_ASSENTE'});
   for(const v of visits)if(!Number.isFinite(Date.parse(v.arrivedAt))||(v.leftAt&&(Date.parse(v.leftAt)<Date.parse(v.arrivedAt))))issues.push({id,code:'VISITA_ORARI_NON_VALIDI'});
-  if(a.status==='closed'&&visits.some(v=>!v.leftAt))issues.push({id,code:'VISITA_NON_CHIUSA'});
+  if(!['scheduled','in_progress','closed','revision','cancelled'].includes(a.status))issues.push({id,code:'STATO_APPUNTAMENTO_NON_VALIDO'});
+  if(a.status==='scheduled'&&visits.length)issues.push({id,code:'VISITE_NON_ATTESE'});
+  if(a.status==='in_progress'&&(visits.length===0||visits[visits.length-1].leftAt))issues.push({id,code:'VISITA_ATTIVA_MANCANTE'});
+  if(['closed','revision'].includes(a.status)&&(visits.length===0||visits.some(v=>!v.leftAt)))issues.push({id,code:'VISITA_NON_CHIUSA'});
+  if(!Array.isArray(a.extraWorks))issues.push({id,code:'ELENCO_EXTRA_MANCANTE'});
+  const extraIds=new Set();
+  for(const x of rows(a.extraWorks)){
+   if(!s(x.id)||extraIds.has(s(x.id)))issues.push({id,code:'EXTRA_DUPLICATO_O_SENZA_ID'});
+   extraIds.add(s(x.id));
+   if(!['da_accettare','accettato','non_accettato','parzialmente_accettato'].includes(x.status))issues.push({id,code:'STATO_EXTRA_NON_VALIDO'});
+   if(!Array.isArray(x.lines)||!x.lines.length)issues.push({id,code:'VOCI_EXTRA_MANCANTI'});
+   for(const l of rows(x.lines)){
+    const amount=Number(l.quantity)*Number(l.unitCents);
+    if(!['FORNITURA','POSA','SMONTAGGIO','SMALTIMENTO'].includes(l.type)||!Number.isFinite(Number(l.quantity))||Number(l.quantity)<=0||!Number.isSafeInteger(Number(l.unitCents))||Number(l.unitCents)<0||!Number.isSafeInteger(Math.round(amount))||amount<0)issues.push({id,code:'VOCE_EXTRA_NON_VALIDA'});
+   }
+  }
   if(a.status!=='cancelled'&&Number.isFinite(start)&&Number.isFinite(end)){
    const key=s(a.operatorId),arr=byOperator.get(key)||[];
    for(const b of arr)if(start<b.end&&b.start<end)issues.push({id,otherId:b.id,code:'CONFLITTO_OPERATORE'});
