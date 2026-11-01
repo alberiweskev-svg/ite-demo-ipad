@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 49 parziale: test automatici sintetici e controlli di sintassi in due fusi orari, correzioni orari locali e cambio ora legale. Test CI e Safari/iPad non ancora verificati. Nessuna pubblicazione. Versioni operative precedenti invariate."
+  "notes": "Milestone 50 parziale (2026-11-01): pianificazione appuntamenti multipli in anteprima atomica, diagnostica conflitti operatore, carico percentuale su 8 ore in Agenda, test sintetici e integrazione demo. Commit salvati; CI e Safari/iPad non ancora verificati. Non pubblicata. Versioni operative precedenti invariate."
 }
