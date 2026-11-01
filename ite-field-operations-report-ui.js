@@ -40,6 +40,7 @@ function start(){
  const addExtraButton=document.createElement('button');addExtraButton.type='button';addExtraButton.textContent='Aggiungi Extra in anteprima';
  const decisionId=field('decisionId','ID Extra da approvare');
  const decision=document.createElement('select');for(const [value,label] of [['accettato','Accettato'],['non_accettato','Non accettato'],['parzialmente_accettato','Parzialmente accettato']])decision.add(new Option(label,value));
+ const quantities=field('approvedQuantities','Quantita approvate per voce (es. 1,0.5)');
  const decideButton=document.createElement('button');decideButton.type='button';decideButton.textContent='Registra decisione Extra';
  for(const element of [scheduleButton,addExtraButton,decision,decideButton])editor.append(element);
  controls.after(editor);
@@ -53,7 +54,7 @@ function start(){
   if(!lines.length)throw Error('FORNITURA_O_POSA_OBBLIGATORIA');
   applyOperation({type:'addExtra',id:appointmentId.value,operatorId:operator.value,at:localISO(at.value),payload:{extra:{id:extraId.value,description:extraDescription.value,category:extraCategory.value,lines}}});
  }catch(e){status.textContent='Extra rifiutato: '+String(e.message)}});
- decideButton.addEventListener('click',()=>{try{applyOperation({type:'decideExtra',id:appointmentId.value,operatorId:operator.value,at:localISO(at.value),payload:{id:decisionId.value,status:decision.value}})}catch(e){status.textContent='Decisione rifiutata: '+String(e.message)}});
+ decideButton.addEventListener('click',()=>{try{const partial=decision.value==='parzialmente_accettato';applyOperation({type:partial?'approveLines':'decideExtra',id:appointmentId.value,operatorId:operator.value,at:localISO(at.value),payload:{id:decisionId.value,status:decision.value,quantities:partial?quantities.value.split(',').map(v=>v.trim()):undefined}})}catch(e){status.textContent='Decisione rifiutata: '+String(e.message)}});
 
  apply.addEventListener('click',()=>{
   try{
