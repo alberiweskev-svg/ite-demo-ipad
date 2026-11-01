@@ -208,10 +208,10 @@ function start(){
   slotPicker.replaceChildren(new Option('Seleziona fascia disponibile',''));
   capacityTarget.replaceChildren();if(!current)return;
   const technicianId=guidedOperator.select.value||filter.value;
-  const load=root.ITEFieldTechnicianCapacity.workload(current.catalog,current.appointments,calendarDate.value);
+  const load=root.ITEFieldScheduleBatch.utilization(current.catalog,current.appointments,calendarDate.value);
   const heading=document.createElement('strong');heading.textContent='Carico tecnici '+calendarDate.value;capacityTarget.append(heading);
   const summary=document.createElement('div');summary.style.display='flex';summary.style.flexWrap='wrap';summary.style.gap='8px';
-  for(const tech of load){const item=document.createElement('span');item.textContent=tech.name+': '+tech.count+' interventi / '+tech.busyMinutes+' min';item.style.padding='5px';item.style.border='1px solid #aaa';if(/^#[0-9a-fA-F]{6}$/.test(tech.color||''))item.style.borderLeft='5px solid '+tech.color;summary.append(item)}capacityTarget.append(summary);
+  for(const tech of load){const item=document.createElement('span');item.textContent=tech.name+': '+tech.count+' interventi / '+tech.busyMinutes+' min ('+tech.loadPercent+'% su 8 ore)'+(tech.overbooked?' — carico oltre 8 ore':'');item.style.padding='5px';item.style.border='1px solid #aaa';if(/^#[0-9a-fA-F]{6}$/.test(tech.color||''))item.style.borderLeft='5px solid '+tech.color;summary.append(item)}capacityTarget.append(summary);const overlaps=root.ITEFieldScheduleBatch.conflicts(current.appointments);if(overlaps.length){const warning=document.createElement('p');warning.textContent='Attenzione: '+overlaps.length+' sovrapposizioni operatore rilevate nell’archivio.';capacityTarget.append(warning)}
   if(technicianId){for(const slot of root.ITEFieldTechnicianCapacity.slots(current.appointments,{day:calendarDate.value,operatorId:technicianId}))slotPicker.add(new Option(slot.label,JSON.stringify(slot)))}
  };
  slotPicker.addEventListener('change',()=>{if(!slotPicker.value)return;const slot=JSON.parse(slotPicker.value);const local=value=>{const d=new Date(value);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};startsAt.value=local(slot.startsAt);endsAt.value=local(slot.endsAt);scheduleOperator.value=guidedOperator.select.value||filter.value;status.textContent='Fascia disponibile selezionata: '+slot.label});
