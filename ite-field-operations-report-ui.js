@@ -60,8 +60,28 @@ function start(){
   if(!current)throw Error('CARICARE_PRIMA_UN_ARCHIVIO');
   const record=masterAction.value==='delete'?undefined:JSON.parse(masterJson.value);
   current=root.ITEFieldMasterRecords.apply(current,{action:masterAction.value,collection:masterType.value,id:masterId.value,record});
-  render();
+  refreshGuided();render();
  }catch(e){status.textContent='Anagrafica non aggiornata: '+String(e.message)}});
+ const choose=(label)=>{const wrap=document.createElement('label');wrap.textContent=label;const select=document.createElement('select');wrap.append(select);return {wrap,select}};
+ const guidedClient=choose('Cliente'),guidedSite=choose('Sede'),guidedSystem=choose('Impianto'),guidedEquipment=choose('Apparecchiatura'),guidedOperator=choose('Operatore');
+ const guided=document.createElement('div');guided.className='grid';
+ for(const item of [guidedClient,guidedSite,guidedSystem,guidedEquipment,guidedOperator])guided.append(item.wrap);
+ editor.prepend(guided);
+ const populate=(select,rows,label)=>{const old=select.value;select.replaceChildren(new Option('Seleziona '+label,''));
+  for(const row of rows)select.add(new Option(row.name||row.address||row.model||row.id,row.id));
+  if([...select.options].some(option=>option.value===old))select.value=old;
+ };
+ function refreshGuided(){
+  if(!current)return;
+  const catalog=current.catalog;
+  populate(guidedClient.select,catalog.clients,'cliente');
+  populate(guidedSite.select,catalog.sites.filter(x=>x.clientId===guidedClient.select.value),'sede');
+  populate(guidedSystem.select,catalog.systems.filter(x=>x.siteId===guidedSite.select.value),'impianto');
+  populate(guidedEquipment.select,catalog.equipment.filter(x=>x.systemId===guidedSystem.select.value),'apparecchiatura');
+  populate(guidedOperator.select,catalog.operators.filter(x=>x.active!==false),'operatore');
+ }
+ const syncGuided=()=>{clientId.value=guidedClient.select.value;siteId.value=guidedSite.select.value;systemId.value=guidedSystem.select.value;equipmentId.value=guidedEquipment.select.value;scheduleOperator.value=guidedOperator.select.value};
+ for(const item of [guidedClient,guidedSite,guidedSystem,guidedEquipment,guidedOperator])item.select.addEventListener('change',()=>{refreshGuided();syncGuided()});
  const localISO=value=>{if(!value)throw Error('DATA_ORA_OBBLIGATORIA');const d=new Date(value);if(!Number.isFinite(d.getTime()))throw Error('DATA_ORA_NON_VALIDA');return d.toISOString()};
  const cents=value=>{const v=Number(value);if(!Number.isFinite(v)||v<0||!Number.isSafeInteger(Math.round(v*100))||Math.abs(v*100-Math.round(v*100))>1e-6)throw Error('PREZZO_NON_VALIDO');return Math.round(v*100)};
  const applyOperation=op=>{if(!current)throw Error('CARICARE_PRIMA_UN_ARCHIVIO');current=root.ITEFieldWorkspace.apply(current,op);render()};
@@ -131,7 +151,7 @@ function start(){
  function setData(data){
   current=root.ITEFieldWorkspace.open(data.catalog,data.appointments);filter.replaceChildren(new Option('Tutti gli operatori',''));
   for(const op of data.catalog.operators){const option=new Option(op.name||op.id,op.id);filter.add(option)}
-  render();
+  refreshGuided();render();
  }
  show.addEventListener('click',()=>{
   if(!confirmDiscard())return;
