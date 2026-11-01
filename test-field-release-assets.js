@@ -13,13 +13,17 @@ const scripts = [...html.matchAll(/<script\b([^>]*)><\/script>/gi)];
 assert(scripts.length > 0, 'index.html has no script assets');
 let checked = 0;
 let signed = 0;
+const seen = new Set();
 for (const [, attrs] of scripts) {
   const src = /\bsrc\s*=\s*["']([^"']+)["']/i.exec(attrs)?.[1];
   if (!src) continue;
-  if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:')) continue;
+  assert(!/^(?:[a-z][a-z0-9+.-]*:|\/\/|\/)/i.test(src), 'Unexpected non-local script asset: ' + src);
   const asset = src.split(/[?#]/, 1)[0];
+  assert(asset && !asset.includes('\\'), 'Invalid script asset path: ' + src);
   const resolved = path.resolve(root, asset);
   assert(resolved.startsWith(root + path.sep), 'Script path escapes the repository: ' + src);
+  assert(!seen.has(resolved), 'Duplicate script in index.html: ' + src);
+  seen.add(resolved);
   assert(fs.existsSync(resolved), 'Missing script referenced by index.html: ' + src);
   assert(fs.statSync(resolved).isFile(), 'Script path is not a file: ' + src);
   checked++;
