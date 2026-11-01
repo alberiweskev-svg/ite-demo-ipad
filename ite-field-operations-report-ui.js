@@ -8,6 +8,8 @@ function start(){
  const demoCatalog={clients:[{id:'DEMO-C',name:'Cliente dimostrativo'}],sites:[{id:'DEMO-S',clientId:'DEMO-C',address:'Via Esempio 1'}],systems:[{id:'DEMO-I',siteId:'DEMO-S'}],equipment:[{id:'DEMO-E',systemId:'DEMO-I',name:'Caldaia demo'}],operators:[{id:'DEMO-O',name:'Tecnico demo',active:true}]};
  const demoItem={id:'DEMO-A',clientId:'DEMO-C',siteId:'DEMO-S',systemId:'DEMO-I',equipmentId:'DEMO-E',operatorId:'DEMO-O',kind:'Manutenzione',startsAt:'2026-11-02T09:00:00+01:00',endsAt:'2026-11-02T10:00:00+01:00'};
  let current=null,html='';
+ const dirtyGuard=root.ITEFieldDirtyGuard.create();
+ const confirmDiscard=()=>!current||!dirtyGuard.isDirty(current)||root.confirm('Ci sono modifiche non salvate. Vuoi continuare e perderle?');
  const controls=document.createElement('div');controls.className='actions';
  const appointmentId=document.createElement('input');appointmentId.placeholder='ID appuntamento';appointmentId.setAttribute('aria-label','ID appuntamento');
  const action=document.createElement('select');action.setAttribute('aria-label','Azione intervento');
@@ -89,19 +91,21 @@ function start(){
  saveLocal.addEventListener('click',()=>{try{
   if(!current)throw Error('NESSUN_WORKSPACE');
   const result=root.ITEFieldPersistence.save(current,root.ITEVault);
+  dirtyGuard.markSaved(current);
   status.textContent='Archivio locale cifrato salvato: '+result.appointments+' appuntamenti.';
  }catch(e){status.textContent='Salvataggio rifiutato: '+String(e.message)}});
  loadLocal.addEventListener('click',()=>{try{
+  if(!confirmDiscard())return;
   const data=root.ITEFieldPersistence.load(root.ITEVault);
   if(!data)throw Error('NESSUN_ARCHIVIO_LOCALE');
-  setData(data);status.textContent='Archivio locale cifrato caricato.';
+  setData(data);dirtyGuard.markSaved(current);status.textContent='Archivio locale cifrato caricato.';
  }catch(e){status.textContent='Caricamento rifiutato: '+String(e.message)}});
  clearLocal.addEventListener('click',()=>{try{
   if(!root.confirm('Eliminare la copia locale cifrata del workspace?'))return;
   root.ITEFieldPersistence.clear(root.ITEVault);
   status.textContent='Copia locale eliminata; anteprima corrente invariata.';
  }catch(e){status.textContent='Eliminazione rifiutata: '+String(e.message)}});
- const reset=()=>{current=null;html='';target.textContent='';filter.replaceChildren(new Option('Tutti gli operatori',''));upload.value='';status.textContent='Anteprima cancellata dalla memoria della pagina.';};
+ const reset=()=>{current=null;dirtyGuard.reset();html='';target.textContent='';filter.replaceChildren(new Option('Tutti gli operatori',''));upload.value='';status.textContent='Anteprima cancellata dalla memoria della pagina.';};
  function render(){
   if(!current){status.textContent='Caricare un JSON locale oppure utilizzare la dimostrazione.';return}
   const result=root.ITEFieldOperationsReport.report(current.catalog,current.appointments,{operatorId:filter.value||undefined});
@@ -115,11 +119,13 @@ function start(){
   render();
  }
  show.addEventListener('click',()=>{
+  if(!confirmDiscard())return;
   try{setData({catalog:demoCatalog,appointments:root.ITEFieldPlanning.schedule(demoCatalog,[],demoItem),skippedLegacyAppointments:0})}
   catch(e){reset();status.textContent='Errore dimostrazione: '+String(e.message)}
  });
  upload.addEventListener('change',async()=>{
   const file=upload.files&&upload.files[0];if(!file)return;
+  if(!confirmDiscard()){upload.value='';return}
   reset();
   try{
    if(file.size>5*1024*1024)throw Error('FILE_TROPPO_GRANDE_5_MB');
@@ -129,7 +135,8 @@ function start(){
    setData(result);
   }catch(e){status.textContent='Importazione rifiutata: '+String(e.message)}
  });
- filter.addEventListener('change',render);clear.addEventListener('click',reset);
+ filter.addEventListener('change',render);clear.addEventListener('click',()=>{if(confirmDiscard())reset()});
+ root.addEventListener('beforeunload',event=>{if(current&&dirtyGuard.isDirty(current)){event.preventDefault();event.returnValue=''}});
  print.addEventListener('click',()=>{
   if(!html){status.textContent='Stampa non disponibile: generare un report valido.';return}
   const popup=root.open('','_blank');if(!popup){status.textContent='Finestra di stampa bloccata dal browser.';return}
