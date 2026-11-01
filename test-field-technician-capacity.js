@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const capacity=require('./ite-field-technician-capacity.js');
+const catalog={operators:[{id:'T1',name:'Tecnico demo'},{id:'T2',name:'Tecnico B'}]};
+const jobs=[{id:'A',operatorId:'T1',startsAt:'2026-11-05T09:00:00+01:00',endsAt:'2026-11-05T10:00:00+01:00',status:'scheduled'},{id:'B',operatorId:'T1',startsAt:'2026-11-05T11:00:00+01:00',endsAt:'2026-11-05T12:30:00+01:00',status:'closed'}];
+const load=capacity.workload(catalog,jobs,'2026-11-05');
+assert.equal(load[0].count,2);
+assert.equal(load[0].busyMinutes,150);
+assert.equal(load[1].count,0);
+const free=capacity.slots(jobs,{day:'2026-11-05',operatorId:'T1',startHour:8,endHour:13});
+assert(free.some(x=>x.label==='08:00–09:00'));
+assert(!free.some(x=>x.label==='09:00–10:00'));
+assert.throws(()=>capacity.slots(jobs,{day:'2026-11-05',operatorId:'T1',durationMinutes:0}),/PARAMETRI/);
+console.log('PASS technician capacity and free slots');
