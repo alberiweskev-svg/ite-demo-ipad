@@ -26,6 +26,9 @@ function validate(catalog,appointments){
    extraIds.add(s(x.id));
    if(!['da_accettare','accettato','non_accettato','parzialmente_accettato'].includes(x.status))issues.push({id,code:'STATO_EXTRA_NON_VALIDO'});
    if(!Array.isArray(x.lines)||!x.lines.length)issues.push({id,code:'VOCI_EXTRA_MANCANTI'});
+   if(x.status==='parzialmente_accettato'&&!rows(x.lines).every(l=>Number.isFinite(l.acceptedQuantity)&&l.acceptedQuantity>=0&&l.acceptedQuantity<=l.quantity))issues.push({id,code:'APPROVAZIONE_PARZIALE_INCOMPLETA'});
+   if(x.status==='accettato'&&rows(x.lines).some(l=>l.acceptedQuantity!==undefined&&l.acceptedQuantity!==l.quantity))issues.push({id,code:'QUANTITA_ACCETTATA_INCOERENTE'});
+   if(x.status==='non_accettato'&&rows(x.lines).some(l=>l.acceptedQuantity!==undefined&&l.acceptedQuantity!==0))issues.push({id,code:'QUANTITA_RIFIUTATA_INCOERENTE'});
    for(const l of rows(x.lines)){
     const amount=Number(l.quantity)*Number(l.unitCents);
     if(!['FORNITURA','POSA','SMONTAGGIO','SMALTIMENTO'].includes(l.type)||!Number.isFinite(Number(l.quantity))||Number(l.quantity)<=0||!Number.isSafeInteger(Number(l.unitCents))||Number(l.unitCents)<0||!Number.isSafeInteger(Math.round(amount))||amount<0)issues.push({id,code:'VOCE_EXTRA_NON_VALIDA'});
