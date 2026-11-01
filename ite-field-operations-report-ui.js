@@ -59,6 +59,7 @@ function start(){
  const batchResult=document.createElement('div');batchResult.setAttribute('role','status');
  batchPanel.append(batchHeading,batchHelp,batchInput,batchPreviewButton,batchApplyButton,batchResult);
  editor.append(batchPanel);
+ const guidedBatch=root.ITEFieldGuidedBatch.mount({panel:batchPanel,input:batchInput,getData:()=>current});
  let pendingBatch=null;
  const invalidateBatch=()=>{pendingBatch=null;batchApplyButton.disabled=true;batchResult.textContent='Gruppo modificato: ripetere la verifica.'};
  batchInput.addEventListener('input',invalidateBatch);
@@ -106,7 +107,7 @@ function start(){
   if(!current)throw Error('CARICARE_PRIMA_UN_ARCHIVIO');
   const record=masterAction.value==='delete'?undefined:JSON.parse(masterJson.value);
   current=root.ITEFieldMasterRecords.apply(current,{action:masterAction.value,collection:masterType.value,id:masterId.value,record});
-  refreshGuided();render();
+  refreshGuided();guidedBatch.refresh();render();
  }catch(e){status.textContent='Anagrafica non aggiornata: '+String(e.message)}});
  const choose=(label)=>{const wrap=document.createElement('label');wrap.textContent=label;const select=document.createElement('select');wrap.append(select);return {wrap,select}};
  const guidedClient=choose('Cliente'),guidedSite=choose('Sede'),guidedSystem=choose('Impianto'),guidedEquipment=choose('Apparecchiatura'),guidedOperator=choose('Operatore');
