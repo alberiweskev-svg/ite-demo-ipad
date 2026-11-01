@@ -77,7 +77,7 @@ function start(){
  batchApplyButton.addEventListener('click',()=>{try{
   if(!pendingBatch||!current||JSON.stringify(current)!==pendingBatch.baseline||batchInput.value!==pendingBatch.input)throw Error('DATI_MODIFICATI_RIPETERE_VERIFICA');
   const next=root.ITEFieldWorkspace.batch(current,pendingBatch.operations);
-  current=next;dirtyGuard.markDirty?.(current);pendingBatch=null;batchApplyButton.disabled=true;render();batchResult.textContent='Gruppo applicato in memoria. Usare Salva archivio locale per conservarlo.';
+  current=next;pendingBatch=null;batchApplyButton.disabled=true;render();batchResult.textContent='Gruppo applicato in memoria. Usare Salva archivio locale per conservarlo.';
  }catch(e){pendingBatch=null;batchApplyButton.disabled=true;batchResult.textContent='Applicazione rifiutata: '+String(e.message)}});
  const extraId=field('extraId','Extra — ID');
  const extraDescription=field('extraDescription','Descrizione Extra');
