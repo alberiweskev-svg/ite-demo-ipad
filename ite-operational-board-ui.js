@@ -84,6 +84,17 @@ function refresh(){
      issues.append(article);
     }
    }
+   if(reconciliation.supplierQuantityAudit?.length){
+    const title=document.createElement('h3');title.textContent='Differenze quantità e prezzi fornitori';issues.append(title);
+    for(const audit of reconciliation.supplierQuantityAudit.slice(0,100)){
+     const article=document.createElement('article');article.className='item';
+     const name=document.createElement('strong');name.textContent='Fattura '+text(audit.invoiceId)+' · '+text(audit.status);article.append(name);
+     for(const difference of rows(audit.differences).slice(0,100)){
+      const p=document.createElement('p');p.textContent=text(difference.code)+' · '+text(difference.kind)+' · '+Object.entries(difference).filter(([k,v])=>k!=='code'&&k!=='kind'&&(typeof v==='number'||typeof v==='string')).map(([k,v])=>k+': '+v).join(' · ');article.append(p);
+     }
+     issues.append(article);
+    }
+   }
    for(const issue of reconciliation.issues.slice(0,100)){
     const p=document.createElement('p');p.className='item';p.textContent='Riconciliazione · '+text(issue.domain||issue.table)+' · '+text(issue.id)+' · '+text(issue.code||issue.type);issues.append(p);
    }
@@ -107,6 +118,39 @@ function download(type){
   $('ops-status').textContent='Esportazione interna preparata. Nessuna certificazione generata.';
  }catch(e){$('ops-status').textContent='Esportazione bloccata: '+e.message;}
 }
+function initSupplierWorkspace(){
+ const host=$('ops-issues');if(!host||!root.ITEProcurementReviewWorkspace||$('ops-supplier-workspace'))return;
+ const panel=document.createElement('section');panel.id='ops-supplier-workspace';panel.className='panel';
+ const title=document.createElement('h3');title.textContent='Revisione locale righe fornitore (anteprima senza salvataggio)';
+ const intro=document.createElement('p');intro.textContent='Incolla solo dati fittizi di prova. Nessun dato viene salvato o inserito automaticamente negli archivi.';
+ const type=document.createElement('select');for(const t of ['Preventivo fornitore','Offerta fornitore','Fattura acquisto'])type.add(new Option(t,t));
+ const id=document.createElement('input');id.placeholder='ID documento di prova';
+ const supplier=document.createElement('input');supplier.placeholder='ID fornitore di prova';
+ const raw=document.createElement('textarea');raw.rows=4;raw.placeholder='CODICE | QUANTITÀ | PREZZO | TOTALE (facoltativo)';
+ const manual=document.createElement('textarea');manual.rows=4;manual.placeholder='Correggi: CODICE | QUANTITÀ | PREZZO, una riga per articolo';
+ const operator=document.createElement('input');operator.placeholder='Operatore revisore (fittizio)';
+ const output=document.createElement('pre');output.style.whiteSpace='pre-wrap';
+ const stageButton=document.createElement('button');stageButton.type='button';stageButton.textContent='Prepara righe';
+ const validateButton=document.createElement('button');validateButton.type='button';validateButton.textContent='Valida correzioni';
+ const confirmButton=document.createElement('button');confirmButton.type='button';confirmButton.textContent='Conferma anteprima (non salvare)';
+ let workspace=null;
+ stageButton.addEventListener('click',()=>{try{
+  workspace=root.ITEProcurementReviewWorkspace.prepare({id:id.value,type:type.value,supplierId:supplier.value,text:raw.value});
+  manual.value=workspace.document.lines.map(x=>[x.code,x.qty,x.unitPrice].join(' | ')).join('\n');
+  output.textContent='Righe riconosciute: '+workspace.document.lines.length+'; scartate: '+workspace.rejected.length+'\n'+JSON.stringify({issues:workspace.issues,rejected:workspace.rejected},null,2);
+ }catch(e){output.textContent=e.message}});
+ validateButton.addEventListener('click',()=>{try{
+  if(!workspace)throw Error('Prepara prima il documento');
+  workspace=root.ITEProcurementReviewWorkspace.correct(workspace,root.ITEProcurementReviewWorkspace.parseManual(manual.value));
+  output.textContent=workspace.ready?'Righe valide. Puoi confermare l’anteprima.':'Correzioni necessarie: '+workspace.issues.join(', ');
+ }catch(e){output.textContent=e.message}});
+ confirmButton.addEventListener('click',()=>{try{
+  const confirmed=root.ITEProcurementReviewWorkspace.confirm(workspace,operator.value,new Date().toISOString());
+  output.textContent='Anteprima confermata, NON SALVATA: '+confirmed.id+' · '+confirmed.lines.length+' righe · operatore '+confirmed.review.operator;
+ }catch(e){output.textContent=e.message}});
+ for(const element of [title,intro,type,id,supplier,raw,stageButton,manual,operator,validateButton,confirmButton,output])panel.append(element);
+ host.parentElement.append(panel);
+}
 function init(){
  if(!$('ops-client')||!root.ITEOperationalBoard)return;
  $('ops-client').addEventListener('change',()=>{$('ops-site').value='';refresh()});
@@ -116,6 +160,7 @@ function init(){
  $('ops-a4').addEventListener('click',()=>download('a4'));
  root.addEventListener('ite-pagechange',e=>{if(e.detail?.id==='quadro-operativo')refresh()});
  root.addEventListener('ite-vault-ready',refresh);
+ initSupplierWorkspace();
  if(root.ITEVault?.isUnlocked())refresh();
 }
 if(typeof module!=='undefined'&&module.exports)module.exports={inputSignature};
