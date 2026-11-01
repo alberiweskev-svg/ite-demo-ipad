@@ -24,5 +24,6 @@ function mount(target){
  add.addEventListener('click',()=>{try{const s=Number(fields.supply.value),p=Number(fields.install.value);if(!fields.supply.value||!fields.install.value)throw Error('PREZZI_OBBLIGATORI');items=core.addPair(items,{id:'demo-'+(++counter),description:fields.description.value.trim(),supplyPrice:s,installationPrice:p});draw()}catch(e){output.textContent='Voce non aggiunta: '+e.message}});
  reset.addEventListener('click',()=>{items=[];counter=0;draw()});draw();return {element:wrap};
 }
-root.ITECommercialWorkbench=Object.freeze({mount});if(typeof module!=='undefined'&&module.exports)module.exports={mount};
+root.ITECommercialWorkbench=Object.freeze({mount});
+if(root.document){const boot=()=>{const target=document.getElementById('quadro-operativo');if(target&&!document.getElementById('ite-commercial-workbench'))mount(target)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();}if(typeof module!=='undefined'&&module.exports)module.exports={mount};
 })(typeof window!=='undefined'?window:globalThis);
