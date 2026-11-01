@@ -7,6 +7,7 @@ const bridge=typeof module!=='undefined'&&module.exports?require('./ite-procurem
 const prices=typeof module!=='undefined'&&module.exports?require('./ite-procurement-audit.js'):root.ITEProcurementAudit;
 const quantities=typeof module!=='undefined'&&module.exports?require('./ite-procurement-quantity-audit.js'):root.ITEProcurementQuantityAudit;
 const cumulative=typeof module!=='undefined'&&module.exports?require('./ite-procurement-cumulative-audit.js'):root.ITEProcurementCumulativeAudit;
+const settlement=typeof module!=='undefined'&&module.exports?require('./ite-procurement-cumulative-settlement.js'):root.ITEProcurementCumulativeSettlement;
 const gate=typeof module!=='undefined'&&module.exports?require('./ite-procurement-batch-gate.js'):root.ITEProcurementBatchGate;
 const str=v=>String(v??'').trim();
 function create(){return {documents:[],issues:[],readOnly:true,persisted:false}}
@@ -26,7 +27,7 @@ function inspect(session){
  // Both audit engines operate on explicit supplier/quote/article IDs only.
  const priceResult=prices.analyze(q,i);
  const quantityResult=quantities.audit(q,i);
- return {documents:session.documents.length,quotes:q.length,invoices:i.length,issues:extracted.issues,priceResult,quantityResult,batchReview:gate.buildReport(session.documents),cumulativeResult:cumulative.analyze(session.documents),readOnly:true,persisted:false};
+ return {documents:session.documents.length,quotes:q.length,invoices:i.length,issues:extracted.issues,priceResult,quantityResult,batchReview:gate.buildReport(session.documents),cumulativeResult:cumulative.analyze(session.documents),settlementResult:settlement.inspect(session.documents),readOnly:true,persisted:false};
 }
 function exportReviewed(session){return gate.exportSnapshot(session.documents)}
 function importReviewed(snapshot){const restored=gate.importSnapshot(snapshot);return {documents:restored.documents,issues:[],readOnly:true,persisted:false}}
