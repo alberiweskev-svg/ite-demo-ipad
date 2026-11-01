@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),p=require('./ite-field-persistence.js');
+const data={catalog:{clients:[{id:'C'}],sites:[{id:'S',clientId:'C'}],systems:[{id:'I',siteId:'S'}],equipment:[{id:'E',systemId:'I'}],operators:[{id:'O',active:true}]},appointments:[]};
+let locked=false;const records=new Map();
+const vault={isUnlocked:()=>!locked,storage:{getItem:key=>records.has(key)?records.get(key):null,setItem:(key,value)=>records.set(key,value),removeItem:key=>records.delete(key)}};
+assert.equal(p.load(vault),null);
+assert.equal(p.save(data,vault).saved,true);
+assert.deepEqual(p.load(vault),data);
+locked=true;
+assert.throws(()=>p.save(data,vault),/BLOCCATO/);
+assert.throws(()=>p.load(vault),/BLOCCATO/);
+locked=false;records.set(p.KEY,'not-json');
+assert.throws(()=>p.load(vault),/NON_LEGGIBILE/);
+records.set(p.KEY,JSON.stringify({schema:'ITE_FIELD_WORKSPACE_V1',readOnlyImport:true,catalog:{},appointments:[]}));
+assert.throws(()=>p.load(vault),/ARCHIVIO_CON_ANOMALIE/);
+assert.equal(p.clear(vault).cleared,true);
+assert.equal(p.load(vault),null);
+console.log('PASS field persistence save load lock corruption clear');
