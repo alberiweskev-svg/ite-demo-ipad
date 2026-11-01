@@ -18,6 +18,43 @@ function start(){
  const exportButton=document.createElement('button');exportButton.type='button';exportButton.textContent='Esporta workspace JSON';
  for(const element of [appointmentId,operator,at,action,apply,exportButton])controls.append(element);
  target.parentElement.insertBefore(controls,target);
+ const editor=document.createElement('div');editor.className='grid';
+ const field=(name,label,type='text')=>{const wrap=document.createElement('label');wrap.textContent=label;const el=document.createElement('input');el.type=type;el.dataset.field=name;wrap.append(el);editor.append(wrap);return el};
+ const scheduleId=field('id','Nuovo appuntamento — ID');
+ const clientId=field('clientId','Cliente — ID');
+ const siteId=field('siteId','Sede — ID');
+ const systemId=field('systemId','Impianto — ID');
+ const equipmentId=field('equipmentId','Apparecchiatura — ID');
+ const scheduleOperator=field('operatorId','Tecnico — ID');
+ const kind=field('kind','Tipologia');
+ const startsAt=field('startsAt','Inizio','datetime-local');
+ const endsAt=field('endsAt','Fine','datetime-local');
+ const scheduleButton=document.createElement('button');scheduleButton.type='button';scheduleButton.textContent='Programma appuntamento in anteprima';
+ const extraId=field('extraId','Extra — ID');
+ const extraDescription=field('extraDescription','Descrizione Extra');
+ const extraCategory=field('extraCategory','Categoria Extra');
+ const supplyDescription=field('supplyDescription','Descrizione fornitura');
+ const supplyAmount=field('supplyAmount','Fornitura €','number');supplyAmount.min='0';supplyAmount.step='0.01';
+ const laborDescription=field('laborDescription','Descrizione posa');
+ const laborAmount=field('laborAmount','Posa €','number');laborAmount.min='0';laborAmount.step='0.01';
+ const addExtraButton=document.createElement('button');addExtraButton.type='button';addExtraButton.textContent='Aggiungi Extra in anteprima';
+ const decisionId=field('decisionId','ID Extra da approvare');
+ const decision=document.createElement('select');for(const [value,label] of [['accettato','Accettato'],['non_accettato','Non accettato'],['parzialmente_accettato','Parzialmente accettato']])decision.add(new Option(label,value));
+ const decideButton=document.createElement('button');decideButton.type='button';decideButton.textContent='Registra decisione Extra';
+ for(const element of [scheduleButton,addExtraButton,decision,decideButton])editor.append(element);
+ controls.after(editor);
+ const localISO=value=>{if(!value)throw Error('DATA_ORA_OBBLIGATORIA');const d=new Date(value);if(!Number.isFinite(d.getTime()))throw Error('DATA_ORA_NON_VALIDA');return d.toISOString()};
+ const cents=value=>{const v=Number(value);if(!Number.isFinite(v)||v<0||!Number.isSafeInteger(Math.round(v*100))||Math.abs(v*100-Math.round(v*100))>1e-6)throw Error('PREZZO_NON_VALIDO');return Math.round(v*100)};
+ const applyOperation=op=>{if(!current)throw Error('CARICARE_PRIMA_UN_ARCHIVIO');current=root.ITEFieldWorkspace.apply(current,op);render()};
+ scheduleButton.addEventListener('click',()=>{try{applyOperation({type:'schedule',appointment:{id:scheduleId.value,clientId:clientId.value,siteId:siteId.value,systemId:systemId.value,equipmentId:equipmentId.value,operatorId:scheduleOperator.value,kind:kind.value,startsAt:localISO(startsAt.value),endsAt:localISO(endsAt.value)}})}catch(e){status.textContent='Programmazione rifiutata: '+String(e.message)}});
+ addExtraButton.addEventListener('click',()=>{try{
+  const lines=[];if(supplyDescription.value.trim())lines.push({type:'FORNITURA',description:supplyDescription.value,quantity:1,unitCents:cents(supplyAmount.value)});
+  if(laborDescription.value.trim())lines.push({type:'POSA',description:laborDescription.value,quantity:1,unitCents:cents(laborAmount.value)});
+  if(!lines.length)throw Error('FORNITURA_O_POSA_OBBLIGATORIA');
+  applyOperation({type:'addExtra',id:appointmentId.value,operatorId:operator.value,at:localISO(at.value),payload:{extra:{id:extraId.value,description:extraDescription.value,category:extraCategory.value,lines}}});
+ }catch(e){status.textContent='Extra rifiutato: '+String(e.message)}});
+ decideButton.addEventListener('click',()=>{try{applyOperation({type:'decideExtra',id:appointmentId.value,operatorId:operator.value,at:localISO(at.value),payload:{id:decisionId.value,status:decision.value}})}catch(e){status.textContent='Decisione rifiutata: '+String(e.message)}});
+
  apply.addEventListener('click',()=>{
   try{
    if(!current)throw Error('CARICARE_PRIMA_UN_ARCHIVIO');
