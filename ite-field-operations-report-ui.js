@@ -17,9 +17,11 @@ function start(){
  for(const [value,label] of [['','Tutti gli stati'],['scheduled','Programmato'],['in_progress','In corso'],['closed','Chiuso'],['revision','In revisione'],['cancelled','Annullato']])calendarStatus.add(new Option(label,value));
  const calendarPrint=document.createElement('button');calendarPrint.type='button';calendarPrint.textContent='Stampa calendario';
  const calendarQuickAdd=document.createElement('button');calendarQuickAdd.type='button';calendarQuickAdd.textContent='Nuovo appuntamento nel giorno selezionato';
+ const slotPicker=document.createElement('select');slotPicker.setAttribute('aria-label','Fascia oraria disponibile');
+ const capacityTarget=document.createElement('div');capacityTarget.setAttribute('aria-label','Carico tecnici nel giorno');
  const calendarTarget=document.createElement('div');calendarTarget.className='ite-field-calendar';calendarTarget.setAttribute('aria-label','Calendario interventi');
- calendarControls.append(calendarMode,calendarDate,calendarPrevious,calendarNext,calendarStatus,calendarPrint,calendarQuickAdd);
- target.parentElement.insertBefore(calendarControls,target);calendarControls.after(calendarTarget);
+ calendarControls.append(calendarMode,calendarDate,calendarPrevious,calendarNext,calendarStatus,calendarPrint,calendarQuickAdd,slotPicker);
+ target.parentElement.insertBefore(calendarControls,target);calendarControls.after(capacityTarget,calendarTarget);
  const demoCatalog={clients:[{id:'DEMO-C',name:'Cliente dimostrativo'}],sites:[{id:'DEMO-S',clientId:'DEMO-C',address:'Via Esempio 1'}],systems:[{id:'DEMO-I',siteId:'DEMO-S'}],equipment:[{id:'DEMO-E',systemId:'DEMO-I',name:'Caldaia demo'}],operators:[{id:'DEMO-O',name:'Tecnico demo',active:true}]};
  const demoItem={id:'DEMO-A',clientId:'DEMO-C',siteId:'DEMO-S',systemId:'DEMO-I',equipmentId:'DEMO-E',operatorId:'DEMO-O',kind:'Manutenzione',startsAt:'2026-11-02T09:00:00+01:00',endsAt:'2026-11-02T10:00:00+01:00'};
  let current=null,html='';
@@ -96,7 +98,7 @@ function start(){
   populate(guidedOperator.select,catalog.operators.filter(x=>x.active!==false),'operatore');
  }
  const syncGuided=()=>{clientId.value=guidedClient.select.value;siteId.value=guidedSite.select.value;systemId.value=guidedSystem.select.value;equipmentId.value=guidedEquipment.select.value;scheduleOperator.value=guidedOperator.select.value};
- for(const item of [guidedClient,guidedSite,guidedSystem,guidedEquipment,guidedOperator])item.select.addEventListener('change',()=>{refreshGuided();syncGuided()});
+ for(const item of [guidedClient,guidedSite,guidedSystem,guidedEquipment,guidedOperator])item.select.addEventListener('change',()=>{refreshGuided();syncGuided();refreshCapacity()});
  const dashboardPanel=document.createElement('section');dashboardPanel.className='ite-field-dashboard';
  const dashboardTitle=document.createElement('h3');dashboardTitle.textContent='Riepilogo interventi e storico';
  const dashboardTotals=document.createElement('p');
@@ -202,6 +204,17 @@ function start(){
   const style=popup.document.createElement('style');style.textContent='body{font:12px sans-serif;margin:16px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #aaa;padding:5px;text-align:left}';popup.document.head.append(style);
   popup.document.body.append(popup.document.importNode(printable,true));popup.focus();popup.print();
  });
+ const refreshCapacity=()=>{
+  slotPicker.replaceChildren(new Option('Seleziona fascia disponibile',''));
+  capacityTarget.replaceChildren();if(!current)return;
+  const technicianId=guidedOperator.select.value||filter.value;
+  const load=root.ITEFieldTechnicianCapacity.workload(current.catalog,current.appointments,calendarDate.value);
+  const heading=document.createElement('strong');heading.textContent='Carico tecnici '+calendarDate.value;capacityTarget.append(heading);
+  const summary=document.createElement('div');summary.style.display='flex';summary.style.flexWrap='wrap';summary.style.gap='8px';
+  for(const tech of load){const item=document.createElement('span');item.textContent=tech.name+': '+tech.count+' interventi / '+tech.busyMinutes+' min';item.style.padding='5px';item.style.border='1px solid #aaa';if(/^#[0-9a-fA-F]{6}$/.test(tech.color||''))item.style.borderLeft='5px solid '+tech.color;summary.append(item)}capacityTarget.append(summary);
+  if(technicianId){for(const slot of root.ITEFieldTechnicianCapacity.slots(current.appointments,{day:calendarDate.value,operatorId:technicianId}))slotPicker.add(new Option(slot.label,JSON.stringify(slot)))}
+ };
+ slotPicker.addEventListener('change',()=>{if(!slotPicker.value)return;const slot=JSON.parse(slotPicker.value);const local=value=>{const d=new Date(value);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};startsAt.value=local(slot.startsAt);endsAt.value=local(slot.endsAt);scheduleOperator.value=guidedOperator.select.value||filter.value;status.textContent='Fascia disponibile selezionata: '+slot.label});
  const renderCalendar=()=>{
   calendarTarget.replaceChildren();
   if(!current)return;
@@ -228,7 +241,7 @@ function start(){
    });
    grid.append(cell);
   }
-  calendarTarget.append(grid);
+  calendarTarget.append(grid);refreshCapacity();
  };
  for(const el of [calendarMode,calendarDate,calendarStatus])el.addEventListener('change',renderCalendar);
  calendarPrevious.addEventListener('click',()=>{calendarDate.value=root.ITEFieldCalendarViews.shift(calendarMode.value,calendarDate.value,-1);renderCalendar()});
