@@ -5,18 +5,20 @@
 const review=typeof module!=='undefined'&&module.exports?require('./ite-procurement-review.js'):root.ITEProcurementReview;
 const str=v=>String(v??'').trim();
 const types=new Set(['Preventivo fornitore','Offerta fornitore','Fattura acquisto']);
+const validTimestamp=v=>typeof v==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d/.test(v)&&Number.isFinite(Date.parse(v));
 function validateBatch(documents){
  if(!Array.isArray(documents))throw Error('Elenco documenti non valido');
  const issues=[],ids=new Set(),quotes=new Map(),invoices=[];
  for(const [i,doc] of documents.entries()){
   const id=str(doc?.id),supplier=str(doc?.supplierId),type=str(doc?.type),prefix='DOCUMENT:'+i+':';
   if(!id||ids.has(id))issues.push(prefix+'ID_MISSING_OR_DUPLICATE');
+  if(id&&ids.has(id))issues.push(prefix+'DUPLICATE_DOCUMENT_ID');
   if(id)ids.add(id);
   if(!types.has(type))issues.push(prefix+'TYPE_UNSUPPORTED');
   const validation=review.validate(doc);
   validation.issues.forEach(issue=>issues.push(prefix+issue));
-  if(review.needsReview(doc)||doc?.review?.status!=='confirmed'||!str(doc?.review?.operator)||!str(doc?.review?.reviewedAt))issues.push(prefix+'NOT_MANUALLY_CONFIRMED');
-  if(type==='Preventivo fornitore'||type==='Offerta fornitore')quotes.set(id,{doc,index:i});
+  if(review.needsReview(doc)||doc?.review?.status!=='confirmed'||!str(doc?.review?.operator)||!validTimestamp(doc?.review?.reviewedAt))issues.push(prefix+'NOT_MANUALLY_CONFIRMED');
+  if((type==='Preventivo fornitore'||type==='Offerta fornitore')&&id&&!quotes.has(id))quotes.set(id,{doc,index:i});
   if(type==='Fattura acquisto')invoices.push({doc,index:i,supplier});
  }
  for(const {doc,index,supplier} of invoices){
@@ -25,6 +27,7 @@ function validateBatch(documents){
   const quote=quotes.get(link);
   if(!quote){issues.push(prefix+'QUOTE_NOT_FOUND');continue}
   if(str(quote.doc.supplierId)!==supplier)issues.push(prefix+'SUPPLIER_MISMATCH');
+  if(link===str(doc.id))issues.push(prefix+'SELF_REFERENCE');
  }
  return {valid:issues.length===0,issues,documentCount:documents.length,quoteCount:quotes.size,invoiceCount:invoices.length};
 }
