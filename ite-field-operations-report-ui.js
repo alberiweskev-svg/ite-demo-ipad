@@ -47,6 +47,21 @@ function start(){
  const decideButton=document.createElement('button');decideButton.type='button';decideButton.textContent='Registra decisione Extra';
  for(const element of [scheduleButton,addExtraButton,decision,decideButton])editor.append(element);
  controls.after(editor);
+ const masterPanel=document.createElement('div');masterPanel.className='actions';
+ const masterType=document.createElement('select');
+ for(const [key,label] of [['clients','Cliente'],['sites','Sede'],['systems','Impianto'],['equipment','Apparecchiatura'],['operators','Operatore']])masterType.add(new Option(label,key));
+ const masterAction=document.createElement('select');
+ for(const [key,label] of [['create','Nuovo'],['update','Modifica'],['delete','Elimina']])masterAction.add(new Option(label,key));
+ const masterId=document.createElement('input');masterId.placeholder='ID anagrafica';masterId.setAttribute('aria-label','ID anagrafica');
+ const masterJson=document.createElement('textarea');masterJson.placeholder='Dati record JSON (es. {"name":"Cliente demo"})';masterJson.setAttribute('aria-label','Dati anagrafica JSON');
+ const masterApply=document.createElement('button');masterApply.type='button';masterApply.textContent='Applica modifica anagrafica';
+ masterPanel.append(masterType,masterAction,masterId,masterJson,masterApply);editor.after(masterPanel);
+ masterApply.addEventListener('click',()=>{try{
+  if(!current)throw Error('CARICARE_PRIMA_UN_ARCHIVIO');
+  const record=masterAction.value==='delete'?undefined:JSON.parse(masterJson.value);
+  current=root.ITEFieldMasterRecords.apply(current,{action:masterAction.value,collection:masterType.value,id:masterId.value,record});
+  render();
+ }catch(e){status.textContent='Anagrafica non aggiornata: '+String(e.message)}});
  const localISO=value=>{if(!value)throw Error('DATA_ORA_OBBLIGATORIA');const d=new Date(value);if(!Number.isFinite(d.getTime()))throw Error('DATA_ORA_NON_VALIDA');return d.toISOString()};
  const cents=value=>{const v=Number(value);if(!Number.isFinite(v)||v<0||!Number.isSafeInteger(Math.round(v*100))||Math.abs(v*100-Math.round(v*100))>1e-6)throw Error('PREZZO_NON_VALIDO');return Math.round(v*100)};
  const applyOperation=op=>{if(!current)throw Error('CARICARE_PRIMA_UN_ARCHIVIO');current=root.ITEFieldWorkspace.apply(current,op);render()};
