@@ -12,6 +12,17 @@ function reviseTimes(a,operatorId,at,changes){if(a.status!=='revision')throw Err
 function finishRevision(a,operatorId,at){if(a.status!=='revision')throw Error('REVISIONE_NON_APERTA');const n=event(a,'REVISION_CLOSED',operatorId,at);n.status='closed';return n;}
 function addExtra(a,x,operatorId,at){if(!['in_progress','revision'].includes(a.status))throw Error('EXTRA_NON_CONSENTITO');const id=required(x?.id,'ID_EXTRA');if(a.extraWorks.some(e=>e.id===id))throw Error('EXTRA_DUPLICATO');if(!Array.isArray(x.lines)||!x.lines.length)throw Error('VOCI_MANCANTI');const lines=x.lines.map(l=>{if(!['FORNITURA','POSA','SMONTAGGIO','SMALTIMENTO'].includes(l.type))throw Error('TIPO_VOCE_NON_VALIDO');const qty=Number(l.quantity),unitCents=Number(l.unitCents);if(!Number.isFinite(qty)||qty<=0||!Number.isSafeInteger(unitCents)||unitCents<0)throw Error('IMPORTO_NON_VALIDO');return {type:l.type,description:required(l.description,'VOCE'),quantity:qty,unitCents};});const n=event(a,'EXTRA_ADDED',operatorId,at,{extraId:id});n.extraWorks.push({id,description:required(x.description,'DESCRIZIONE'),category:required(x.category,'CATEGORIA'),lines,status:'da_accettare'});return n;}
 function decideExtra(a,id,status,operatorId,at){if(!['accettato','non_accettato'].includes(status))throw Error('STATO_NON_VALIDO');const n=event(a,'EXTRA_DECIDED',operatorId,at,{extraId:id,status});const x=n.extraWorks.find(e=>e.id===id);if(!x)throw Error('EXTRA_INESISTENTE');x.status=status;x.lines.forEach(l=>{l.acceptedQuantity=status==='accettato'?l.quantity:0});return n;}
+function approveLines(a,id,quantities,operatorId,at){
+ const extra=a.extraWorks.find(x=>x.id===id);
+ if(!extra||extra.status!=='da_accettare')throw Error('EXTRA_NON_APPROVABILE');
+ if(!Array.isArray(quantities)||quantities.length!==extra.lines.length)throw Error('QUANTITA_MANCANTI');
+ const approved=quantities.map((v,i)=>{const q=Number(v);if(!Number.isFinite(q)||q<0||q>extra.lines[i].quantity)throw Error('QUANTITA_NON_VALIDA');return q});
+ const all=approved.every((q,i)=>q===extra.lines[i].quantity),none=approved.every(q=>q===0);
+ const status=all?'accettato':none?'non_accettato':'parzialmente_accettato';
+ const next=event(a,'EXTRA_LINES_APPROVED',operatorId,at,{extraId:id,status,quantities:copy(approved)});
+ const target=next.extraWorks.find(x=>x.id===id);target.status=status;
+ target.lines.forEach((line,i)=>{line.acceptedQuantity=approved[i]});return next;
+}
 function summary(a){return {appointmentId:a.id,status:a.status,operatorId:a.operatorId,minutes:a.visits.reduce((sum,v)=>sum+(v.leftAt?Math.round((Date.parse(v.leftAt)-Date.parse(v.arrivedAt))/60000):0),0),visits:a.visits.length,extraCount:a.extraWorks.length,revision:a.revision,readOnly:true};}
-const api=Object.freeze({appointment,arrive,close,reopen,reviseTimes,finishRevision,addExtra,decideExtra,summary});root.ITEFieldWorkflow=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
+const api=Object.freeze({appointment,arrive,close,reopen,reviseTimes,finishRevision,addExtra,decideExtra,approveLines,summary});root.ITEFieldWorkflow=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
