@@ -221,6 +221,11 @@ function start(){
     item.addEventListener('click',()=>{appointmentId.value=appointment.id;operator.value=appointment.operatorId;at.value=appointment.startsAt.slice(0,16)});
     cell.append(item);
    }
+   cell.addEventListener('dblclick',event=>{
+    if(event.target.closest('button'))return;
+    calendarDate.value=day.date;startsAt.value=day.date+'T09:00';endsAt.value=day.date+'T10:00';
+    scheduleId.focus();status.textContent='Nuovo appuntamento predisposto per '+day.date;
+   });
    grid.append(cell);
   }
   calendarTarget.append(grid);
