@@ -5,6 +5,19 @@ function start(){
  const byId=id=>document.getElementById(id);
  const show=byId('field-report-demo'),upload=byId('field-report-import'),filter=byId('field-report-operator'),clear=byId('field-report-clear'),print=byId('field-report-print'),status=byId('field-report-status'),target=byId('field-report-result');
  if(!show||!upload||!filter||!clear||!print||!status||!target)return;
+ const calendarControls=document.createElement('div');calendarControls.className='actions';
+ const calendarMode=document.createElement('select');calendarMode.setAttribute('aria-label','Vista calendario');
+ for(const [value,label] of [['day','Giorno'],['week','Settimana'],['month','Mese']])calendarMode.add(new Option(label,value));
+ calendarMode.value='week';
+ const calendarDate=document.createElement('input');calendarDate.type='date';calendarDate.setAttribute('aria-label','Data calendario');
+ const now=new Date();calendarDate.value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+ const calendarPrevious=document.createElement('button');calendarPrevious.type='button';calendarPrevious.textContent='Periodo precedente';
+ const calendarNext=document.createElement('button');calendarNext.type='button';calendarNext.textContent='Periodo successivo';
+ const calendarStatus=document.createElement('select');calendarStatus.setAttribute('aria-label','Filtra stato appuntamenti');
+ for(const [value,label] of [['','Tutti gli stati'],['scheduled','Programmato'],['in_progress','In corso'],['closed','Chiuso'],['revision','In revisione'],['cancelled','Annullato']])calendarStatus.add(new Option(label,value));
+ const calendarTarget=document.createElement('div');calendarTarget.className='ite-field-calendar';calendarTarget.setAttribute('aria-label','Calendario interventi');
+ calendarControls.append(calendarMode,calendarDate,calendarPrevious,calendarNext,calendarStatus);
+ target.parentElement.insertBefore(calendarControls,target);calendarControls.after(calendarTarget);
  const demoCatalog={clients:[{id:'DEMO-C',name:'Cliente dimostrativo'}],sites:[{id:'DEMO-S',clientId:'DEMO-C',address:'Via Esempio 1'}],systems:[{id:'DEMO-I',siteId:'DEMO-S'}],equipment:[{id:'DEMO-E',systemId:'DEMO-I',name:'Caldaia demo'}],operators:[{id:'DEMO-O',name:'Tecnico demo',active:true}]};
  const demoItem={id:'DEMO-A',clientId:'DEMO-C',siteId:'DEMO-S',systemId:'DEMO-I',equipmentId:'DEMO-E',operatorId:'DEMO-O',kind:'Manutenzione',startsAt:'2026-11-02T09:00:00+01:00',endsAt:'2026-11-02T10:00:00+01:00'};
  let current=null,html='';
@@ -162,10 +175,36 @@ function start(){
   status.textContent='Copia locale eliminata; anteprima corrente invariata.';
  }catch(e){status.textContent='Eliminazione rifiutata: '+String(e.message)}});
  const reset=()=>{current=null;dirtyGuard.reset();html='';target.textContent='';filter.replaceChildren(new Option('Tutti gli operatori',''));upload.value='';status.textContent='Anteprima cancellata dalla memoria della pagina.';};
+ const renderCalendar=()=>{
+  calendarTarget.replaceChildren();
+  if(!current)return;
+  const result=root.ITEFieldCalendarViews.view(current.appointments,{mode:calendarMode.value,anchor:calendarDate.value,operatorId:filter.value||undefined,status:calendarStatus.value||undefined});
+  const title=document.createElement('h3');title.textContent='Calendario '+result.startDay+' — '+result.endExclusive+' ('+result.total+' appuntamenti)';
+  calendarTarget.append(title);
+  const grid=document.createElement('div');grid.style.display='grid';grid.style.gridTemplateColumns='repeat(auto-fit,minmax(145px,1fr))';grid.style.gap='8px';
+  for(const day of result.days){
+   const cell=document.createElement('section');cell.style.border='1px solid #aaa';cell.style.padding='8px';
+   const heading=document.createElement('strong');heading.textContent=day.date;cell.append(heading);
+   for(const appointment of day.appointments){
+    const item=document.createElement('button');item.type='button';item.style.display='block';item.style.width='100%';item.style.textAlign='left';
+    const technician=current.catalog.operators.find(x=>x.id===appointment.operatorId);
+    const client=current.catalog.clients.find(x=>x.id===appointment.clientId);
+    item.textContent=new Date(appointment.startsAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})+' '+(client?.name||appointment.clientId)+' — '+(technician?.name||appointment.operatorId);
+    if(technician?.color&&/^#[0-9a-fA-F]{6}$/.test(technician.color))item.style.borderLeft='5px solid '+technician.color;
+    item.addEventListener('click',()=>{appointmentId.value=appointment.id;operator.value=appointment.operatorId;at.value=appointment.startsAt.slice(0,16)});
+    cell.append(item);
+   }
+   grid.append(cell);
+  }
+  calendarTarget.append(grid);
+ };
+ for(const el of [calendarMode,calendarDate,calendarStatus])el.addEventListener('change',renderCalendar);
+ calendarPrevious.addEventListener('click',()=>{calendarDate.value=root.ITEFieldCalendarViews.shift(calendarMode.value,calendarDate.value,-1);renderCalendar()});
+ calendarNext.addEventListener('click',()=>{calendarDate.value=root.ITEFieldCalendarViews.shift(calendarMode.value,calendarDate.value,1);renderCalendar()});
  function render(){
   if(!current){status.textContent='Caricare un JSON locale oppure utilizzare la dimostrazione.';return}
   const result=root.ITEFieldOperationsReport.report(current.catalog,current.appointments,{operatorId:filter.value||undefined});
-  html=result.printReady?result.html:'';target.innerHTML=result.html;
+  html=result.printReady?result.html:'';target.innerHTML=result.html;renderCalendar();
   renderDashboard();
   const skipped=current.skippedLegacyAppointments||0;
   status.textContent='Appuntamenti: '+result.entries.length+'; anomalie: '+result.issues.length+'; record incompatibili esclusi: '+skipped+'. '+(result.printReady?'Stampa disponibile.':'Stampa disabilitata: verificare i dati.');
