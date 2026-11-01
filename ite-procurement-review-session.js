@@ -22,8 +22,8 @@ function inspect(session){
  const extracted=bridge.extract({documents:session.documents});
  const q=extracted.quotes,i=extracted.invoices;
  // Both audit engines operate on explicit supplier/quote/article IDs only.
- const priceResult=prices.inspect?prices.inspect(q,i):null;
- const quantityResult=quantities.inspect?quantities.inspect(q,i):null;
+ const priceResult=prices.analyze(q,i);
+ const quantityResult=quantities.audit(q,i);
  return {documents:session.documents.length,quotes:q.length,invoices:i.length,issues:extracted.issues,priceResult,quantityResult,readOnly:true,persisted:false};
 }
 const api=Object.freeze({create,add,inspect});
