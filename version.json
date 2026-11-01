@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 50 parziale (2026-11-01): pianificazione appuntamenti multipli in anteprima atomica, diagnostica conflitti operatore, carico percentuale su 8 ore in Agenda, test sintetici e integrazione demo. Commit salvati; CI e Safari/iPad non ancora verificati. Non pubblicata. Versioni operative precedenti invariate."
+  "notes": "Milestone 51 parziale (2026-11-01): pannello integrato di pianificazione multipla JSON con verifica atomica, applicazione in memoria e protezione da modifiche successive; test di integrazione con rollback. CI e Safari/iPad non verificati. Nessuna pubblicazione; 3.0.74 e 2.7.5 invariati."
 }
