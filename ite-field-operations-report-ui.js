@@ -82,6 +82,27 @@ function start(){
  }
  const syncGuided=()=>{clientId.value=guidedClient.select.value;siteId.value=guidedSite.select.value;systemId.value=guidedSystem.select.value;equipmentId.value=guidedEquipment.select.value;scheduleOperator.value=guidedOperator.select.value};
  for(const item of [guidedClient,guidedSite,guidedSystem,guidedEquipment,guidedOperator])item.select.addEventListener('change',()=>{refreshGuided();syncGuided()});
+ const dashboardPanel=document.createElement('section');dashboardPanel.className='ite-field-dashboard';
+ const dashboardTitle=document.createElement('h3');dashboardTitle.textContent='Riepilogo interventi e storico';
+ const dashboardTotals=document.createElement('p');
+ const historySelect=document.createElement('select');historySelect.setAttribute('aria-label','Filtra storico per apparecchiatura');
+ const historyList=document.createElement('ul');
+ dashboardPanel.append(dashboardTitle,dashboardTotals,historySelect,historyList);
+ masterPanel.after(dashboardPanel);
+ historySelect.addEventListener('change',()=>renderDashboard());
+ function renderDashboard(){
+  dashboardTotals.textContent='';historyList.replaceChildren();
+  if(!current){historySelect.replaceChildren();return}
+  const summary=root.ITEFieldDashboard.build(current);
+  const money=c=>(c/100).toFixed(2)+' €';
+  dashboardTotals.textContent='Appuntamenti: '+summary.totals.appointments+' | Minuti intervento: '+summary.totals.minutes+' | Fornitura: '+money(summary.totals.FORNITURA)+' | Posa: '+money(summary.totals.POSA)+' | Smontaggio: '+money(summary.totals.SMONTAGGIO)+' | Smaltimento: '+money(summary.totals.SMALTIMENTO)+' | Extra accettati: '+money(summary.totals.totalCents);
+  const selected=historySelect.value;
+  historySelect.replaceChildren(new Option('Tutte le apparecchiature',''));
+  for(const item of current.catalog.equipment)historySelect.add(new Option(item.name||item.model||item.id,item.id));
+  if([...historySelect.options].some(x=>x.value===selected))historySelect.value=selected;
+  const records=historySelect.value?summary.byEquipment[historySelect.value]||[]:Object.values(summary.byEquipment).flat().sort((a,b)=>Date.parse(b.startsAt)-Date.parse(a.startsAt));
+  for(const entry of records.slice(0,100)){const li=document.createElement('li');li.textContent=entry.startsAt+' | '+entry.id+' | '+entry.kind+' | '+entry.status+' | '+entry.minutes+' min | Extra '+money(entry.extraCents);historyList.append(li)}
+ }
  const localISO=value=>{if(!value)throw Error('DATA_ORA_OBBLIGATORIA');const d=new Date(value);if(!Number.isFinite(d.getTime()))throw Error('DATA_ORA_NON_VALIDA');return d.toISOString()};
  const cents=value=>{const v=Number(value);if(!Number.isFinite(v)||v<0||!Number.isSafeInteger(Math.round(v*100))||Math.abs(v*100-Math.round(v*100))>1e-6)throw Error('PREZZO_NON_VALIDO');return Math.round(v*100)};
  const applyOperation=op=>{if(!current)throw Error('CARICARE_PRIMA_UN_ARCHIVIO');current=root.ITEFieldWorkspace.apply(current,op);render()};
@@ -145,6 +166,7 @@ function start(){
   if(!current){status.textContent='Caricare un JSON locale oppure utilizzare la dimostrazione.';return}
   const result=root.ITEFieldOperationsReport.report(current.catalog,current.appointments,{operatorId:filter.value||undefined});
   html=result.printReady?result.html:'';target.innerHTML=result.html;
+  renderDashboard();
   const skipped=current.skippedLegacyAppointments||0;
   status.textContent='Appuntamenti: '+result.entries.length+'; anomalie: '+result.issues.length+'; record incompatibili esclusi: '+skipped+'. '+(result.printReady?'Stampa disponibile.':'Stampa disabilitata: verificare i dati.');
  }
