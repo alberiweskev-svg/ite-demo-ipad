@@ -13,6 +13,7 @@ function apply(data,operation){
  const next=open(data.catalog,data.appointments),op=operation||{};
  if(op.type==='schedule')next.appointments=planning.schedule(next.catalog,next.appointments,op.appointment);
  else if(['arrive','close','reopen','reviseTimes','finishRevision','addExtra','decideExtra','approveLines'].includes(op.type))next.appointments=planning.transition(next.appointments,op.id,op.type,op.operatorId,op.at,op.payload);
+ else if(op.type==='masterRecord')return (root.ITEFieldMasterRecords||(typeof require==='function'?require('./ite-field-master-records.js'):null)).apply(next,op.payload);
  else throw Error('OPERAZIONE_NON_SUPPORTATA');
  const check=report.validate(next.catalog,next.appointments);
  if(!check.valid)throw Error('OPERAZIONE_NON_VALIDA:'+check.issues.map(x=>x.code).join(','));
