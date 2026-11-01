@@ -1,0 +1,28 @@
+/* Synthetic data only. Run: node test-procurement-cumulative-audit.js */
+'use strict';
+const assert=require('node:assert/strict');
+const audit=require('./ite-procurement-cumulative-audit.js');
+const reviewed={status:'confirmed',operator:'Operatore Test',reviewedAt:'2026-11-01T07:00:00'};
+const quote={id:'Q-TEST',type:'Preventivo fornitore',supplierId:'SUP-FAKE',review:reviewed,lines:[{code:'TUBO-TEST',qty:10,unitPrice:12.5},{code:'RACCORDO-TEST',qty:2,unitPrice:5}]};
+const invoice=(id,qty,extra=false)=>({id,type:'Fattura acquisto',supplierId:'SUP-FAKE',supplierQuoteId:'Q-TEST',review:reviewed,lines:[{code:extra?'EXTRA-TEST':'TUBO-TEST',qty,unitPrice:12.5}]});
+let r=audit.analyze([quote,invoice('F-1',4),invoice('F-2',6)]);
+assert.equal(r.valid,true);
+assert.equal(r.records[0].articles[0].invoicedQty,10);
+assert.equal(r.records[0].articles[0].remainingQty,0);
+assert.equal(r.records[0].articles[0].invoicedCents,12500);
+assert.equal(r.records[0].articles[0].overInvoiced,false);
+r=audit.analyze([quote,invoice('F-1',8),invoice('F-2',6)]);
+assert.equal(r.records[0].status,'ECCEDENZA');
+assert.equal(r.records[0].articles[0].remainingQty,-4);
+r=audit.analyze([quote,invoice('F-3',1,true)]);
+assert.equal(r.records[0].articles.find(x=>x.code==='EXTRA-TEST').unquoted,true);
+r=audit.analyze([quote,{...invoice('F-4',2),supplierId:'ALTRO'}]);
+assert.equal(r.valid,false);
+assert(r.issues.some(x=>x.startsWith('SUPPLIER_MISMATCH')));
+r=audit.analyze([quote,{...invoice('F-5',2),review:{status:'pending'}}]);
+assert.equal(r.valid,false);
+assert(r.issues.some(x=>x.startsWith('REVIEW_REQUIRED')));
+r=audit.analyze([quote,{...invoice('F-6',2),lines:[{code:'TUBO-TEST',qty:0,unitPrice:12.5}]}]);
+assert.equal(r.valid,false);
+assert(r.issues.some(x=>x.startsWith('INVALID_LINE')));
+console.log('PASS: audit cumulativo fornitori — dati sintetici');
