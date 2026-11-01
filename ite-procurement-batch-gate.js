@@ -45,7 +45,7 @@ function exportSnapshot(documents){
  return {schema:'ite-supplier-reviewed-batch-v1',documents:documents.map(doc=>({
   id:str(doc.id),type:str(doc.type),supplierId:str(doc.supplierId),
   ...(doc.type==='Fattura acquisto'?{supplierQuoteId:str(doc.supplierQuoteId)}:{}),
-  lines:doc.lines.map(line=>({code:str(line.code),qty:Number(line.qty),unitPrice:Number(line.unitPrice)})),
+  lines:doc.lines.map(line=>({code:str(line.code),qty:Number(String(line.qty).replace(',','.')),unitPrice:review.cents(line.unitPrice)/100})),
   review:{status:'confirmed',operator:str(doc.review.operator),reviewedAt:str(doc.review.reviewedAt),source:'manual'}
  }))};
 }
