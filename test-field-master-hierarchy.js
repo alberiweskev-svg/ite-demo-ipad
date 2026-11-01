@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const report=require('./ite-field-operations-report.js'),workspace=require('./ite-field-workspace.js');
+const valid={clients:[{id:'C1'}],sites:[{id:'S1',clientId:'C1'}],systems:[{id:'I1',siteId:'S1'}],equipment:[{id:'E1',systemId:'I1'}],operators:[{id:'O1',active:true}]};
+const clone=v=>JSON.parse(JSON.stringify(v));
+assert.equal(report.validate(valid,[]).valid,true);
+const duplicate=clone(valid);duplicate.clients.push({id:'C1'});
+assert.ok(report.validate(duplicate,[]).issues.some(x=>x.code==='ID_CATALOGO_ASSENTE_O_DUPLICATO_clients'));
+assert.throws(()=>workspace.open(duplicate,[]),/ARCHIVIO_CON_ANOMALIE/);
+const orphan=clone(valid);orphan.equipment[0].systemId='missing';
+assert.ok(report.validate(orphan,[]).issues.some(x=>x.code==='GERARCHIA_ORFANA_equipment'));
+assert.throws(()=>workspace.open(orphan,[]),/ARCHIVIO_CON_ANOMALIE/);
+const empty=clone(valid);delete empty.operators;
+assert.ok(report.validate(empty,[]).issues.some(x=>x.code==='CATALOGO_MANCANTE_operators'));
+assert.equal(report.validate(null,[]).valid,false);
+console.log('PASS master hierarchy integrity');
