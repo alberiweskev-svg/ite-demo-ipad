@@ -1,0 +1,28 @@
+name: Field operations and legacy bridge regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-field-*.js'
+      - 'test-field-*.js'
+      - 'index.html'
+      - '.github/workflows/field-operations-regression.yml'
+  workflow_dispatch:
+jobs:
+  field-operations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and synthetic regression
+        run: |
+          node --check ite-field-workflow.js
+          node --check ite-field-planning.js
+          node --check ite-field-operations-report.js
+          node --check ite-field-operations-report-ui.js
+          node --check ite-field-legacy-adapter.js
+          node test-field-planning.js
+          node test-field-operations-report.js
+          node test-field-legacy-adapter.js
