@@ -1,0 +1,23 @@
+name: ITE procurement PDF staging regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-procurement-*.js'
+      - 'ite-core-reconciliation.js'
+      - 'test-procurement-pdf-staging.js'
+      - '.github/workflows/ite-procurement-pdf-staging.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-procurement-pdf-staging.js
+      - run: node --check test-procurement-pdf-staging.js
+      - run: node test-procurement-pdf-staging.js
