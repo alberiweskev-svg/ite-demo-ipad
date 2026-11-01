@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 45 (parziale, 2026-11-01): dashboard Agenda con storico per cliente/apparecchiatura, durata interventi e totali Extra accettati separati per fornitura, posa, smontaggio e smaltimento. Test sintetici aggiunti ma esecuzione CI e Safari/iPad ancora da verificare. Non pubblicata; 3.0.74 e moduli 2.7.5 invariati."
+  "notes": "Milestone 46 (parziale, 2026-11-01): calendario Giorno/Settimana/Mese integrato nell'Agenda con filtri operatore/stato, selezione appuntamenti e colori tecnici. Test sintetici aggiunti; esecuzione CI, compatibilità Safari/iPad e pubblicazione ancora da verificare. Versione operativa 3.0.74 e moduli 2.7.5 invariati."
 }
