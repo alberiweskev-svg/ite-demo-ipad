@@ -18,6 +18,21 @@ function apply(data,operation){
  if(!check.valid)throw Error('OPERAZIONE_NON_VALIDA:'+check.issues.map(x=>x.code).join(','));
  return next;
 }
+function batch(data,operations){
+ if(!Array.isArray(operations)||!operations.length)throw Error('OPERAZIONI_MANCANTI');
+ let next=open(data.catalog,data.appointments);
+ for(const operation of operations)next=apply(next,operation);
+ return next;
+}
+function preview(data,operations){
+ const original=open(data.catalog,data.appointments);
+ try{
+  const next=batch(original,operations);
+  const before=report.report(original.catalog,original.appointments);
+  const after=report.report(next.catalog,next.appointments);
+  return {valid:true,operations:operations.length,before:{appointments:before.entries.length,issues:before.issues.length},after:{appointments:after.entries.length,issues:after.issues.length},next,readOnly:true};
+ }catch(e){return {valid:false,reason:String(e.message),next:null,readOnly:true}}
+}
 function snapshot(data){
  const state=open(data.catalog,data.appointments);
  return {schema:'ITE_FIELD_WORKSPACE_V1',exportedAt:null,readOnlyImport:true,catalog:state.catalog,appointments:state.appointments};
@@ -26,6 +41,6 @@ function restore(value){
  if(value?.schema!=='ITE_FIELD_WORKSPACE_V1'||value.readOnlyImport!==true)throw Error('FORMATO_WORKSPACE_NON_VALIDO');
  return open(value.catalog,value.appointments);
 }
-const api=Object.freeze({open,apply,snapshot,restore});
+const api=Object.freeze({open,apply,batch,preview,snapshot,restore});
 root.ITEFieldWorkspace=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
