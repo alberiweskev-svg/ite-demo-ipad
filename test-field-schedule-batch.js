@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const batch=require('./ite-field-schedule-batch.js');
+const catalog={clients:[{id:'C'}],sites:[{id:'S',clientId:'C'}],systems:[{id:'I',siteId:'S'}],equipment:[{id:'E',systemId:'I'}],operators:[{id:'T',name:'Tecnico prova',active:true},{id:'U',name:'Altro tecnico',active:true}]};
+const base={id:'A',clientId:'C',siteId:'S',systemId:'I',equipmentId:'E',operatorId:'T',kind:'manutenzione',startsAt:'2026-11-05T09:00:00+01:00',endsAt:'2026-11-05T10:00:00+01:00'};
+const first=batch.preview(catalog,[],[base,{...base,id:'B',startsAt:'2026-11-05T10:00:00+01:00',endsAt:'2026-11-05T11:00:00+01:00'}]);
+assert.equal(first.ok,true);assert.equal(first.appointments.length,2);
+const bad=batch.preview(catalog,first.appointments,[{...base,id:'C',startsAt:'2026-11-05T09:30:00+01:00',endsAt:'2026-11-05T10:30:00+01:00'},{...base,id:'D',operatorId:'U'}]);
+assert.equal(bad.ok,false);assert.equal(bad.acceptedCount,1);assert.equal(bad.appointments.length,2);
+assert.match(bad.results[0].reason,/OPERATORE_OCCUPATO/);
+assert.equal(first.appointments.length,2);
+assert.equal(batch.conflicts(first.appointments).length,0);
+assert.equal(batch.conflicts([...first.appointments,{...first.appointments[0],id:'Z'}]).length,1);
+const usage=batch.utilization(catalog,first.appointments,'2026-11-05',{workingMinutes:120});
+assert.equal(usage[0].busyMinutes,120);assert.equal(usage[0].loadPercent,100);
+assert.equal(usage[1].busyMinutes,0);
+assert.throws(()=>batch.utilization(catalog,[],'2026-11-05',{workingMinutes:0}),/MINUTI_LAVORATIVI/);
+console.log('PASS atomic scheduling, conflict diagnostics, technician utilization');
