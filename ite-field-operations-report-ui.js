@@ -50,6 +50,35 @@ function start(){
  const startsAt=field('startsAt','Inizio','datetime-local');
  const endsAt=field('endsAt','Fine','datetime-local');
  const scheduleButton=document.createElement('button');scheduleButton.type='button';scheduleButton.textContent='Programma appuntamento in anteprima';
+ const batchPanel=document.createElement('section');batchPanel.className='ite-field-batch';
+ const batchHeading=document.createElement('h3');batchHeading.textContent='Pianificazione multipla — collaudo locale';
+ const batchHelp=document.createElement('p');batchHelp.textContent='Inserire un array JSON di appuntamenti con ID, riferimenti cliente/sede/impianto/apparecchiatura, tecnico, tipologia e date ISO. Anteprima e applicazione sono atomiche; nessun salvataggio automatico.';
+ const batchInput=document.createElement('textarea');batchInput.rows=7;batchInput.setAttribute('aria-label','Appuntamenti multipli JSON');batchInput.placeholder='[{"id":"DEMO-2","clientId":"DEMO-C","siteId":"DEMO-S","systemId":"DEMO-I","equipmentId":"DEMO-E","operatorId":"DEMO-O","kind":"Manutenzione","startsAt":"2026-11-02T11:00:00+01:00","endsAt":"2026-11-02T12:00:00+01:00"}]';
+ const batchPreviewButton=document.createElement('button');batchPreviewButton.type='button';batchPreviewButton.textContent='Verifica gruppo';
+ const batchApplyButton=document.createElement('button');batchApplyButton.type='button';batchApplyButton.textContent='Applica gruppo in anteprima';batchApplyButton.disabled=true;
+ const batchResult=document.createElement('div');batchResult.setAttribute('role','status');
+ batchPanel.append(batchHeading,batchHelp,batchInput,batchPreviewButton,batchApplyButton,batchResult);
+ editor.append(batchPanel);
+ let pendingBatch=null;
+ const invalidateBatch=()=>{pendingBatch=null;batchApplyButton.disabled=true;batchResult.textContent='Gruppo modificato: ripetere la verifica.'};
+ batchInput.addEventListener('input',invalidateBatch);
+ batchPreviewButton.addEventListener('click',()=>{try{
+  if(!current)throw Error('CARICARE_PRIMA_UN_ARCHIVIO');
+  if(batchInput.value.length>100000)throw Error('GRUPPO_TROPPO_GRANDE');
+  const proposals=JSON.parse(batchInput.value);
+  if(!Array.isArray(proposals)||!proposals.length||proposals.length>100)throw Error('INSERIRE_DA_1_A_100_APPUNTAMENTI');
+  const check=root.ITEFieldScheduleBatch.preview(current.catalog,current.appointments,proposals);
+  const operations=proposals.map(appointment=>({type:'schedule',appointment}));
+  const validation=root.ITEFieldWorkspace.preview(current,operations);
+  if(!check.ok||!validation.valid){pendingBatch=null;batchApplyButton.disabled=true;batchResult.textContent='Gruppo rifiutato: '+check.results.filter(x=>!x.accepted).map(x=>'riga '+(x.index+1)+': '+x.reason).join('; ')+' '+(validation.reason||'');return}
+  pendingBatch={operations,baseline:JSON.stringify(current),input:batchInput.value};batchApplyButton.disabled=false;
+  batchResult.textContent='Verifica superata: '+proposals.length+' appuntamenti validi. Applicazione solo nella memoria locale.';
+ }catch(e){pendingBatch=null;batchApplyButton.disabled=true;batchResult.textContent='Verifica rifiutata: '+String(e.message)}});
+ batchApplyButton.addEventListener('click',()=>{try{
+  if(!pendingBatch||!current||JSON.stringify(current)!==pendingBatch.baseline||batchInput.value!==pendingBatch.input)throw Error('DATI_MODIFICATI_RIPETERE_VERIFICA');
+  const next=root.ITEFieldWorkspace.batch(current,pendingBatch.operations);
+  current=next;dirtyGuard.markDirty?.(current);pendingBatch=null;batchApplyButton.disabled=true;render();batchResult.textContent='Gruppo applicato in memoria. Usare Salva archivio locale per conservarlo.';
+ }catch(e){pendingBatch=null;batchApplyButton.disabled=true;batchResult.textContent='Applicazione rifiutata: '+String(e.message)}});
  const extraId=field('extraId','Extra — ID');
  const extraDescription=field('extraDescription','Descrizione Extra');
  const extraCategory=field('extraCategory','Categoria Extra');
