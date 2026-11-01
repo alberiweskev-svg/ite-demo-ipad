@@ -105,7 +105,7 @@ function start(){
   try{
    if(file.size>5*1024*1024)throw Error('FILE_TROPPO_GRANDE_5_MB');
    const raw=JSON.parse(await file.text());
-   const result=raw&&raw.schema==='ITE_FIELD_WORKSPACE_V1'?root.ITEFieldWorkspace.restore(raw):root.ITEFieldLegacyAdapter.adapt(raw);
+   const result=raw&&raw.format==='ITE-encrypted-backup'?await root.ITEFieldEncryptedTransfer.importEncrypted(raw,root.ITEVault):raw&&raw.schema==='ITE_FIELD_WORKSPACE_V1'?root.ITEFieldWorkspace.restore(raw):root.ITEFieldLegacyAdapter.adapt(raw);
    if(result.issues&&result.issues.length){status.textContent='Importazione non attivata: '+result.issues.length+' anomalie. Verificare formato, gerarchie e appuntamenti; nessun dato salvato.';return}
    setData(result);
   }catch(e){status.textContent='Importazione rifiutata: '+String(e.message)}
