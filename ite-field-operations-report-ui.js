@@ -76,6 +76,12 @@ function start(){
    status.textContent='Workspace esportato localmente. Il file può contenere dati personali: conservarlo in luogo protetto.';
   }catch(e){status.textContent='Esportazione rifiutata: '+String(e.message)}
  });
+ secureExport.addEventListener('click',()=>{try{
+  if(!current)throw Error('NESSUN_ARCHIVIO_DA_ESPORTARE');
+  const encrypted=root.ITEFieldEncryptedTransfer.exportEncrypted(current,root.ITEVault);
+  root.ITEVault.downloadRaw(encrypted,'ite-4-workspace-cifrato.json');
+  status.textContent='Backup cifrato esportato: conservarne la password.';
+ }catch(e){status.textContent='Esportazione cifrata rifiutata: '+String(e.message)}});
  const reset=()=>{current=null;html='';target.textContent='';filter.replaceChildren(new Option('Tutti gli operatori',''));upload.value='';status.textContent='Anteprima cancellata dalla memoria della pagina.';};
  function render(){
   if(!current){status.textContent='Caricare un JSON locale oppure utilizzare la dimostrazione.';return}
