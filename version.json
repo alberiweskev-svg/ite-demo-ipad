@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 51 parziale (2026-11-01): pannello integrato di pianificazione multipla JSON con verifica atomica, applicazione in memoria e protezione da modifiche successive; test di integrazione con rollback. CI e Safari/iPad non verificati. Nessuna pubblicazione; 3.0.74 e 2.7.5 invariati."
+  "notes": "Milestone 52 parziale: validazione rigorosa date e orari dell'Agenda, compresi orari inesistenti e ambigui nei cambi ora legale/solare; test sintetici aggiunti. CI e Safari/iPad non ancora verificati. Non pubblicata; versioni operative precedenti invariate."
 }
