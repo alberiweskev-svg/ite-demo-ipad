@@ -20,7 +20,7 @@ function schedule(catalog,appointments,input){
 }
 function transition(appointments,id,action,operatorId,at,payload){
  const list=clone(appointments),i=list.findIndex(a=>s(a.id)===s(id));if(i<0)throw Error('APPUNTAMENTO_NON_TROVATO');
- const a=list[i];const methods={arrive:()=>wf.arrive(a,operatorId,at),close:()=>wf.close(a,operatorId,at,payload?.notes),reopen:()=>wf.reopen(a,operatorId,at,payload?.reason),reviseTimes:()=>wf.reviseTimes(a,operatorId,at,payload?.changes),finishRevision:()=>wf.finishRevision(a,operatorId,at),addExtra:()=>wf.addExtra(a,payload?.extra,operatorId,at),decideExtra:()=>wf.decideExtra(a,payload?.id,payload?.status,operatorId,at)};
+ const a=list[i];const methods={arrive:()=>wf.arrive(a,operatorId,at),close:()=>wf.close(a,operatorId,at,payload?.notes),reopen:()=>wf.reopen(a,operatorId,at,payload?.reason),reviseTimes:()=>wf.reviseTimes(a,operatorId,at,payload?.changes),finishRevision:()=>wf.finishRevision(a,operatorId,at),addExtra:()=>wf.addExtra(a,payload?.extra,operatorId,at),approveLines:()=>wf.approveLines(a,payload?.id,payload?.quantities,operatorId,at),decideExtra:()=>wf.decideExtra(a,payload?.id,payload?.status,operatorId,at)};
  if(!methods[action])throw Error('AZIONE_NON_SUPPORTATA');list[i]=methods[action]();return list;
 }
 function calendar(appointments,{from,to,operatorId,status}={}){
