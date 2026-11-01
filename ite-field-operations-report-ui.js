@@ -16,7 +16,8 @@ function start(){
  const at=document.createElement('input');at.type='datetime-local';at.setAttribute('aria-label','Data e ora azione');
  const apply=document.createElement('button');apply.type='button';apply.textContent='Applica in anteprima';
  const exportButton=document.createElement('button');exportButton.type='button';exportButton.textContent='Esporta workspace JSON';
- for(const element of [appointmentId,operator,at,action,apply,exportButton])controls.append(element);
+ const secureExport=document.createElement('button');secureExport.type='button';secureExport.textContent='Esporta backup cifrato';
+ for(const element of [appointmentId,operator,at,action,apply,exportButton,secureExport])controls.append(element);
  target.parentElement.insertBefore(controls,target);
  const editor=document.createElement('div');editor.className='grid';
  const field=(name,label,type='text')=>{const wrap=document.createElement('label');wrap.textContent=label;const el=document.createElement('input');el.type=type;el.dataset.field=name;wrap.append(el);editor.append(wrap);return el};
