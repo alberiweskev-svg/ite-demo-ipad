@@ -14,9 +14,9 @@ function addExtra(a,x,operatorId,at){if(!['in_progress','revision'].includes(a.s
 function decideExtra(a,id,status,operatorId,at){if(!['accettato','non_accettato'].includes(status))throw Error('STATO_NON_VALIDO');const n=event(a,'EXTRA_DECIDED',operatorId,at,{extraId:id,status});const x=n.extraWorks.find(e=>e.id===id);if(!x)throw Error('EXTRA_INESISTENTE');x.status=status;x.lines.forEach(l=>{l.acceptedQuantity=status==='accettato'?l.quantity:0});return n;}
 function approveLines(a,id,quantities,operatorId,at){
  const extra=a.extraWorks.find(x=>x.id===id);
- if(!extra||extra.status!=='da_accettare')throw Error('EXTRA_NON_APPROVABILE');
+ if(!extra||!['da_accettare','parzialmente_accettato'].includes(extra.status))throw Error('EXTRA_NON_APPROVABILE');
  if(!Array.isArray(quantities)||quantities.length!==extra.lines.length)throw Error('QUANTITA_MANCANTI');
- const approved=quantities.map((v,i)=>{const q=Number(v);if(!Number.isFinite(q)||q<0||q>extra.lines[i].quantity)throw Error('QUANTITA_NON_VALIDA');return q});
+ const approved=quantities.map((v,i)=>{const q=Number(v);if(!Number.isFinite(q)||q<0||q>extra.lines[i].quantity||!Number.isSafeInteger(Math.round(q*1000000)))throw Error('QUANTITA_NON_VALIDA');return q});
  const all=approved.every((q,i)=>q===extra.lines[i].quantity),none=approved.every(q=>q===0);
  const status=all?'accettato':none?'non_accettato':'parzialmente_accettato';
  const next=event(a,'EXTRA_LINES_APPROVED',operatorId,at,{extraId:id,status,quantities:copy(approved)});
