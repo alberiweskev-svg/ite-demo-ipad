@@ -3,5 +3,5 @@
   "channel": "development",
   "published": false,
   "released": "2026-10-30",
-  "notes": "Milestone 53 parziale: editor guidato integrato per gruppi di appuntamenti, selezioni gerarchiche cliente/sede/impianto/apparecchiatura/tecnico, aggiunta e rimozione, controllo duplicati e orari locali; riusa verifica atomica esistente. Test sintetici aggiunti, CI e Safari/iPad non verificati. Non pubblicata; 3.0.74 e 2.7.5 invariati."
+  "notes": "Milestone 54 parziale: motore preventivi con righe FORNITURA/POSA separate, totali IVA, scadenza 15/30 giorni, ricarichi materiali, classificazione documenti TD04/proforma e banco prova touch integrato nel quadro operativo. Test sintetici aggiunti, esito CI e Safari non verificato. Non pubblicata; 3.0.74 e moduli 2.7.5 invariati."
 }
