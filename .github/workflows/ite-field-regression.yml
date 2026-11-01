@@ -1,0 +1,33 @@
+name: ITE 4.0 synthetic field regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  field-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        timezone: [Europe/Rome, UTC]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax checks
+        run: |
+          for file in ite-field-*.js test-field-*.js; do
+            node --check "$file"
+          done
+      - name: Synthetic field regression
+        run: |
+          for file in test-field-*.js; do
+            echo "Running $file"
+            node "$file"
+          done
