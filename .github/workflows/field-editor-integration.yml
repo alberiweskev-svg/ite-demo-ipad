@@ -1,0 +1,27 @@
+name: Field operations editor integration
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-field-*.js'
+      - 'test-field-*.js'
+      - '.github/workflows/field-editor-integration.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Workflow and planning
+        run: |
+          node test-field-planning.js
+          node test-field-operations-report.js
+          node test-field-editor-integration.js
+      - name: Syntax checks
+        run: |
+          node --check ite-field-operations-report-ui.js
+          node --check ite-field-workspace.js
+          node --check ite-field-planning.js
