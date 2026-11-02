@@ -1,0 +1,24 @@
+'use strict';
+const assert=require('node:assert/strict');
+const R=require('./ite-administrative-register.js'),I=require('./ite-administrative-intake.js');
+const memory=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k)}};
+const doc=(id,type='VENDITA')=>({id,type,number:'N-'+id,issued:'2026-11-02',party:'Cliente sintetico '+id,taxable:100,vat:10,total:110});
+let count=0;function check(name,fn){fn();count++;console.log('OK',name)}
+check('empty archive',()=>assert.equal(I.open(memory()).state.revision,0));
+check('stage requires fields',()=>assert.throws(()=>I.stage(null,{})));
+check('classification requires human review',()=>assert.equal(I.classifyCandidate({filename:'TD04.pdf'}).requiresReview,true));
+check('stage forces unverified PDF',()=>assert.equal(I.stage({...doc('a'),verified:true},{filename:'a.pdf'}).candidate.verified,false));
+check('approve requires explicit review',()=>assert.throws(()=>I.approve(R.empty(),0,I.stage(doc('a'),{}),'TECNICO',false)));
+check('approve inserts unverified record',()=>assert.equal(I.approve(R.empty(),0,I.stage(doc('a'),{}),'TECNICO',true).documents[0].verified,false));
+check('save and reload',()=>{const s=memory(),n=R.add(R.empty(),0,doc('a'),'TECNICO');I.save(s,n,0);assert.equal(I.open(s).state.documents.length,1)});
+check('reject stale revision',()=>{const s=memory(),n=R.add(R.empty(),0,doc('a'),'TECNICO');I.save(s,n,0);assert.throws(()=>I.save(s,n,0))});
+check('previous backup on second write',()=>{const s=memory(),a=R.add(R.empty(),0,doc('a'),'TECNICO');I.save(s,a,0);I.save(s,R.add(a,1,doc('b'),'TECNICO'),1);assert.equal(R.importJSON(s.getItem(I.PREV)).documents.length,1)});
+check('recover previous on corruption',()=>{const s=memory(),a=R.add(R.empty(),0,doc('a'),'TECNICO');I.save(s,a,0);I.save(s,R.add(a,1,doc('b'),'TECNICO'),1);s.setItem(I.KEY,'broken');assert.equal(I.open(s).recovered,true);assert.throws(()=>I.save(s,R.add(a,1,doc('c'),'TECNICO'),1));assert.equal(I.restorePrevious(s,'TECNICO').documents.length,1)});
+check('corrupt without backup fails closed',()=>{const s=memory();s.setItem(I.KEY,'bad');assert.throws(()=>I.open(s))});
+check('TD04 missing invoice highlighted',()=>{let s=R.add(R.empty(),0,{...doc('c','TD04'),originalId:'missing'},'TECNICO');assert.equal(I.reconcile(s).missingOriginals.length,1)});
+check('proforma not counted as sale',()=>{const s=R.add(R.empty(),0,doc('p','PROFORMA'),'TECNICO');assert.equal(I.reconcile(s).summary.counts.VENDITA,0)});
+check('import preview duplicates',()=>{const a=R.add(R.empty(),0,doc('a'),'TECNICO');assert.deepEqual(I.previewImport(R.exportJSON(a),a).duplicates,['a'])});
+check('import requires approval',()=>assert.throws(()=>I.importReviewed(memory(),R.exportJSON(R.add(R.empty(),0,doc('a'),'TECNICO')),0,'TECNICO',false)));
+check('import success and unverified',()=>{const s=memory(),a=R.add(R.empty(),0,doc('a'),'TECNICO');const n=I.importReviewed(s,R.exportJSON(a),0,'TECNICO',true);assert.equal(n.documents[0].verified,false);assert.equal(I.open(s).state.revision,1)});
+check('import atomic on duplicate',()=>{const s=memory(),a=R.add(R.empty(),0,doc('a'),'TECNICO');I.save(s,a,0);assert.throws(()=>I.importReviewed(s,R.exportJSON(a),1,'TECNICO',true));assert.equal(I.open(s).state.documents.length,1)});
+console.log(count+' controlli superati');
