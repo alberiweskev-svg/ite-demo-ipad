@@ -19,3 +19,21 @@ assert.throws(()=>A.read(JSON.stringify([{...base,issued:'2026-02-30'}])),/NON_V
 assert.throws(()=>A.read('{'),/DANNEGGIATO/);
 assert.deepEqual(A.read(JSON.stringify(verified)),verified);
 console.log('Technical document audit: 13 synthetic assertions passed');
+
+
+const noMasters=A.audit(verified);
+assert.equal(noMasters[0].ready,false,'verified document without master records must not be marked ready');
+assert.ok(noMasters[0].issues.includes('ARCHIVIO_CLIENTI_NON_COLLEGATO'));
+assert.ok(noMasters[0].issues.includes('ARCHIVIO_SEDI_NON_COLLEGATO'));
+assert.ok(noMasters[0].issues.includes('ARCHIVIO_IMPIANTI_NON_COLLEGATO'));
+assert.ok(noMasters[0].issues.includes('ARCHIVIO_APPARECCHIATURE_NON_COLLEGATO'));
+assert.equal(A.summary(verified,masters).ready,1);
+assert.equal(A.summary(verified).ready,0);
+assert.equal(A.summary(verified).unlinked,2);
+assert.equal(A.filter(verified,{kind:'DICO'}).length,1);
+assert.equal(A.filter(verified,{status:'VERIFICATO'}).length,1);
+assert.equal(A.filter(verified,{query:'g-01'})[0].kind,'GAS');
+assert.equal(A.filter(verified,{query:'c1'}).length,2);
+assert.equal(A.filter(verified,{query:'missing'}).length,0);
+assert.equal(A.filter(verified)[0].kind,'DICO');
+console.log('Technical audit hierarchy, filters and summaries: 13 additional assertions passed');
