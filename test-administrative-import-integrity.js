@@ -8,10 +8,11 @@ const store={getItem:k=>map.has(k)?map.get(k):null,setItem:(k,v)=>map.set(k,Stri
 const doc=(id,type,number,party='CLIENTE FITTIZIO',originalId)=>({id,type,number,party,issued:'2026-11-02',taxable:100,vat:10,total:110,...(originalId?{originalId}:{})});
 const incoming=docs=>R.exportJSON(docs.reduce((s,d)=>R.add(s,s.revision,d,'Operatore test'),R.empty()));
 let initial=I.open(store).state;
-let preview=I.previewImport(incoming([doc('a','VENDITA','1'),doc('b','VENDITA','1')]),initial);
-assert.deepEqual(preview.duplicateDocuments,['b']);
-assert.throws(()=>I.importReviewed(store,incoming([doc('a','VENDITA','1'),doc('b','VENDITA','1')]),0,'Operatore test',true),/DOCUMENTI_DUPLICATI_IMPORT/);
+const duplicateArchive=JSON.stringify({schema:1,revision:0,documents:[doc('a','VENDITA','1'),doc('b','VENDITA','1')],audit:[]});
+assert.throws(()=>I.previewImport(duplicateArchive,initial),/DOCUMENTO_DUPLICATO/);
+assert.throws(()=>I.importReviewed(store,duplicateArchive,0,'Operatore test',true),/DOCUMENTO_DUPLICATO/);
 assert.equal(I.open(store).state.revision,0);
+let preview;
 preview=I.previewImport(incoming([doc('c','TD04','NC1','CLIENTE FITTIZIO','missing')]),initial);
 assert.equal(preview.missingOriginals.length,1);
 assert.throws(()=>I.importReviewed(store,incoming([doc('c','TD04','NC1','CLIENTE FITTIZIO','missing')]),0,'Operatore test',true),/COLLEGAMENTI_TD04_NON_VALIDI/);
