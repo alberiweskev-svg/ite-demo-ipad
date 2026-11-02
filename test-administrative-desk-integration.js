@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const R=require('./ite-administrative-register.js'),I=require('./ite-administrative-intake.js');
+const html=fs.readFileSync('index.html','utf8'),ui=fs.readFileSync('ite-administrative-desk-ui.js','utf8');
+for(const name of ['ite-administrative-register.js','ite-administrative-intake.js','ite-administrative-desk-ui.js'])assert.ok(html.includes('<script src="./'+name+'?v=4.0.0"></script>'),name+' missing');
+assert.ok(html.indexOf('ite-administrative-register.js?v=4.0.0')<html.indexOf('ite-administrative-intake.js?v=4.0.0'));
+assert.ok(html.indexOf('ite-administrative-intake.js?v=4.0.0')<html.indexOf('ite-administrative-desk-ui.js?v=4.0.0'));
+assert.ok(html.includes('id="importazioni"'));
+assert.ok(ui.includes("getElementById('importazioni')"));
+assert.ok(ui.includes('I.previewImport(')&&ui.includes('I.importReviewed('));
+assert.ok(ui.includes('R.verify(')&&ui.includes('I.save('));
+assert.ok(ui.includes("source:'MANUALE'"));
+const s=R.add(R.empty(),0,{id:'demo-1',type:'PROFORMA',number:'PR-001',issued:'2026-11-02',party:'Soggetto fittizio',taxable:100,vat:10,total:110,source:'MANUALE',verified:false},'OPERATORE_TEST');
+assert.equal(s.documents[0].source,'MANUALE');assert.equal(I.reconcile(s).proformas.length,1);
+console.log('OK: 10 verifiche di integrazione amministrativa, caricamento e provenienza.');
