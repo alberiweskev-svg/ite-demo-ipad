@@ -1,0 +1,24 @@
+name: ITE 4.0 integrated workspace
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-integrated-workspace.js'
+      - 'ite-hierarchy-workspace.js'
+      - 'ite-calendar-service.js'
+      - 'ite-commercial-workspace.js'
+      - 'ite-accounting-workspace.js'
+      - 'test-integrated-workspace.js'
+      - 'index.html'
+      - '.github/workflows/integrated-workspace.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-integrated-workspace.js
+      - run: node test-integrated-workspace.js
