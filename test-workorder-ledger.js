@@ -1,0 +1,16 @@
+'use strict';const a=require('node:assert/strict'),w=require('./ite-workorder-ledger.js'),at='2026-11-02T01:00:00Z',actor='Tecnico DEMO';
+const f={id:'F1',type:'FORNITURA',description:'Lavabo',quantity:1,unitPrice:200,vatRate:10},p={id:'P1',type:'POSA',description:'Posa',quantity:1,unitPrice:100,vatRate:10};
+let s=w.initial();s=w.addOrder(s,0,{id:'O1',clientId:'C1',siteId:'S1',systemId:'I1',appointmentId:'A1',operatorId:'T1'},actor,at);
+a.throws(()=>w.addOrder(s,0,{},actor,at),/REVISIONE/);
+s=w.orderStatus(s,1,'O1','IN_CORSO',actor,at);
+s=w.addQuote(s,2,{id:'Q1',orderId:'O1',validDays:30,lines:[f,p]},actor,at);
+a.equal(w.totals(s,'Q1').gross,330);
+s=w.addExtra(s,3,{id:'E1',quoteId:'Q1',lines:[{...f,id:'F2',unitPrice:50}]},actor,at);
+a.equal(w.totals(s,'Q1').gross,330);
+s=w.extraStatus(s,4,'E1','INVIATO',actor,at);s=w.extraStatus(s,5,'E1','ACCETTATO',actor,at);
+a.equal(w.totals(s,'Q1').gross,385);
+s=w.quoteStatus(s,6,'Q1','INVIATO',actor,at);s=w.quoteStatus(s,7,'Q1','ACCETTATO',actor,at);
+s=w.orderStatus(s,8,'O1','COMPLETATO',actor,at);
+a.equal(w.importState(w.exportState(s)).revision,9);a.equal(s.audit.length,9);
+a.throws(()=>w.addExtra(s,9,{id:'E2',quoteId:'Q1',lines:[{...f,vatRate:0}]},actor,at),/IVA/);
+console.log('OK: work-order ledger synthetic regression');
