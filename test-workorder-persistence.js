@@ -1,0 +1,23 @@
+'use strict';
+const assert=require('node:assert/strict'),w=require('./ite-workorder-ledger.js'),p=require('./ite-workorder-persistence.js');
+function memory(){const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k)}}
+const at='2026-11-02T03:55:00Z',actor='TECNICO DEMO',storage=memory();
+assert.equal(p.load(storage).empty,true);
+let s=w.addOrder(w.initial(),0,{id:'O1',clientId:'C1',siteId:'S1',systemId:'I1',appointmentId:'A1',operatorId:'T1'},actor,at);
+assert.equal(p.save(storage,s,0,at).revision,1);
+assert.equal(p.load(storage).state.orders.length,1);
+assert.throws(()=>p.save(storage,s,0,at),/CONFLITTO/);
+let next=w.addQuote(s,1,{id:'Q1',orderId:'O1',validDays:30,lines:[{id:'F1',type:'FORNITURA',description:'Demo',quantity:1,unitPrice:100,vatRate:10},{id:'P1',type:'POSA',description:'Demo posa',quantity:1,unitPrice:50,vatRate:10}]},actor,at);
+assert.equal(p.save(storage,next,1,at).backedUp,true);
+assert.equal(p.load(storage).state.quotes.length,1);
+assert.equal(w.totals(p.load(storage).state,'Q1').gross,165);
+const backup=p.exportBackup(storage);assert.equal(JSON.parse(backup).revision,2);
+storage.setItem(p.KEY,'{broken');
+assert.equal(p.load(storage).recovered,true);
+assert.throws(()=>p.save(storage,next,2,at),/RIPRISTINO/);
+assert.equal(p.restore(storage).revision,1);
+assert.equal(p.load(storage).recovered,false);
+assert.equal(p.importBackup(storage,backup,1,at).revision,2);
+assert.equal(p.load(storage).state.revision,2);
+assert.throws(()=>p.importBackup(storage,'{}',2,at),/ARCHIVIO/);
+console.log('OK: persistence, conflict, recovery, export/import, commercial totals');
