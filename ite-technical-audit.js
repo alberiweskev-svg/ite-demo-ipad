@@ -36,6 +36,66 @@ function restoreArchive(raw){let data;try{data=JSON.parse(raw)}catch(_){throw Er
 }
 function reconcile(records,masters){const rows=audit(records,masters),byId=new Map(rows.map(r=>[r.id,r]));return checkArchive(records).map(d=>({...d,linkStatus:byId.get(d.id).issues.length?'DA_COLLEGARE':'COLLEGATO'}))}
 
+
+/* Full hierarchy reconciliation and controlled verification batch.
+ * Master snapshots are explicit: never infer relationships from missing data.
+ * No customer records or PDF payloads are transmitted or persisted here.
+ */
+function validateMasters(masters){
+ if(!masters||typeof masters!=='object')throw Error('ANAGRAFICHE_ASSENTI');
+ const groups=['clients','sites','plants','devices'],result={};
+ for(const group of groups){
+  const items=masters[group];
+  if(!Array.isArray(items)||items.length>10000)throw Error('ANAGRAFICA_NON_VALIDA_'+group);
+  const ids=new Set();
+  result[group]=items.map(item=>{
+   if(!item||typeof item!=='object'||!clean(item.id))throw Error('ID_ANAGRAFICA_MANCANTE_'+group);
+   const id=clean(item.id);
+   if(ids.has(id))throw Error('ID_ANAGRAFICA_DUPLICATO_'+group);
+   ids.add(id);
+   return {...item,id};
+  });
+ }
+ for(const site of result.sites)if(!clean(site.clientId)||!result.clients.some(c=>c.id===clean(site.clientId)))throw Error('SEDE_CLIENTE_NON_VALIDO');
+ for(const plant of result.plants)if(!clean(plant.siteId)||!result.sites.some(s=>s.id===clean(plant.siteId)))throw Error('IMPIANTO_SEDE_NON_VALIDO');
+ for(const device of result.devices)if(!clean(device.plantId)||!result.plants.some(p=>p.id===clean(device.plantId)))throw Error('APPARECCHIATURA_IMPIANTO_NON_VALIDO');
+ return result;
+}
+function reconcileWithMasters(records,masters){
+ const validated=validateMasters(masters),docs=checkArchive(records);
+ const rows=audit(docs,validated),byId=new Map(rows.map(r=>[r.id,r]));
+ return docs.map(d=>{
+  const row=byId.get(d.id);
+  return {id:d.id,kind:d.kind,number:d.number,clientId:d.clientId,siteId:d.siteId,
+   plantId:d.plantId||'',deviceId:d.deviceId||'',status:d.status,
+   linkStatus:row.issues.length?'DA_COLLEGARE':'COLLEGATO',issues:[...row.issues],
+   ready:row.ready};
+ });
+}
+function verifyBatchWithMasters(records,ids,operator,confirmed,masters){
+ const docs=checkArchive(records),validated=validateMasters(masters);
+ if(!clean(operator))throw Error('OPERATORE_OBBLIGATORIO');
+ if(confirmed!==true)throw Error('CONFERMA_OBBLIGATORIA');
+ if(!Array.isArray(ids)||!ids.length||ids.length>100||new Set(ids).size!==ids.length)throw Error('LOTTO_NON_VALIDO');
+ const rows=reconcileWithMasters(docs,validated),map=new Map(rows.map(x=>[x.id,x]));
+ for(const id of ids){
+  const row=map.get(id);
+  if(!row)throw Error('DOCUMENTO_NON_TROVATO');
+  if(row.status==='VERIFICATO')throw Error('GIA_VERIFICATO');
+  if(row.issues.length)throw Error('COLLEGAMENTI_NON_VERIFICATI_'+id);
+ }
+ const selected=new Set(ids),at=stamp();
+ return docs.map(d=>selected.has(d.id)?{...d,status:'VERIFICATO',verifiedBy:clean(operator),verifiedAt:at}:d);
+}
+function hierarchyReport(records,masters){
+ const rows=reconcileWithMasters(records,masters);
+ return {total:rows.length,ready:rows.filter(r=>r.ready).length,
+  verified:rows.filter(r=>r.status==='VERIFICATO').length,
+  linked:rows.filter(r=>r.linkStatus==='COLLEGATO').length,
+  unresolved:rows.filter(r=>r.issues.length).length,
+  issues:rows.filter(r=>r.issues.length).map(r=>({id:r.id,issues:r.issues}))};
+}
+
 function mount(){if(typeof document==='undefined')return false;const host=document.getElementById('ite-technical-intake');if(!host||document.getElementById('ite-technical-audit'))return false;
 const section=document.createElement('section');section.id='ite-technical-audit';const heading=document.createElement('h3');heading.textContent='Revisione e integrità documenti tecnici';const note=document.createElement('p');note.textContent='Verifica manuale dei riferimenti Di.Co., Di.Ri., GAS e POS. Solo metadati locali: non sostituisce la verifica dei PDF originali o i moduli 2.7.5.';
 const operator=document.createElement('input');operator.placeholder='Operatore responsabile';operator.setAttribute('aria-label','Operatore responsabile');
@@ -44,6 +104,6 @@ const search=document.createElement('input');search.type='search';search.placeho
 function render(){list.replaceChildren();try{const records=read(localStorage.getItem(KEY));const totals=summary(records);const results=audit(filter(records,{query:search.value,kind:kindFilter.value,status:statusFilter.value}));status.textContent=totals.total+' documenti | '+totals.verified+' verificati | '+totals.unlinked+' senza collegamenti anagrafici verificabili | '+results.length+' visualizzati. Il controllo dei collegamenti richiede gli archivi anagrafici.';for(const r of results){const line=document.createElement('div');const description=document.createElement('span');description.textContent=r.kind+' '+r.number+' — '+r.status+(r.issues.length?' — '+r.issues.join(', '):'');line.append(description);if(r.status!=='VERIFICATO'){const button=document.createElement('button');button.type='button';button.textContent='Verifica';button.addEventListener('click',()=>{try{const updated=verify(read(localStorage.getItem(KEY)),r.id,operator.value,confirm.checked);localStorage.setItem(KEY,JSON.stringify(updated));confirm.checked=false;render()}catch(e){status.textContent='Verifica bloccata: '+e.message}});line.append(button)}list.append(line)}}catch(e){status.textContent='Archivio non modificato: '+e.message}}
 refresh.addEventListener('click',render);exportButton.addEventListener('click',()=>{try{const data=exportArchive(read(localStorage.getItem(KEY)));const blob=new Blob([data],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='ite40-documenti-tecnici-metadati.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status.textContent=e.message}});
 importButton.addEventListener('click',async()=>{try{const file=importFile.files&&importFile.files[0];if(!file)throw Error('SELEZIONARE_BACKUP');if(file.size>2*1024*1024)throw Error('BACKUP_TROPPO_GRANDE');const incoming=restoreArchive(await file.text());const current=read(localStorage.getItem(KEY));const next=importArchive(current,incoming,importMode.value);if(!window.confirm('Confermare '+importMode.value+' di '+incoming.length+' riferimenti? I dati attuali saranno modificati.'))return;const previous=localStorage.getItem(KEY);localStorage.setItem(KEY+'_previous',previous===null?'[]':previous);localStorage.setItem(KEY,JSON.stringify(next));render();status.textContent='Importati '+incoming.length+' riferimenti. Backup precedente disponibile localmente.'}catch(e){status.textContent='Importazione bloccata: '+e.message}});for(const control of [search,kindFilter,statusFilter])control.addEventListener(control===search?'input':'change',render);section.append(heading,note,operator,label,search,kindFilter,statusFilter,refresh,exportButton,importFile,importMode,importButton,status,list);host.append(section);render();return true}
-const api=Object.freeze({KEY,checkArchive,read,verify,batchAppend,audit,summary,filter,importArchive,exportArchive,restoreArchive,reconcile,mount});root.ITETechnicalAudit=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
+const api=Object.freeze({KEY,checkArchive,read,verify,batchAppend,audit,summary,filter,importArchive,exportArchive,restoreArchive,reconcile,validateMasters,reconcileWithMasters,verifyBatchWithMasters,hierarchyReport,mount});root.ITETechnicalAudit=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount()}
 })(typeof window!=='undefined'?window:globalThis);
