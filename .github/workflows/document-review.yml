@@ -1,0 +1,15 @@
+name: ITE 4.0 document review
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-document-review.js && node --check ite-document-review-ui.js && node --check test-document-review.js
+      - run: node test-document-review.js
