@@ -12,6 +12,8 @@ s=a.add(s,1,sample('P1','PROFORMA'),'DEMO');assert.equal(a.summary(s).counts.PRO
 s=a.add(s,2,sample('C1','TD04'),'DEMO');assert.equal(a.creditStatus(s.documents[2]),'DA_RECUPERARE');
 s=a.recover(s,3,'C1',40,'DEMO');assert.equal(a.creditStatus(s.documents[2]),'PARZIALMENTE_RECUPERATA');
 assert.equal(a.summary(s).creditOutstanding,70);
+assert.equal(a.validate(a.importJSON(a.exportJSON(s))),true); // TD04 con originalId nullo
+assert.throws(()=>a.normalize({...sample('C2','TD04'),originalId:''}),/FATTURA_ORIGINALE/);
 assert.throws(()=>a.recover(s,4,'C1',71,'DEMO'),/ECCESSIVO/);
 s=a.recover(s,4,'C1',70,'DEMO');assert.equal(a.creditStatus(s.documents[2]),'RECUPERATA');
 s=a.verify(s,5,'F1','DEMO');assert.equal(a.summary(s).unverified,2);
