@@ -1,0 +1,22 @@
+name: ITE 4.0 hierarchy workflow
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-hierarchy-workspace.js'
+      - 'test-hierarchy-workspace.js'
+      - '.github/workflows/ite-hierarchy-workspace.yml'
+  workflow_dispatch:
+jobs:
+  hierarchy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-hierarchy-workspace.js
+      - run: node --check test-hierarchy-workspace.js
+      - run: node test-hierarchy-workspace.js
