@@ -1,0 +1,25 @@
+name: ITE 4.0 local PDF review
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  pdf-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and synthetic regressions
+        run: |
+          node --check ite-pdf-local-reader.js
+          node --check ite-document-review-ui.js
+          node --check test-pdf-local-reader.js
+          node test-pdf-local-reader.js
+          node test-document-review.js
+      - name: Integrated script check
+        run: |
+          grep -q 'ite-pdf-local-reader.js' index.html
+          test -f vendor/pdf.mjs
+          test -f vendor/pdf.worker.mjs
