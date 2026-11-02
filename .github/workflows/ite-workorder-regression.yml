@@ -1,0 +1,19 @@
+name: ITE 4.0 synthetic workorder regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  workorders:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ledger workflow
+        run: node test-workorder-ledger.js
+      - name: Browser-local persistence
+        run: node test-workorder-persistence.js
