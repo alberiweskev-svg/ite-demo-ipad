@@ -1,0 +1,23 @@
+/* Run: node test-quote-lifecycle.js — synthetic data only */
+const assert=require('node:assert/strict'),m=require('./ite-quote-lifecycle.js'),link=require('./ite-commercial-linkage.js');
+const data={catalog:{clients:[{id:'c'}],sites:[{id:'s',clientId:'c'}],systems:[{id:'p',siteId:'s'}],equipment:[]},appointments:[{id:'a',clientId:'c',siteId:'s',systemId:'p'}]};
+const ref={clientId:'c',siteId:'s',systemId:'p',appointmentId:'a'};
+const rows=link.separateSupplyInstall('lavabo',120,80);
+let q=m.createQuote(data,ref,rows,{id:'Q-1',createdAt:'2026-11-02T01:00:00',validityDays:15});
+assert.equal(q.status,'BOZZA');assert.equal(m.preview(data,q).total,220);
+q=m.addExtra(q,{id:'X-1',lines:[{type:'POSA',description:'Posa sifone',quantity:1,unitPrice:20,vatRate:10}]});
+assert.equal(m.preview(data,q).total,220);
+q=m.transition(q,'EXTRA','X-1','INVIATO','tecnico','2026-11-02T01:01:00');
+q=m.transition(q,'EXTRA','X-1','ACCETTATO','cliente','2026-11-02T01:02:00');
+assert.equal(m.preview(data,q).total,242);assert.deepEqual(m.preview(data,q).extraIds,['X-1']);
+q=m.transition(q,'QUOTE',null,'INVIATO','ufficio','2026-11-02T01:03:00');
+q=m.transition(q,'QUOTE',null,'ACCETTATO','cliente','2026-11-02T01:04:00');
+assert.equal(q.history.length,2);
+assert.equal(m.validateCommit(data,q,q.revision,link.fingerprint(data)).total,242);
+assert.throws(()=>m.validateCommit(data,q,q.revision-1,link.fingerprint(data)),/REVISIONE/);
+assert.throws(()=>m.addExtra(q,{id:'X-1',lines:rows}),/DUPLICATO/);
+assert.throws(()=>m.transition(q,'QUOTE',null,'BOZZA','ufficio','2026-11-02T01:05:00'),/TRANSIZIONE/);
+assert.throws(()=>m.createQuote(data,ref,rows,{id:'bad',createdAt:'bad'}),/DATA/);
+assert.throws(()=>m.createQuote(data,ref,rows,{id:'bad',createdAt:'2026-11-02T01:00:00',validityDays:90}),/VALIDITA/);
+assert.throws(()=>m.validateCommit({...data,appointments:[]},q,q.revision,link.fingerprint(data)),/GERARCHIA|APPUNTAMENTO|DATI_CAMBIATI/);
+console.log('Quote lifecycle: 13 checks passed');
