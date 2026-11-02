@@ -5,6 +5,8 @@ on:
     paths:
       - 'ite-administrative-*.js'
       - 'test-administrative-workflow-ui.js'
+      - 'test-administrative-import-integrity.js'
+      - 'ite-administrative-intake.js'
       - '.github/workflows/ite-admin-workflow-ui.yml'
   workflow_dispatch:
 jobs:
@@ -17,3 +19,4 @@ jobs:
           node-version: '22'
       - run: node --check ite-administrative-desk-ui.js
       - run: node test-administrative-workflow-ui.js
+      - run: node test-administrative-import-integrity.js
