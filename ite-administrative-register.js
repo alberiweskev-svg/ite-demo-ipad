@@ -13,7 +13,7 @@ function normalize(d){
  const id=str(d.id,'ID'),number=str(d.number,'NUMERO'),issued=date(d.issued),party=str(d.party,'CONTROPARTE');
  const taxable=money(d.taxable),vat=money(d.vat),total=money(d.total);
  if(Math.abs(round(taxable+vat)-total)>0.01)throw Error('TOTALI_INCOERENTI');
- if(type==='TD04'&&d.originalId!==undefined)str(d.originalId,'FATTURA_ORIGINALE');
+ if(type==='TD04'&&d.originalId!==undefined&&d.originalId!==null)str(d.originalId,'FATTURA_ORIGINALE');
  const recovered=type==='TD04'?money(d.recovered===undefined?0:d.recovered):0;
  if(recovered>total)throw Error('RECUPERO_ECCESSIVO');
  return {id,type,number,issued,party,taxable,vat,total,recovered,originalId:type==='TD04'?(d.originalId||null):null,source:d.source==='PDF'?'PDF':'MANUALE',verified:d.verified===true,notes:typeof d.notes==='string'?d.notes.slice(0,1000):''};
