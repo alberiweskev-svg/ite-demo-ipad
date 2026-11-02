@@ -44,12 +44,23 @@ function previewImport(json,current){
  const incoming=safeParse(json);Registry.validate(current);
  const ids=new Set(current.documents.map(x=>x.id));
  const keys=new Set(current.documents.map(x=>x.type+'|'+x.number.toUpperCase()+'|'+x.party.toUpperCase()));
- const duplicates=[],duplicateDocuments=[];
+ const duplicates=[],duplicateDocuments=[],missingOriginals=[],invalidCredits=[];
+ const invoiceIds=new Set([...current.documents,...incoming.documents].filter(x=>x.type==='VENDITA'||x.type==='ACQUISTO').map(x=>x.id));
+ const byId=new Map([...current.documents,...incoming.documents].map(x=>[x.id,x]));
  for(const d of incoming.documents){
+  const key=d.type+'|'+d.number.toUpperCase()+'|'+d.party.toUpperCase();
   if(ids.has(d.id))duplicates.push(d.id);
-  if(keys.has(d.type+'|'+d.number.toUpperCase()+'|'+d.party.toUpperCase()))duplicateDocuments.push(d.id);
+  if(keys.has(key))duplicateDocuments.push(d.id);
+  ids.add(d.id);keys.add(key);
+  if(d.type==='TD04'&&d.originalId){
+   if(!invoiceIds.has(d.originalId))missingOriginals.push({creditId:d.id,originalId:d.originalId});
+   else {
+    const original=byId.get(d.originalId);
+    if(original&&original.party.toUpperCase()!==d.party.toUpperCase())invalidCredits.push({creditId:d.id,reason:'CONTROPARTE_DIFFERENTE'});
+   }
+  }
  }
- return {incoming,duplicates,duplicateDocuments,requiresReview:true,documentCount:incoming.documents.length};
+ return {incoming,duplicates,duplicateDocuments,missingOriginals,invalidCredits,requiresReview:true,documentCount:incoming.documents.length};
 }
 function importReviewed(storage,json,expectedRevision,actor,approved){
  if(approved!==true)throw Error('IMPORT_DA_CONFERMARE');
@@ -58,6 +69,7 @@ function importReviewed(storage,json,expectedRevision,actor,approved){
  if(current.state.revision!==expectedRevision)throw Error('REVISIONE_NON_CORRENTE');
  const check=previewImport(json,current.state);
  if(check.duplicates.length||check.duplicateDocuments.length)throw Error('DOCUMENTI_DUPLICATI_IMPORT');
+ if(check.missingOriginals.length||check.invalidCredits.length)throw Error('COLLEGAMENTI_TD04_NON_VALIDI');
  if(!check.documentCount)throw Error('IMPORT_VUOTO');
  const next=copy(current.state);
  for(const d of check.incoming.documents)next.documents.push(Registry.normalize({...d,verified:false}));
