@@ -1,0 +1,30 @@
+name: ITE 4.0 integrated calendar and service regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-hierarchy-workspace.js'
+      - 'ite-calendar-service.js'
+      - 'test-hierarchy-workspace.js'
+      - 'test-calendar-service.js'
+      - '.github/workflows/ite-calendar-service.yml'
+  workflow_dispatch:
+jobs:
+  calendar-service:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check ite-hierarchy-workspace.js
+          node --check ite-calendar-service.js
+          node --check test-calendar-service.js
+      - name: Hierarchy regression
+        run: node test-hierarchy-workspace.js
+      - name: Calendar and service regression
+        run: node test-calendar-service.js
