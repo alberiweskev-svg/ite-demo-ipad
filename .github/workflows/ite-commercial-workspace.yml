@@ -1,0 +1,28 @@
+name: ITE 4.0 commercial integrated regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-commercial-workspace.js'
+      - 'test-commercial-workspace.js'
+      - 'ite-hierarchy-workspace.js'
+      - '.github/workflows/ite-commercial-workspace.yml'
+  workflow_dispatch:
+jobs:
+  commercial:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: |
+          node --check ite-commercial-workspace.js
+          node --check test-commercial-workspace.js
+      - name: Integrated commercial and hierarchy regression
+        run: |
+          node test-hierarchy-workspace.js
+          node test-commercial-workspace.js
