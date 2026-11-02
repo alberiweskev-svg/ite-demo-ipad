@@ -1,0 +1,24 @@
+name: ITE 4.0 technical metadata backup
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-audit.js'
+      - 'ite-technical-intake.js'
+      - 'test-technical-audit.js'
+      - 'test-technical-metadata-backup.js'
+      - '.github/workflows/ite-technical-metadata-backup.yml'
+  workflow_dispatch:
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-technical-audit.js
+      - run: node test-technical-audit.js
+      - run: node test-technical-metadata-backup.js
