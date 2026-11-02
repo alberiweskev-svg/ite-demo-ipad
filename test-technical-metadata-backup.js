@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const A=require('./ite-technical-audit.js');
+const doc=(id,kind='DICO')=>({id,kind,clientId:'demo-client',siteId:'demo-site',plantId:'demo-plant',number:id,issued:'2026-11-02',status:'DA_VERIFICARE'});
+const a=[doc('D-01')],b=[doc('G-01','GAS')];
+assert.equal(A.importArchive(a,b).length,2);
+assert.deepEqual(a,[doc('D-01')],'merge must not mutate existing archive');
+assert.throws(()=>A.importArchive(a,a),/DUPLICATO/);
+assert.deepEqual(A.importArchive(a,b,'REPLACE'),b);
+assert.throws(()=>A.importArchive(a,b,'INVALID'),/MODALITA/);
+assert.deepEqual(A.restoreArchive(A.exportArchive(a)),a);
+assert.throws(()=>A.restoreArchive('{'),/BACKUP_JSON/);
+assert.throws(()=>A.restoreArchive(JSON.stringify({documents:a})),/FORMATO_BACKUP/);
+assert.throws(()=>A.restoreArchive(JSON.stringify({format:'ITE40_TECHNICAL_METADATA',version:1,documents:[{...doc('X'),issued:'2026-02-30'}]})),/NON_VALIDO/);
+const masters={clients:[{id:'demo-client'}],sites:[{id:'demo-site',clientId:'demo-client'}],plants:[{id:'demo-plant',siteId:'demo-site'}],devices:[]};
+assert.equal(A.reconcile(a,masters)[0].linkStatus,'COLLEGATO');
+assert.equal(A.reconcile(a,{})[0].linkStatus,'DA_COLLEGARE');
+assert.equal(A.reconcile(a,masters)[0].status,'DA_VERIFICARE','linkage cannot auto-verify document');
+console.log('Technical metadata archive: 12 synthetic assertions passed');
