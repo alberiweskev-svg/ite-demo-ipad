@@ -1,0 +1,20 @@
+name: ITE 4.0 Accounting Regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-accounting-workspace.js'
+      - 'test-accounting-workspace.js'
+      - '.github/workflows/ite-accounting-regression.yml'
+  workflow_dispatch:
+jobs:
+  accounting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-accounting-workspace.js
+      - run: node --check test-accounting-workspace.js
+      - run: node test-accounting-workspace.js
