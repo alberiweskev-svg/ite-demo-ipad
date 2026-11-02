@@ -1,0 +1,28 @@
+name: ITE 4.0 integrated administrative desk
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'index.html'
+      - 'ite-administrative-*.js'
+      - 'test-administrative-*.js'
+      - '.github/workflows/ite-admin-desk.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-administrative-register.js
+          node --check ite-administrative-intake.js
+          node --check ite-administrative-desk-ui.js
+      - name: Integration and regression
+        run: |
+          node test-administrative-register.js
+          node test-administrative-intake.js
+          node test-administrative-desk-integration.js
