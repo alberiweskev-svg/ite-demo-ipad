@@ -1,0 +1,25 @@
+/* Synthetic regression: node test-integrated-workspace.js */
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const H=require('./ite-hierarchy-workspace.js'),C=require('./ite-calendar-service.js'),Q=require('./ite-commercial-workspace.js'),A=require('./ite-accounting-workspace.js');
+const html=fs.readFileSync('index.html','utf8');
+for(const name of ['ite-hierarchy-workspace.js','ite-calendar-service.js','ite-commercial-workspace.js','ite-accounting-workspace.js','ite-integrated-workspace.js'])assert(html.includes('src="./'+name+'?v=4.0.2"'),name+' not loaded');
+let h=H.empty();
+h=H.add(h,'clients',{id:'c1',name:'Cliente Fittizio'});
+h=H.add(h,'sites',{id:'s1',clientId:'c1',address:'Via Test 1'});
+h=H.add(h,'plants',{id:'p1',siteId:'s1'});
+h=H.add(h,'devices',{id:'d1',plantId:'p1'});
+h=H.add(h,'appointments',{id:'a1',clientId:'c1',siteId:'s1',deviceId:'d1',operator:'Tecnico Test',start:'2026-11-03T08:00',end:'2026-11-03T09:00'});
+assert.equal(C.schedule(h).length,1);
+h=H.createIntervention(h,'a1','Tecnico Test','j1');
+h=H.clock(h,'j1','ARRIVO','2026-11-03T08:05');
+h=H.clock(h,'j1','USCITA','2026-11-03T08:55');
+assert.equal(C.serviceHistory(h,'d1')[0].status,'CONCLUSO');
+let q=Q.empty(h);
+q=Q.addQuote(q,h,{id:'q1',clientId:'c1',siteId:'s1',status:'BOZZA',lines:[{id:'f1',groupId:'g1',kind:'FORNITURA',description:'Fornitura fittizia',quantity:1,unitPrice:100},{id:'p1',groupId:'g1',kind:'POSA',description:'Posa fittizia',quantity:1,unitPrice:50}]});
+assert.equal(Q.totals(q,h,'q1').subtotal,150);
+let a=A.empty();a=A.add(a,{id:'doc1',number:'TEST-1',date:'2026-11-03',kind:'TD04',counterparty:'Fornitore fittizio',taxable:100,vat:22,total:122,vatCategory:'22'});
+a=A.review(a,'doc1','Tecnico Test',true);a=A.recover(a,'doc1',50);
+assert.equal(A.totals(a).creditToRecover,72);
+console.log('Integrated 4.0 synthetic checks passed');
