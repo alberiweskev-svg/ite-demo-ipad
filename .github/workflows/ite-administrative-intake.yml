@@ -1,0 +1,22 @@
+name: ITE 4.0 administrative intake regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  administrative:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: |
+          node --check ite-administrative-register.js
+          node --check ite-administrative-intake.js
+          node --check test-administrative-intake.js
+      - name: Regression tests
+        run: |
+          node test-administrative-register.js
+          node test-administrative-intake.js
