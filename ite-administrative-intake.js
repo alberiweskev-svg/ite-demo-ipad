@@ -40,20 +40,32 @@ function reconcile(state){Registry.validate(state);const invoiceIds=new Set(stat
  if(d.type==='TD04'){if(d.originalId&&!invoiceIds.has(d.originalId))missing.push({creditId:d.id,originalId:d.originalId});credits.push({id:d.id,status:Registry.creditStatus(d),outstanding:Math.round((d.total-d.recovered)*100)/100})}}
  return {missingOriginals:missing,unverified,proformas,credits,summary:Registry.summary(state)}}
 function exportBackup(state){return Registry.exportJSON(state)}
-function previewImport(json,current){const incoming=safeParse(json);Registry.validate(current);
- const ids=new Set(current.documents.map(x=>x.id));const duplicates=incoming.documents.filter(x=>ids.has(x.id)).map(x=>x.id);
- return {incoming,duplicates,requiresReview:true}}
-function importReviewed(storage,json,expectedRevision,actor,approved){if(approved!==true)throw Error('IMPORT_DA_CONFERMARE');
+function previewImport(json,current){
+ const incoming=safeParse(json);Registry.validate(current);
+ const ids=new Set(current.documents.map(x=>x.id));
+ const keys=new Set(current.documents.map(x=>x.type+'|'+x.number.toUpperCase()+'|'+x.party.toUpperCase()));
+ const duplicates=[],duplicateDocuments=[];
+ for(const d of incoming.documents){
+  if(ids.has(d.id))duplicates.push(d.id);
+  if(keys.has(d.type+'|'+d.number.toUpperCase()+'|'+d.party.toUpperCase()))duplicateDocuments.push(d.id);
+ }
+ return {incoming,duplicates,duplicateDocuments,requiresReview:true,documentCount:incoming.documents.length};
+}
+function importReviewed(storage,json,expectedRevision,actor,approved){
+ if(approved!==true)throw Error('IMPORT_DA_CONFERMARE');
  if(!String(actor||'').trim())throw Error('OPERATORE_OBBLIGATORIO');
  const current=open(storage);if(current.recovered)throw Error('RIPRISTINO_ESPLICITO_RICHIESTO');
  if(current.state.revision!==expectedRevision)throw Error('REVISIONE_NON_CORRENTE');
- const check=previewImport(json,current.state);if(check.duplicates.length)throw Error('ID_DUPLICATI_IMPORT');
- let next=copy(current.state);
- for(const d of check.incoming.documents){next=Registry.add(next,next.revision,{...d,verified:false},actor)}
- if(!check.incoming.documents.length)throw Error('IMPORT_VUOTO');
- // Persist only once after all additions validate successfully.
+ const check=previewImport(json,current.state);
+ if(check.duplicates.length||check.duplicateDocuments.length)throw Error('DOCUMENTI_DUPLICATI_IMPORT');
+ if(!check.documentCount)throw Error('IMPORT_VUOTO');
+ const next=copy(current.state);
+ for(const d of check.incoming.documents)next.documents.push(Registry.normalize({...d,verified:false}));
  next.revision=expectedRevision+1;
- return save(storage,next,expectedRevision)}
+ next.audit.push({revision:next.revision,actor:String(actor).trim(),action:'IMPORTAZIONE_REVISIONATA:'+check.documentCount});
+ Registry.validate(next);
+ return save(storage,next,expectedRevision);
+}
 const api=Object.freeze({KEY,PREV,open,save,restorePrevious,classifyCandidate,stage,approve,reconcile,exportBackup,previewImport,importReviewed});
 root.ITEAdministrativeIntake=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
