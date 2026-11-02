@@ -1,0 +1,26 @@
+name: ITE 4.0 technical hierarchy reconciliation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-audit.js'
+      - 'ite-technical-intake.js'
+      - 'test-technical-hierarchy-reconciliation.js'
+      - '.github/workflows/ite-technical-hierarchy-reconciliation.yml'
+  workflow_dispatch:
+jobs:
+  hierarchy-reconciliation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Technical document regression suite
+        run: |
+          node --check ite-technical-audit.js
+          node test-technical-audit.js
+          node test-technical-metadata-backup.js
+          node test-technical-hierarchy-reconciliation.js
