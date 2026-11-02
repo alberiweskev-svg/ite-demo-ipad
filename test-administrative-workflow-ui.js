@@ -1,0 +1,25 @@
+/* Integrated administrative workflow regression: synthetic records only. */
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const R=require('./ite-administrative-register.js');
+const I=require('./ite-administrative-intake.js');
+const ui=fs.readFileSync(require('node:path').join(__dirname,'ite-administrative-desk-ui.js'),'utf8');
+for(const marker of ['typeFilter.addEventListener','reviewFilter.addEventListener','R.recover(','I.restorePrevious(','R.creditStatus(','I.importReviewed(','R.verify('])assert.ok(ui.includes(marker),'UI integration missing '+marker);
+const data=new Map();
+const storage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v))};
+const doc=(id,type,number,originalId)=>({id,type,number,issued:'2026-11-02',party:'CLIENTE FITTIZIO',taxable:100,vat:10,total:110,...(originalId?{originalId}:{})});
+let state=I.open(storage).state;
+state=R.add(state,state.revision,doc('inv','VENDITA','F-001'),'Tecnico prova');I.save(storage,state,0);
+state=R.add(state,state.revision,doc('credit','TD04','NC-001','inv'),'Tecnico prova');I.save(storage,state,1);
+assert.equal(I.reconcile(state).credits[0].status,'DA_RECUPERARE');
+state=R.recover(state,state.revision,'credit',40,'Tecnico prova');I.save(storage,state,2);
+assert.equal(I.reconcile(state).credits[0].outstanding,70);
+assert.equal(I.reconcile(state).credits[0].status,'PARZIALMENTE_RECUPERATA');
+assert.throws(()=>R.recover(state,state.revision,'credit',71,'Tecnico prova'),/RECUPERO_ECCESSIVO/);
+state=R.verify(state,state.revision,'credit','Tecnico prova');I.save(storage,state,3);
+assert.equal(I.reconcile(state).unverified.includes('credit'),false);
+const restored=I.restorePrevious(storage,'Tecnico prova');
+assert.equal(restored.revision,3);
+assert.equal(I.open(storage).state.revision,3);
+console.log('OK: UI wiring, TD04 partial recovery, excess prevention, verification, restore');
