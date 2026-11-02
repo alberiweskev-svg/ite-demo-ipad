@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');const T=require('./ite-technical-intake.js');
+const base={kind:'DICO',id:'demo-1',clientId:'cliente-fittizio',siteId:'sede-fittizia',number:'DICO-001',issued:'2026-11-02',operator:'Tecnico Demo',confirmed:true};
+let docs=T.append([],base);assert.equal(docs.length,1);assert.equal(docs[0].status,'DA_VERIFICARE');assert.equal(docs[0].filename,'');
+assert.throws(()=>T.append(docs,base),/DUPLICATO/);
+assert.throws(()=>T.append(docs,{...base,id:'demo-2'}),/DUPLICATO/);
+assert.throws(()=>T.append(docs,{...base,id:'demo-2',confirmed:false}),/VERIFICA/);
+assert.throws(()=>T.append(docs,{...base,id:'demo-2',kind:'UNKNOWN'}),/TIPO/);
+assert.throws(()=>T.append(docs,{...base,id:'demo-2',issued:'invalid'}),/DATA/);
+docs=T.append(docs,{...base,id:'demo-2',kind:'GAS'});assert.equal(docs.length,2);
+assert.deepEqual(T.parse(JSON.stringify(docs)),docs);assert.throws(()=>T.parse('{'),/DANNEGGIATO/);
+console.log('Technical intake: 9 synthetic checks passed');
