@@ -1,0 +1,18 @@
+name: ITE 4.0 commerce ledger
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-commerce.js', 'ite-commerce-ledger.js', 'test-commerce-ledger.js', '.github/workflows/commerce-ledger.yml']
+  pull_request:
+    paths: ['ite-commerce.js', 'ite-commerce-ledger.js', 'test-commerce-ledger.js', '.github/workflows/commerce-ledger.yml']
+  workflow_dispatch:
+jobs:
+  ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-commerce.js && node --check ite-commerce-ledger.js && node --check test-commerce-ledger.js
+      - run: node test-commerce-ledger.js
