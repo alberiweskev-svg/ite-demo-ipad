@@ -73,6 +73,35 @@ function mount(){
  client.addEventListener('change',()=>{site.value='';device.value='';refresh()});
  site.addEventListener('change',()=>{device.value='';refresh()});
  filter.addEventListener('change',refresh);from.addEventListener('change',refresh);to.addEventListener('change',refresh);
+ const C=root.ITECalendarViews;
+ if(C){
+  const tools=el('div');tools.className='actions';panel.insertBefore(tools,result);
+  const mode=el('select'),day=el('input'),calendar=el('div');day.type='date';day.value=stamp().slice(0,10);
+  mode.setAttribute('aria-label','Vista calendario');day.setAttribute('aria-label','Data calendario');
+  for(const v of ['giorno','settimana','mese']){const o=el('option',v);o.value=v;mode.append(o)}mode.value='settimana';
+  panel.insertBefore(calendar,result);
+  function draw(){
+   try{const s=state(),v=C.view(s,day.value,mode.value,filter.value.trim());calendar.replaceChildren(el('h3','Calendario '+mode.value+' · '+v.bounds.first+' / '+v.bounds.last));
+    for(const d of v.days){if(!d.appointments.length)continue;const item=el('div');item.className='item';item.append(el('strong',d.date));
+     for(const a of d.appointments){const c=s.clients.find(x=>x.id===a.clientId),site=s.sites.find(x=>x.id===a.siteId);
+      item.append(el('p',a.start.slice(11)+'–'+a.end.slice(11)+' · '+(c?.name||a.clientId)+' · '+(site?.address||a.siteId)+' · '+a.operator+' · '+a.status))}
+     calendar.append(item)}
+    if(!v.total)calendar.append(el('p','Nessun appuntamento'));
+   }catch(e){calendar.replaceChildren(el('p','Errore calendario: '+e.message))}
+  }
+  for(const [label,delta] of [['Precedente',-1],['Successivo',1]]){const b=el('button',label);b.type='button';b.addEventListener('click',()=>{
+   const d=new Date(day.value+'T12:00:00');if(mode.value==='mese')d.setMonth(d.getMonth()+delta);else d.setDate(d.getDate()+delta*(mode.value==='settimana'?7:1));
+   day.value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');draw()});tools.append(b)}
+  const print=el('button','Esporta agenda stampabile');print.type='button';print.addEventListener('click',()=>{
+   try{const content=C.printable(state(),day.value,mode.value,filter.value.trim()),url=URL.createObjectURL(new Blob([content],{type:'text/html;charset=utf-8'}));
+    const a=el('a','Apri file agenda HTML');a.href=url;a.download='agenda-ite-'+day.value+'.html';calendar.prepend(a);status.textContent='Agenda HTML pronta per la stampa';
+   }catch(e){status.textContent='Esportazione non riuscita: '+e.message}
+  });tools.append(mode,day,print);
+  mode.addEventListener('change',draw);day.addEventListener('change',draw);filter.addEventListener('change',draw);
+  const originalAct=act; // Existing agenda actions remain unchanged.
+  const observer=new MutationObserver(draw);observer.observe(status,{childList:true,subtree:true,characterData:true});
+  draw();
+ }
  const day=stamp().slice(0,10);from.value=day+'T00:00';to.value=day+'T23:59';when.value=stamp();
  host.append(panel);try{refresh()}catch(e){status.textContent='Archivio non disponibile: '+e.message}
  return true;
