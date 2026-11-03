@@ -28,7 +28,14 @@ function mount(){
  const client=select('Cliente fittizio',[['','Nessun cliente']]),site=select('Sede fittizia',[['','Nessuna sede']]);
  const number=field('Numero documento'),date=field('Data documento','date'),operator=field('Operatore verifica');
  const notes=field('Note di classificazione');
+ const filters=el('div');filters.className='grid';panel.append(filters);
+ const filterStatus=el('select'),filterType=el('select'),filterSearch=el('input');
+ for(const v of [['','Tutti gli stati'],...D.STATES.map(v=>[v,v])]){const o=el('option',v[1]);o.value=v[0];filterStatus.append(o)}
+ for(const v of [['','Tutte le tipologie'],...D.TYPES.map(v=>[v,v])]){const o=el('option',v[1]);o.value=v[0];filterType.append(o)}
+ filterSearch.placeholder='Cerca nome file, numero o note';filterSearch.setAttribute('aria-label','Cerca documenti');
+ for(const [name,input] of [['Stato',filterStatus],['Tipologia',filterType],['Ricerca',filterSearch]]){const l=el('label',name);l.append(input);filters.append(l)}
  const list=el('div');panel.append(list);
+ [filterStatus,filterType,filterSearch].forEach(x=>x.addEventListener('input',()=>render()));
  function button(label,fn,parent=panel){const b=el('button',label);b.type='button';b.addEventListener('click',()=>{try{fn()}catch(e){status.textContent='Operazione rifiutata: '+e.message}});parent.append(b);return b}
  function hierarchy(){return W.read(localStorage).data.hierarchy}
  function refreshOptions(){const h=hierarchy(),selected=client.value;client.replaceChildren();site.replaceChildren();
@@ -62,6 +69,13 @@ function mount(){
   save(D.add(read(localStorage),item));file.value='';status.textContent='Metadati registrati. PDF non conservato.';
  });
  button('Esporta registro JSON',()=>download(D.exportJSON(read(localStorage)),'ITE40-documenti-demo.json'));
+ button('Esporta elenco CSV (solo metadati)',()=>{
+  const records=read(localStorage).items;
+  const columns=['id','filename','type','status','number','documentDate','clientId','siteId','checkedBy'];
+  const cell=v=>'"'+String(v==null?'':v).replace(/^[=+@\-\t\r]/,'\\ button('Esporta registro JSON',()=>download(D.exportJSON(read(localStorage)),'ITE40-documenti-demo.json'));').replace(/"/g,'""')+'"';
+  const csv='\uFEFF'+[columns.join(';'),...records.map(r=>columns.map(k=>cell(r[k])).join(';'))].join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download='ITE40-documenti-demo.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ });
  const backup=field('Importa registro JSON','file');backup.accept='.json,application/json';
  button('Importa registro con verifica',()=>{
   const f=backup.files&&backup.files[0];if(!f||f.size>1000000)throw Error('FILE_JSON_NON_VALIDO');
@@ -71,10 +85,26 @@ function mount(){
  function render(){
   refreshOptions();list.replaceChildren();const state=read(localStorage),sum=D.summary(state);
   list.append(el('h3','Documenti registrati: '+sum.total+' · da verificare: '+sum.awaitingReview+' · archiviati: '+sum.archived));
-  for(const item of state.items){const line=el('div');line.className='item';line.append(el('strong',item.filename+' — '+item.type+' — '+item.status));line.append(el('p','Numero: '+(item.number||'—')+' · Data: '+(item.documentDate||'—')));
+  const visible=state.items.filter(x=>(!filterStatus.value||x.status===filterStatus.value)&&(!filterType.value||x.type===filterType.value)&&(!filterSearch.value.trim()||[x.filename,x.number,x.notes].join(' ').toLocaleLowerCase('it').includes(filterSearch.value.trim().toLocaleLowerCase('it'))));
+  list.append(el('p','Visualizzati '+visible.length+' di '+state.items.length+' documenti'));
+  for(const item of visible){const line=el('div');line.className='item';line.append(el('strong',item.filename+' — '+item.type+' — '+item.status));line.append(el('p','Numero: '+(item.number||'—')+' · Data: '+(item.documentDate||'—')));
    if(item.status==='DA_VERIFICARE'||item.status==='DA_CLASSIFICARE'){
     const sel=el('select');for(const t of D.TYPES){const o=el('option',t);o.value=t;sel.append(o)}sel.value=item.type;line.append(sel);
     button('Aggiorna classificazione',()=>save(D.update(read(localStorage),item.id,{type:sel.value})),line);
+    const edit=el('details'),summary=el('summary','Correggi metadati e collegamenti');edit.append(summary);
+    const fields=el('div');fields.className='grid';edit.append(fields);
+    function editable(label,value,kind='text'){const l=el('label',label),i=el('input');i.type=kind;i.value=value||'';l.append(i);fields.append(l);return i}
+    const en=editable('Numero documento',item.number),ed=editable('Data documento',item.documentDate,'date'),et=editable('Note',item.notes);
+    const ec=el('select'),es=el('select');
+    function populateLinks(){const h=hierarchy();ec.replaceChildren();for(const [id,name] of [['','Nessun cliente'],...h.clients.map(c=>[c.id,c.name||c.id])]){const o=el('option',name);o.value=id;ec.append(o)}
+     if([...ec.options].some(o=>o.value===(item.clientId||'')))ec.value=item.clientId||'';
+     es.replaceChildren();for(const [id,name] of [['','Nessuna sede'],...h.sites.filter(s=>s.clientId===ec.value).map(s=>[s.id,s.address||s.id])]){const o=el('option',name);o.value=id;es.append(o)}
+     if([...es.options].some(o=>o.value===(item.siteId||'')))es.value=item.siteId||'';
+    }
+    populateLinks();ec.addEventListener('change',()=>{const h=hierarchy();es.replaceChildren();for(const [id,name] of [['','Nessuna sede'],...h.sites.filter(s=>s.clientId===ec.value).map(s=>[s.id,s.address||s.id])]){const o=el('option',name);o.value=id;es.append(o)}});
+    for(const [label,input] of [['Cliente',ec],['Sede',es]]){const l=el('label',label);l.append(input);fields.append(l)}
+    button('Salva correzioni',()=>save(D.update(read(localStorage),item.id,{number:en.value.trim()||null,documentDate:ed.value||null,notes:et.value.trim(),clientId:ec.value||null,siteId:es.value||null})),edit);
+    line.append(edit);
     button('Verifica originale',()=>{if(!operator.value.trim())throw Error('OPERATORE_OBBLIGATORIO');if(!confirm('Confermi di avere verificato il documento originale fuori dal registro?'))return;save(D.verify(read(localStorage),item.id,operator.value.trim()))},line);
    }else if(item.status==='VERIFICATO')button('Archivia metadati',()=>save(D.archive(read(localStorage),item.id)),line);
    list.append(line);
