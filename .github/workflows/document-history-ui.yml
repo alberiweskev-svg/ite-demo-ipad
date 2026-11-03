@@ -1,0 +1,27 @@
+name: ITE 4.0 Document History UI
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-history*.js'
+      - 'ite-document-staging-ui.js'
+      - 'ite-document-intake.js'
+      - 'ite-hierarchy-workspace.js'
+      - 'ite-atomic-workspace.js'
+      - 'index.html'
+      - 'test-document-history-ui.js'
+      - '.github/workflows/document-history-ui.yml'
+  workflow_dispatch:
+jobs:
+  document-history-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-document-history-ui.js
+      - run: node --check ite-document-history.js
+      - run: node --check test-document-history-ui.js
+      - run: node test-document-history.js
+      - run: node test-document-history-ui.js
