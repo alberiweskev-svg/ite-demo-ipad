@@ -6,6 +6,9 @@ on:
       - 'ite-field-operations.js'
       - 'ite-hierarchy-workspace.js'
       - 'test-field-operations.js'
+      - 'ite-field-operations-ui.js'
+      - 'test-field-operations-ui.js'
+      - 'index.html'
       - '.github/workflows/field-operations.yml'
   workflow_dispatch:
 jobs:
@@ -19,3 +22,6 @@ jobs:
       - run: node --check ite-field-operations.js
       - run: node --check test-field-operations.js
       - run: node test-field-operations.js
+      - run: node --check ite-field-operations-ui.js
+      - run: node --check test-field-operations-ui.js
+      - run: node test-field-operations-ui.js
