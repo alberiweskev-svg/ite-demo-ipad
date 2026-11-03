@@ -88,6 +88,24 @@ function mount(){
   anchor.href=url;anchor.download='ite40-rapporto-archivi-demo.json';anchor.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  });
+ action('Prepara piano riconciliazione (sola lettura)',()=>{
+  const planner=root.ITEReconciliationPlanner;
+  if(!planner)throw Error('PIANIFICATORE_NON_DISPONIBILE');
+  const atomic=W.read(localStorage),s=snapshot(localStorage);
+  const plan=planner.plan(atomic,s.registry,s.links);
+  if(W.read(localStorage).revision!==plan.sourceRevision)throw Error('ARCHIVIO_MODIFICATO_RICARICARE');
+  const review=planner.review(plan,plan.sourceRevision);
+  const previous=document.getElementById('ite40-reconciliation-results');
+  if(previous)previous.remove();
+  const results=element('section');results.id='ite40-reconciliation-results';
+  results.append(element('h4','Piano di riconciliazione — nessuna modifica automatica'));
+  results.append(element('p','Revisione '+plan.sourceRevision+' · '+plan.report.documents+' documenti · '+plan.blocked.length+' anomalie bloccanti · '+plan.suggestions.length+' verifiche · pronto: '+(review.ready?'sì':'no')));
+  for(const item of plan.blocked.slice(0,100))results.append(element('p','Da correggere: '+(item.documentId||'collegamento')+' — '+item.reason));
+  for(const item of plan.suggestions.slice(0,100))results.append(element('p','Proposta: '+item.documentId+' — '+item.action+' ('+item.reason+')'));
+  if(plan.blocked.length+plan.suggestions.length>200)results.append(element('p','Visualizzazione limitata ai primi 100 elementi per gruppo.'));
+  panel.append(results);
+  status.textContent='Piano generato in sola lettura. Nessun dato modificato o trasmesso.';
+ });
  action('Verifica integrità collegamenti',()=>{
   const s=snapshot(localStorage),r=L.reconcile(s.registry,s.hierarchy,s.links);
   status.textContent='Documenti '+r.documents+' · collegati '+r.linked+' · non collegati '+r.unlinked+' · riferimenti non validi '+r.invalidLinks.length+' · documenti orfani '+r.orphaned.length;
