@@ -1,0 +1,26 @@
+name: ITE 4.0 integrated operations regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operational-transactions.js'
+      - 'test-operational-transactions.js'
+      - 'ite-hierarchy-workspace.js'
+      - 'ite-calendar-service.js'
+      - 'ite-commercial-workspace.js'
+      - 'ite-accounting-workspace.js'
+      - '.github/workflows/ite-operational-transactions.yml'
+  workflow_dispatch:
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-operational-transactions.js
+      - run: node --check test-operational-transactions.js
+      - run: node test-operational-transactions.js
