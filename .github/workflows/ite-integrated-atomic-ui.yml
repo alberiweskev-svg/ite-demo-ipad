@@ -9,6 +9,7 @@ on:
       - 'ite-operational-transactions.js'
       - 'test-integrated-atomic-ui.js'
       - 'test-atomic-storage-failures.js'
+      - 'test-commercial-integrated-ui.js'
       - '.github/workflows/ite-integrated-atomic-ui.yml'
   workflow_dispatch:
 jobs:
@@ -25,3 +26,4 @@ jobs:
       - run: node test-atomic-storage-failures.js
       - run: node test-atomic-migration.js
       - run: node test-integrated-workspace.js
+      - run: node test-commercial-integrated-ui.js
