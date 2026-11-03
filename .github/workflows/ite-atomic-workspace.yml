@@ -1,0 +1,25 @@
+name: ITE 4.0 atomic integrated regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-atomic-workspace.js'
+      - 'ite-operational-transactions.js'
+      - 'ite-hierarchy-workspace.js'
+      - 'ite-commercial-workspace.js'
+      - 'ite-accounting-workspace.js'
+      - 'test-atomic-workspace.js'
+      - '.github/workflows/ite-atomic-workspace.yml'
+  workflow_dispatch:
+jobs:
+  atomic-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-atomic-workspace.js
+      - run: node test-atomic-workspace.js
+      - run: node test-operational-transactions.js
+      - run: node test-integrated-workspace.js
