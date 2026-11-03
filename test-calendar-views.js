@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict'),H=require('./ite-hierarchy-workspace.js'),F=require('./ite-field-operations.js'),C=require('./ite-calendar-views.js');
+let s=H.empty();s=H.add(s,'clients',{id:'c',name:'Cliente <demo>'});s=H.add(s,'sites',{id:'s',clientId:'c',address:'Via Prova & 1'});
+s=F.schedule(s,{id:'a',clientId:'c',siteId:'s',operator:'Tecnico fittizio',start:'2026-11-04T09:00',end:'2026-11-04T10:00'});
+s=F.schedule(s,{id:'b',clientId:'c',siteId:'s',operator:'Altro fittizio',start:'2026-11-05T11:00',end:'2026-11-05T12:00'});
+assert.equal(C.view(s,'2026-11-04','giorno').total,1);
+assert.equal(C.view(s,'2026-11-04','settimana').total,2);
+assert.equal(C.view(s,'2026-11-04','mese','Tecnico fittizio').total,1);
+assert.equal(C.view(s,'2026-11-04','settimana').days.length,7);
+assert.equal(C.view(s,'2026-02-01','mese').days.length,28);
+assert.throws(()=>C.bounds('2026-02-30','mese'),/DATA_NON_VALIDA/);
+assert.throws(()=>C.bounds('2026-11-04','anno'),/VISTA_NON_VALIDA/);
+s=F.start(s,'a','Tecnico fittizio','i','2026-11-04T09:03');
+assert.equal(C.view(s,'2026-11-04','giorno').days[0].appointments[0].status,'IN_CORSO');
+const html=C.printable(s,'2026-11-04','settimana');
+assert.match(html,/Cliente &lt;demo&gt;/);assert.match(html,/Via Prova &amp; 1/);assert.doesNotMatch(html,/Cliente <demo>/);
+console.log('PASS: calendar day/week/month, operator filtering, status, print escaping');
