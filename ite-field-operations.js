@@ -14,7 +14,7 @@ function schedule(state,record){
 function start(state,appointmentId,operator,id,when){
  const s=checked(state),a=s.appointments.find(x=>x.id===appointmentId);
  if(!a||a.operator!==operator||!stamp(when))throw Error('ARRIVO_NON_VALIDO');
- return H.clock(H.createIntervention(s,appointmentId,operator,id),'ARRIVO',when);
+ return H.clock(H.createIntervention(s,appointmentId,operator,id),id,'ARRIVO',when);
 }
 function close(state,id,when,extra){
  const s=checked(state),job=s.interventions.find(x=>x.id===id);
