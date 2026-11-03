@@ -1,0 +1,25 @@
+name: ITE 4.0 commercio
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-commerce.js'
+      - 'ite-commerce-ui.js'
+      - 'test-commerce.js'
+      - 'index.html'
+      - '.github/workflows/commerce.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test preventivi extra fatture
+        run: node test-commerce.js
+      - name: Verifica sintassi interfaccia
+        run: node --check ite-commerce-ui.js
+      - name: Verifica script nella demo unica
+        run: node -e "const fs=require('fs');const h=fs.readFileSync('index.html','utf8');for(const f of ['ite-commerce.js','ite-commerce-ui.js'])if(!h.includes(f))throw Error('MISSING '+f)"
