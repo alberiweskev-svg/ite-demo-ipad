@@ -1,0 +1,41 @@
+'use strict';
+const assert=require('node:assert/strict');
+const W=require('./ite-atomic-workspace.js');
+const H=require('./ite-hierarchy-workspace.js');
+function store(){
+ const map=new Map();let failKey=null;
+ return {getItem:k=>map.has(k)?map.get(k):null,setItem(k,v){if(k===failKey)throw Error('QUOTA_EXCEEDED');map.set(k,String(v))},
+ fail(k){failKey=k},clearFailure(){failKey=null},snapshot:()=>new Map(map)};
+}
+const s=store();
+let first=W.read(s),h=H.add(first.data.hierarchy,'clients',{id:'TEST-C',name:'Cliente inventato'});
+let one=W.save(s,{...first.data,hierarchy:h},0);
+assert.equal(one.revision,1);
+const state1=s.getItem(W.KEY);
+h=H.add(one.data.hierarchy,'sites',{id:'TEST-S',clientId:'TEST-C',address:'Via Inventata 12'});
+let two=W.save(s,{...one.data,hierarchy:h},1);
+assert.equal(two.revision,2);
+assert.equal(W.parse(s.getItem(W.PREVIOUS)).revision,1);
+assert.equal(W.parse(s.getItem(W.PREVIOUS)).data.hierarchy.sites.length,0);
+assert.equal(W.read(s).data.hierarchy.sites.length,1);
+const state2=s.getItem(W.KEY),previous=s.getItem(W.PREVIOUS);
+s.fail(W.PREVIOUS);
+assert.throws(()=>W.save(s,two.data,2),/QUOTA_EXCEEDED/);
+assert.equal(s.getItem(W.KEY),state2,'failed backup must never commit authoritative state');
+assert.equal(s.getItem(W.PREVIOUS),previous);
+s.clearFailure();
+s.fail(W.KEY);
+assert.throws(()=>W.save(s,two.data,2),/QUOTA_EXCEEDED/);
+assert.equal(s.getItem(W.KEY),state2,'failed primary write preserves current state');
+assert.equal(W.parse(s.getItem(W.PREVIOUS)).revision,2,'backup is prepared before primary commit');
+s.clearFailure();
+let restored=W.restorePrevious(s,2);
+assert.equal(restored.revision,3);
+assert.equal(restored.data.hierarchy.sites.length,1);
+assert.equal(W.parse(s.getItem(W.PREVIOUS)).revision,2);
+assert.throws(()=>W.restorePrevious(s,2),/ARCHIVIO_MODIFICATO/);
+const broken=store();
+broken.setItem(W.KEY,'{corrupt');
+assert.throws(()=>W.read(broken),/ARCHIVIO_JSON_NON_VALIDO/);
+assert.equal(state1.includes('TEST-C'),true);
+console.log('PASS: atomic storage backup-before-commit, quota failures, rollback, revision guards, corrupt input');
