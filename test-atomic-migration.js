@@ -1,0 +1,28 @@
+'use strict';
+const assert=require('node:assert/strict');
+const M=require('./ite-atomic-migration.js'),W=require('./ite-atomic-workspace.js');
+const H=require('./ite-hierarchy-workspace.js'),Q=require('./ite-commercial-workspace.js'),A=require('./ite-accounting-workspace.js');
+function memory(){const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,v),dump:()=>new Map(m)}}
+const s=memory();let h=H.empty();
+h=H.add(h,'clients',{id:'C',name:'Cliente di prova'});
+h=H.add(h,'sites',{id:'S',clientId:'C',address:'Via di prova'});
+h=H.add(h,'plants',{id:'P',siteId:'S',description:'Impianto fittizio'});
+h=H.add(h,'devices',{id:'D',plantId:'P',description:'Generatore fittizio'});
+h=H.add(h,'appointments',{id:'AP',clientId:'C',siteId:'S',deviceId:'D',operator:'Operatore demo',start:'2026-11-05T08:00',end:'2026-11-05T09:00'});
+H.save(s,h);
+let q=Q.empty(h);q=Q.addQuote(q,h,{id:'Q',clientId:'C',siteId:'S',status:'BOZZA',lines:[{id:'F',groupId:'G',kind:'FORNITURA',description:'Fornitura fittizia',quantity:1,unitPrice:20},{id:'L',groupId:'G',kind:'POSA',description:'Posa fittizia',quantity:1,unitPrice:30}]});Q.save(s,q,h);
+let a=A.empty();a=A.add(a,{id:'N',kind:'TD04',number:'NC-DEMO',date:'2026-11-05',counterparty:'Fornitore fittizio',taxable:100,vat:22,total:122,vatCategory:'22'});A.save(s,a);
+const keys=[H.KEY,Q.KEY,A.KEY],before=keys.map(k=>s.getItem(k));
+const p=M.preview(s);assert.equal(p.hasSource,true);assert.equal(p.occupied,false);assert.equal(p.source.devices,1);assert.equal(p.source.documents,1);
+assert.throws(()=>M.migrate(s,0,false),/CONFERMA/);assert.equal(s.getItem(W.KEY),null);
+assert.throws(()=>M.migrate(s,1,true),/ARCHIVIO_MODIFICATO/);
+const result=M.migrate(s,0,true);assert.equal(result.revision,1);
+assert.equal(W.read(s).data.commercial.quotes[0].lines.length,2);
+assert.equal(W.read(s).data.accounting.documents[0].kind,'TD04');
+assert.deepEqual(keys.map(k=>s.getItem(k)),before);
+assert.throws(()=>M.migrate(s,1,true),/DESTINAZIONE_NON_VUOTA/);
+const bad=memory();bad.setItem(H.KEY,s.getItem(H.KEY));bad.setItem(Q.KEY,s.getItem(Q.KEY));bad.setItem(A.KEY,JSON.stringify({version:1,documents:[{id:'BAD'}]}));
+assert.throws(()=>M.migrate(bad,0,true),/DOCUMENTO_NON_VALIDO/);
+assert.equal(bad.getItem(W.KEY),null);
+const empty=memory();assert.equal(M.preview(empty).hasSource,false);assert.throws(()=>M.migrate(empty,0,true),/ARCHIVI_ORIGINE_VUOTI/);
+console.log('PASS: preview, atomic migration, confirmation, revisions, non-destructive source, collision and invalid-document rollback');
