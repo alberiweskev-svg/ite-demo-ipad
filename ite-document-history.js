@@ -44,6 +44,21 @@ function timeline(registry,hierarchy,links,filter={}){
   return (!filter.clientId||doc.clientId===filter.clientId)&&(!filter.siteId||doc.siteId===filter.siteId)&&(!filter.plantId||l.plantId===filter.plantId)&&(!filter.deviceId||l.deviceId===filter.deviceId)&&(!filter.interventionId||l.interventionId===filter.interventionId);
  }).map(doc=>({id:doc.id,filename:doc.filename,type:doc.type,status:doc.status,date:doc.documentDate||doc.addedAt,clientId:doc.clientId||null,siteId:doc.siteId||null,...(byId.get(doc.id)||{})})).sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id));
 }
+/* A tolerant view for diagnostics: malformed/stale links must not hide valid history. */
+function inspect(registry,hierarchy,links,filter={}){
+ const docs=D.validate(registry),h=H.validate(hierarchy);
+ if(!Array.isArray(links))throw Error('COLLEGAMENTI_NON_VALIDI');
+ const valid=[],invalid=[],seen=new Set();
+ for(const entry of links){
+  try{
+   const checked=validateLinks([entry],docs,h)[0];
+   if(seen.has(checked.documentId))throw Error('DOCUMENTO_COLLEGATO_DUPLICATO');
+   seen.add(checked.documentId);valid.push(checked);
+  }catch(e){invalid.push({documentId:entry&&entry.documentId||null,reason:e.message})}
+ }
+ const rows=timeline(docs,h,valid,filter);
+ return {rows,invalid,summary:{documents:docs.items.length,linked:valid.length,unlinked:docs.items.length-valid.length,invalid:invalid.length}};
+}
 function reconcile(registry,hierarchy,links){
  const docs=D.validate(registry),h=H.validate(hierarchy),clientIds=new Set(h.clients.map(x=>x.id)),siteIds=new Set(h.sites.map(x=>x.id)),docIds=new Set(docs.items.map(x=>x.id));
  const missingDocuments=links.filter(x=>!docIds.has(x.documentId)).map(x=>x.documentId);
@@ -51,6 +66,6 @@ function reconcile(registry,hierarchy,links){
  let invalidLinks=[];for(const l of links){try{validateLinks([l],registry,hierarchy)}catch(e){invalidLinks.push({documentId:l.documentId||null,reason:e.message})}}
  return {documents:docs.items.length,linked:links.length,unlinked:docs.items.filter(x=>!links.some(l=>l.documentId===x.id)).length,missingDocuments,orphaned,invalidLinks};
 }
-const api=Object.freeze({validateLinks,link,unlink,timeline,reconcile});
+const api=Object.freeze({validateLinks,link,unlink,timeline,reconcile,inspect});
 root.ITEDocumentHistory=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
