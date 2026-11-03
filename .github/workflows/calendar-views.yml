@@ -1,0 +1,21 @@
+name: ITE 4.0 calendar views
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-calendar-views.js'
+      - 'ite-field-operations.js'
+      - 'ite-field-operations-ui.js'
+      - 'test-calendar-views.js'
+      - '.github/workflows/calendar-views.yml'
+  workflow_dispatch:
+jobs:
+  calendar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-calendar-views.js && node --check ite-field-operations-ui.js
+      - run: node test-field-operations.js && node test-calendar-views.js
