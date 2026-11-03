@@ -1,0 +1,24 @@
+name: ITE 4.0 document workflow regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  document-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate browser scripts syntax
+        run: |
+          node --check ite-document-staging-ui.js
+          node --check ite-document-intake.js
+          node --check ite-staging-pdf-review.js
+      - name: Document staging and lifecycle tests
+        run: |
+          node test-document-staging-ui.js
+          node test-document-workflow.js
