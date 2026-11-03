@@ -19,30 +19,39 @@ function mount(){
  function choice(label){const l=element('label',label),s=element('select');l.append(s);form.append(l);return s}
  const doc=choice('Documento'),plant=choice('Impianto'),device=choice('Apparecchiatura'),appointment=choice('Appuntamento'),intervention=choice('Intervento');
  const noteLabel=element('label','Nota collegamento'),note=element('input');noteLabel.append(note);form.append(noteLabel);
- const filter=choice('Filtra cronologia per cliente');
+ const filter=choice('Filtra cronologia per cliente'),siteFilter=choice('Filtra per sede'),plantFilter=choice('Filtra per impianto');
  const list=element('div');panel.append(list);
  function options(sel,values,selected){sel.replaceChildren();for(const [id,label] of values){const o=element('option',label);o.value=id;sel.append(o)}if(values.some(x=>x[0]===selected))sel.value=selected}
  function populate(){
   const {registry,hierarchy,links}=snapshot(localStorage);
-  const previousDoc=doc.value,previousFilter=filter.value;
-  options(doc,[['','Seleziona documento'],...registry.items.map(x=>[x.id,x.filename+' — '+x.type])],previousDoc);
-  options(filter,[['','Tutti i clienti'],...hierarchy.clients.map(x=>[x.id,x.name||x.id])],previousFilter);
+  const selectedDoc=doc.value,selectedFilter=filter.value,selectedSite=siteFilter.value,selectedPlantFilter=plantFilter.value;
+  options(doc,[['','Seleziona documento'],...registry.items.map(x=>[x.id,x.filename+' — '+x.type])],selectedDoc);
+  options(filter,[['','Tutti i clienti'],...hierarchy.clients.map(x=>[x.id,x.name||x.id])],selectedFilter);
+  options(siteFilter,[['','Tutte le sedi'],...hierarchy.sites.filter(x=>!filter.value||x.clientId===filter.value).map(x=>[x.id,x.address||x.id])],selectedSite);
+  options(plantFilter,[['','Tutti gli impianti'],...hierarchy.plants.filter(x=>!siteFilter.value||x.siteId===siteFilter.value).map(x=>[x.id,x.description||x.id])],selectedPlantFilter);
   const selected=registry.items.find(x=>x.id===doc.value),siteId=selected&&selected.siteId;
-  const plants=hierarchy.plants.filter(x=>x.siteId===siteId),plantId=plant.value;
-  options(plant,[['','Nessun impianto'],...plants.map(x=>[x.id,x.description||x.id])],plantId);
-  const devices=hierarchy.devices.filter(x=>x.plantId===plant.value);
-  options(device,[['','Nessuna apparecchiatura'],...devices.map(x=>[x.id,x.description||x.id])],device.value);
-  const appointments=hierarchy.appointments.filter(x=>x.siteId===siteId&&x.clientId===(selected&&selected.clientId));
-  options(appointment,[['','Nessun appuntamento'],...appointments.map(x=>[x.id,x.start+' — '+x.operator])],appointment.value);
+  options(plant,[['','Nessun impianto'],...hierarchy.plants.filter(x=>x.siteId===siteId).map(x=>[x.id,x.description||x.id])],plant.value);
+  options(device,[['','Nessuna apparecchiatura'],...hierarchy.devices.filter(x=>x.plantId===plant.value).map(x=>[x.id,x.description||x.id])],device.value);
+  options(appointment,[['','Nessun appuntamento'],...hierarchy.appointments.filter(x=>x.siteId===siteId&&x.clientId===(selected&&selected.clientId)).map(x=>[x.id,x.start+' — '+x.operator])],appointment.value);
   options(intervention,[['','Nessun intervento'],...hierarchy.interventions.filter(x=>x.appointmentId===appointment.value).map(x=>[x.id,x.id+' — '+x.status])],intervention.value);
-  const current=links.find(x=>x.documentId===doc.value);
-  return current;
+  return links.find(x=>x.documentId===doc.value);
  }
- function showLink(){const current=populate();if(current){plant.value=current.plantId||'';populate();device.value=current.deviceId||'';appointment.value=current.appointmentId||'';populate();intervention.value=current.interventionId||'';note.value=current.note||''}else note.value=''}
+ function showLink(){
+  plant.value='';device.value='';appointment.value='';intervention.value='';
+  const current=populate();
+  if(current){
+   plant.value=current.plantId||'';appointment.value=current.appointmentId||'';
+   populate();
+   device.value=current.deviceId||'';intervention.value=current.interventionId||'';
+   note.value=current.note||'';
+  }else note.value='';
+ }
  doc.addEventListener('change',showLink);
  plant.addEventListener('change',()=>{device.value='';populate()});
  appointment.addEventListener('change',()=>{intervention.value='';populate()});
- filter.addEventListener('change',render);
+ filter.addEventListener('change',()=>{siteFilter.value='';plantFilter.value='';render()});
+ siteFilter.addEventListener('change',()=>{plantFilter.value='';render()});
+ plantFilter.addEventListener('change',render);
  function action(label,fn){const b=element('button',label);b.type='button';b.addEventListener('click',()=>{try{fn()}catch(e){status.textContent='Operazione rifiutata: '+e.message}});panel.append(b)}
  action('Salva collegamento documentale',()=>{
   if(!doc.value)throw Error('DOCUMENTO_OBBLIGATORIO');
@@ -64,11 +73,11 @@ function mount(){
   status.textContent='Documenti '+r.documents+' · collegati '+r.linked+' · non collegati '+r.unlinked+' · riferimenti non validi '+r.invalidLinks.length+' · documenti orfani '+r.orphaned.length;
  });
  function render(){
-  const s=snapshot(localStorage);list.replaceChildren();const report=L.reconcile(s.registry,s.hierarchy,s.links);
+  const s=snapshot(localStorage);populate();list.replaceChildren();const report=L.reconcile(s.registry,s.hierarchy,s.links);
   const warning=element('p','Documenti '+report.documents+' · collegati '+report.linked+' · senza collegamento '+report.unlinked+' · anomalie '+(report.invalidLinks.length+report.orphaned.length));list.append(warning);
   if(report.invalidLinks.length||report.orphaned.length){list.append(element('p','Riferimenti incoerenti: correggere anagrafiche e collegamenti prima di consultare lo storico.'));return}
-  const rows=L.timeline(s.registry,s.hierarchy,s.links,{clientId:filter.value||undefined});
-  for(const row of rows){const item=element('div');item.className='item';item.append(element('strong',row.date+' — '+row.filename));item.append(element('p',row.type+' · '+row.status+' · sede '+(row.siteId||'—')+' · impianto '+(row.plantId||'—')+' · intervento '+(row.interventionId||'—')));list.append(item)}
+  const rows=L.timeline(s.registry,s.hierarchy,s.links,{clientId:filter.value||undefined,siteId:siteFilter.value||undefined,plantId:plantFilter.value||undefined});
+  for(const row of rows){const item=element('div');item.className='item';item.append(element('strong',row.date+' — '+row.filename));const site=s.hierarchy.sites.find(x=>x.id===row.siteId),plantRecord=s.hierarchy.plants.find(x=>x.id===row.plantId),job=s.hierarchy.interventions.find(x=>x.id===row.interventionId);item.append(element('p',row.type+' · '+row.status+' · sede '+(site?(site.address||site.id):'—')+' · impianto '+(plantRecord?(plantRecord.description||plantRecord.id):'—')+' · intervento '+(job?(job.id+' ('+job.status+')'):'—')));list.append(item)}
   if(!rows.length)list.append(element('p','Nessun documento per il filtro selezionato.'));
  }
  parent.append(panel);try{render();showLink()}catch(e){status.textContent='Storico da verificare: '+e.message}return true;
