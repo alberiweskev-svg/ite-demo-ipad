@@ -79,6 +79,15 @@ function mount(){
   if(!confirm('Ripristinare i collegamenti precedenti?'))return;
   save(localStorage,candidate,s.registry,s.hierarchy);status.textContent='Collegamenti ripristinati.';render();
  });
+ action('Controlla archivi ed esporta rapporto JSON',()=>{
+  const audit=root.ITECrossArchiveAudit;if(!audit)throw Error('MOTORE_AUDIT_NON_DISPONIBILE');
+  const bundle=audit.capture(localStorage,S.KEY,KEY);
+  const report=bundle.report;
+  status.textContent='Controllo archivi: '+report.documents+' documenti, '+report.linked+' collegati, '+report.issues.length+' anomalie.';
+  const blob=new Blob([audit.exportJSON(bundle)],{type:'application/json'}),url=URL.createObjectURL(blob),anchor=element('a');
+  anchor.href=url;anchor.download='ite40-rapporto-archivi-demo.json';anchor.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ });
  action('Verifica integrità collegamenti',()=>{
   const s=snapshot(localStorage),r=L.reconcile(s.registry,s.hierarchy,s.links);
   status.textContent='Documenti '+r.documents+' · collegati '+r.linked+' · non collegati '+r.unlinked+' · riferimenti non validi '+r.invalidLinks.length+' · documenti orfani '+r.orphaned.length;
