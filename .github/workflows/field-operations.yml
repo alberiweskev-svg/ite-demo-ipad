@@ -1,0 +1,21 @@
+name: ITE 4.0 field operations
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-field-operations.js'
+      - 'ite-hierarchy-workspace.js'
+      - 'test-field-operations.js'
+      - '.github/workflows/field-operations.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-field-operations.js
+      - run: node --check test-field-operations.js
+      - run: node test-field-operations.js
