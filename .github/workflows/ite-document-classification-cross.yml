@@ -1,0 +1,22 @@
+name: ITE 4.0 document classification cross-regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  document-classification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-administrative-register.js
+          node --check ite-document-intake.js
+          node --check test-document-classification-cross.js
+      - name: Cross-module classification
+        run: |
+          node test-administrative-register.js
+          node test-document-classification-cross.js

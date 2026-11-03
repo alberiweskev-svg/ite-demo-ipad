@@ -19,6 +19,10 @@ s=a.recover(s,4,'C1',70,'DEMO');assert.equal(a.creditStatus(s.documents[2]),'REC
 s=a.verify(s,5,'F1','DEMO');assert.equal(a.summary(s).unverified,2);
 assert.equal(a.importJSON(a.exportJSON(s)).revision,s.revision);
 assert.equal(a.classify({filename:'nota_TD04.pdf'}).type,'TD04');
+for(const filename of ['TD04.pdf','nota_TD04.pdf','nota-TD04.xml','nota TD 04.pdf','nota_di_credito.pdf'])assert.equal(a.classify({filename}).type,'TD04',filename);
+for(const filename of ['PROFORMA_12.pdf','copia_di_cortesia.pdf','PR_12.pdf'])assert.equal(a.classify({filename}).type,'PROFORMA',filename);
+assert.equal(a.classify({filename:'fattura_TD040.pdf'}).type,null);
+assert.equal(a.classify({filename:'fattura.pdf',text:'Nota di credito TD04'}).type,'TD04');
 assert.equal(a.classify({text:'Proforma PR 12'}).type,'PROFORMA');
 assert.equal(a.classify({filename:'fattura.pdf'}).type,null);
 assert.throws(()=>a.normalize({...sample('F3'),issued:'2026-02-30'}),/DATA/);
