@@ -28,4 +28,14 @@ const scripts=['ite-document-intake.js','ite-hierarchy-workspace.js','ite-atomic
 for(const script of scripts)assert.ok(html.includes('./'+script+'?'),script+' not loaded');
 assert.ok(html.indexOf('ite-document-staging-ui.js')<html.indexOf('ite-document-history-ui.js'));
 assert.ok(html.indexOf('ite-document-history.js')<html.indexOf('ite-document-history-ui.js'));
+const uiSource=fs.readFileSync('ite-document-history-ui.js','utf8');
+for(const name of ['siteFilter','plantFilter','clientId:filter.value','siteId:siteFilter.value','plantId:plantFilter.value']){
+ assert.ok(uiSource.includes(name),'missing cascading history filter: '+name);
+}
+assert.ok(uiSource.includes("device.value='';populate()"),'device must reset on plant change');
+assert.ok(uiSource.includes("intervention.value='';populate()"),'intervention must reset on appointment change');
+assert.ok(uiSource.includes("plant.value=current.plantId||''"),'existing plant must restore on document selection');
+assert.ok(uiSource.includes("appointment.value=current.appointmentId||''"),'existing appointment must restore');
+assert.equal(L.timeline(docs,h,[link],{siteId:'S',plantId:'P'}).length,1);
+assert.equal(L.timeline(docs,h,[link],{siteId:'S',plantId:'missing'}).length,0);
 console.log('OK: local document history, backup, invalid links, UI entrypoint');
