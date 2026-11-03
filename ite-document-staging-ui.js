@@ -40,6 +40,20 @@ function mount(){
  }
  client.addEventListener('change',refreshOptions);
  file.addEventListener('change',()=>{const f=file.files&&file.files[0];if(f)type.value=D.classify(f.name)});
+ button('Leggi PDF localmente e proponi campi',async()=>{
+  const f=file.files&&file.files[0];if(!f)throw Error('Selezionare un PDF');
+  if(!root.ITEPDFLocalReader||!root.ITEStagingPDFReview)throw Error('LETTORE_NON_DISPONIBILE');
+  status.textContent='Lettura PDF locale in corso…';
+  try{
+   const extracted=await root.ITEPDFLocalReader.extract(f);
+   if(extracted.needsOCR){status.textContent='PDF senza testo selezionabile: serve verifica manuale, nessuna OCR automatica.';return}
+   const proposal=root.ITEStagingPDFReview.inspect(f.name,extracted.text);
+   if(proposal.type)type.value=proposal.type;
+   if(proposal.number)number.value=proposal.number;
+   if(proposal.date)date.value=proposal.date;
+   status.textContent='Proposta da '+extracted.pages+' pagine: verificare tipo, numero e data sul PDF originale prima di registrare. Nessun testo o PDF conservato.';
+  }catch(e){status.textContent='Lettura PDF non riuscita: '+e.message}
+ });
  function save(next){D.linkCheck(next,hierarchy());write(localStorage,next);render()}
  button('Registra metadati PDF',()=>{
   const f=file.files&&file.files[0];if(!f)throw Error('Selezionare un PDF');
