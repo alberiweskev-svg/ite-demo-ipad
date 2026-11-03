@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict');
+global.ITEDocumentIntake=require('./ite-document-intake.js');
+const ui=require('./ite-document-staging-ui.js'),D=global.ITEDocumentIntake;
+class Store{constructor(){this.map=new Map();this.failKey=null}getItem(k){return this.map.has(k)?this.map.get(k):null}setItem(k,v){if(k===this.failKey)throw Error('QUOTA');this.map.set(k,String(v))}}
+const s=new Store(),base=D.empty();
+assert.deepEqual(ui.read(s),base);
+const a=D.add(base,{id:'doc-1',filename:'DICO_DEMO.pdf',type:'DICO_ELETTRICO',status:'DA_VERIFICARE',addedAt:'2026-11-03',notes:'solo prova',clientId:null,siteId:null});
+ui.write(s,a);assert.equal(ui.read(s).items.length,1);
+const b=D.verify(a,'Tecnico Demo','Operatore');ui.write(s,b);
+assert.equal(D.summary(ui.read(s)).verified,1);
+assert.equal(D.summary(D.importJSON(s.getItem(ui.PREVIOUS))).awaitingReview,1);
+s.failKey=ui.PREVIOUS;
+assert.throws(()=>ui.write(s,D.archive(b,'doc-1')),/QUOTA/);
+assert.equal(ui.read(s).items[0].status,'VERIFICATO');
+s.failKey=null;
+assert.throws(()=>ui.write(s,{version:1,items:[{id:'invalid'}]}),/DOCUMENTO_NON_VALIDO/);
+assert.equal(ui.read(s).items.length,1);
+ui.write(s,D.archive(b,'doc-1'));
+assert.equal(ui.read(s).items[0].status,'ARCHIVIATO');
+console.log('Document staging: validation, verify, archive, backup-before-write, quota rollback OK');
