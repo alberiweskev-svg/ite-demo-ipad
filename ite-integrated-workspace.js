@@ -54,7 +54,31 @@ function mount(){
  const desc=description.value.trim(),lines=[{id:id+'-F',groupId:id,kind:'FORNITURA',description:desc+' — fornitura',quantity:1,unitPrice:money(supply.value)},{id:id+'-P',groupId:id,kind:'POSA',description:desc+' — posa',quantity:1,unitPrice:money(installation.value)}];
  commercial=Q.addQuote(commercial,hierarchy,{id,clientId,siteId,status:'BOZZA',lines});persist();
  });
+ const extras=node('div');extras.className='grid';panel.append(node('h3','Extra e magazzino — collaudo commerciale'));panel.append(extras);
+ const quoteSelect=selectField(extras,'Preventivo in bozza',[]);
+ const extraDescription=field(extras,'Descrizione Extra'),extraPrice=field(extras,'Prezzo Extra €','number');
+ const stockDescription=field(extras,'Articolo magazzino'),stockQuantity=field(extras,'Giacenza','number'),stockCost=field(extras,'Costo unitario €','number');
+ const stockSelect=selectField(extras,'Articolo da associare',[]),stockQuote=selectField(extras,'Preventivo per materiale',[]);
+ const stockUnits=field(extras,'Quantità da fornire','number'),stockSell=field(extras,'Prezzo unitario vendita €','number');
+ const positiveMoney=v=>{const n=Number(v);if(v===''||!Number.isFinite(n)||n<0||Math.round(n*100)!==n*100)throw Error('Importo non valido');return n};
+ action(panel,'Aggiungi voce EXTRA al preventivo',()=>{
+  if(!quoteSelect.value||!extraDescription.value.trim())throw Error('Selezionare preventivo e descrizione');
+  const id='DEMO-X-'+Date.now();
+  commercial=Q.addLine(commercial,hierarchy,quoteSelect.value,{id,groupId:id,kind:'EXTRA',description:extraDescription.value.trim(),quantity:1,unitPrice:positiveMoney(extraPrice.value)});persist();
+ });
+ action(panel,'Carica articolo nel magazzino demo',()=>{
+  const qty=Number(stockQuantity.value);
+  if(!stockDescription.value.trim()||!Number.isSafeInteger(qty)||qty<0)throw Error('Articolo o giacenza non valida');
+  commercial=Q.validate({...commercial,stock:[...commercial.stock,{id:'DEMO-STOCK-'+Date.now(),description:stockDescription.value.trim(),unitCost:positiveMoney(stockCost.value),onHand:qty}]},hierarchy);persist();
+ });
+ action(panel,'Associa materiale come FORNITURA',()=>{
+  const qty=Number(stockUnits.value),q=commercial.quotes.find(q=>q.id===stockQuote.value);
+  if(!q||!stockSelect.value||!Number.isSafeInteger(qty)||qty<=0)throw Error('Preventivo, articolo o quantità non validi');
+  const id='DEMO-M-'+Date.now(),article=commercial.stock.find(x=>x.id===stockSelect.value);
+  commercial=Q.addLine(commercial,hierarchy,q.id,{id,groupId:id,kind:'FORNITURA',description:article.description,quantity:qty,unitPrice:positiveMoney(stockSell.value),stockId:article.id});persist();
+ });
  quotes=node('div');panel.append(quotes);
+ const inventory=node('div');panel.append(node('h3','Disponibilità magazzino'));panel.append(inventory);
  panel.append(node('h3','Registro fatture e note di credito TD04'));
  const finance=node('div');finance.className='grid';panel.append(finance);
  const kind=selectField(finance,'Tipo',[['ACQUISTO','Acquisto'],['VENDITA','Vendita'],['PROFORMA','Proforma'],['TD04','Nota credito TD04']]);
@@ -67,14 +91,29 @@ function mount(){
  target.prepend(panel);
  restore();atomicControls(panel);
  function render(){
- calendar.replaceChildren();quotes.replaceChildren();docs.replaceChildren();clientSelect.replaceChildren();
+ calendar.replaceChildren();quotes.replaceChildren();docs.replaceChildren();inventory.replaceChildren();clientSelect.replaceChildren();quoteSelect.replaceChildren();stockQuote.replaceChildren();stockSelect.replaceChildren();
  for(const s of hierarchy.sites){const c=hierarchy.clients.find(x=>x.id===s.clientId);option(clientSelect,c.id+'|'+s.id,(c.name||c.id)+' — '+(s.address||s.id))}
  for(const a of C.schedule(hierarchy)){const line=node('div',a.start+' — '+a.clientName+' — '+a.operator+' — '+a.status);line.className='item';
  if(!a.interventionId)action(line,'Apri intervento',()=>{hierarchy=H.createIntervention(hierarchy,a.id,a.operator,'DEMO-J-'+Date.now());persist()});
  else if(a.status==='APERTO')action(line,'Sono arrivato',()=>{hierarchy=H.clock(hierarchy,a.interventionId,'ARRIVO',localNow());persist()});
  else if(a.status==='IN_CORSO')action(line,'Uscita',()=>{hierarchy=H.clock(hierarchy,a.interventionId,'USCITA',localNow());persist()});
  calendar.append(line)}
- for(const q of commercial.quotes){const total=Q.totals(commercial,hierarchy,q.id);quotes.append(node('p',q.id+' — '+q.status+' — totale € '+total.subtotal.toFixed(2)))}
+ for(const q of commercial.quotes){
+  const total=Q.totals(commercial,hierarchy,q.id),line=node('div');line.className='item';
+  line.append(node('strong',q.id+' — '+q.status+' — totale € '+total.subtotal.toFixed(2)));
+  for(const l of q.lines)line.append(node('p',l.kind+' · '+l.description+' · '+l.quantity+' × € '+l.unitPrice.toFixed(2)));
+  if(['BOZZA','INVIATO'].includes(q.status)){
+   option(quoteSelect,q.id,q.id);
+   option(stockQuote,q.id,q.id);
+   action(line,'Accetta preventivo',()=>{commercial=Q.accept(commercial,hierarchy,q.id);persist()});
+  }else if(q.status==='ACCETTATO'){
+   const rs=commercial.reservations.filter(r=>r.quoteId===q.id);
+   if(!rs.length&&q.lines.some(l=>l.stockId))action(line,'Prenota materiali',()=>{commercial=Q.reserve(commercial,hierarchy,q.id);persist()});
+   else if(rs.some(r=>r.status==='RISERVATO'))action(line,'Scarica materiali',()=>{commercial=Q.discharge(commercial,hierarchy,q.id);persist()});
+  }
+  quotes.append(line);
+ }
+ for(const s of Q.availability(commercial,hierarchy)){option(stockSelect,s.id,s.description+' ('+s.available+' disponibili)');inventory.append(node('p',s.description+' — giacenza '+s.onHand+' · riservati '+s.reserved+' · disponibili '+s.available))}
  for(const d of accounting.documents)docs.append(node('p',d.kind+' '+d.number+' — € '+d.total.toFixed(2)+' — '+d.status));
  }
  function localNow(){const d=new Date(),pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())}
