@@ -72,7 +72,7 @@ function mount(){
  button('Esporta elenco CSV (solo metadati)',()=>{
   const records=read(localStorage).items;
   const columns=['id','filename','type','status','number','documentDate','clientId','siteId','checkedBy'];
-  const cell=v=>'"'+String(v==null?'':v).replace(/^[=+@\-\t\r]/,'\\ button('Esporta registro JSON',()=>download(D.exportJSON(read(localStorage)),'ITE40-documenti-demo.json'));').replace(/"/g,'""')+'"';
+  const cell=v=>{const s=String(v==null?'':v);return '"'+(/^[=+@-]/.test(s)?"'"+s:s).replace(/"/g,'""')+'"'};
   const csv='\uFEFF'+[columns.join(';'),...records.map(r=>columns.map(k=>cell(r[k])).join(';'))].join('\r\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download='ITE40-documenti-demo.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  });
