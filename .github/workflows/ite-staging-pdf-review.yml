@@ -1,0 +1,21 @@
+name: ITE 4.0 PDF staging review
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-staging-pdf-review.js'
+      - 'ite-document-staging-ui.js'
+      - 'ite-document-intake.js'
+      - 'ite-document-review.js'
+      - 'test-staging-pdf-review.js'
+      - '.github/workflows/ite-staging-pdf-review.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-staging-pdf-review.js && node --check ite-document-staging-ui.js && node --test test-staging-pdf-review.js
