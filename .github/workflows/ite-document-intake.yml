@@ -1,0 +1,21 @@
+name: ITE 4.0 document intake synthetic tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-intake.js'
+      - 'test-document-intake.js'
+      - '.github/workflows/ite-document-intake.yml'
+  workflow_dispatch:
+jobs:
+  document-intake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: node --check ite-document-intake.js && node --check test-document-intake.js
+      - name: Synthetic regression
+        run: node test-document-intake.js
