@@ -6,7 +6,18 @@ const D=root.ITEDocumentIntake,H=root.ITEHierarchyWorkspace,W=root.ITEAtomicWork
 const KEY='ite40_document_history_links_v1',PREV=KEY+'_previous';
 const element=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);return n};
 function read(store){const raw=store.getItem(KEY);if(raw===null)return [];const x=JSON.parse(raw);if(!Array.isArray(x))throw Error('STORICO_NON_VALIDO');return x}
-function save(store,links,registry,hierarchy){const checked=L.validateLinks(links,registry,hierarchy),old=store.getItem(KEY);if(old!==null)store.setItem(PREV,old);store.setItem(KEY,JSON.stringify(checked));return checked}
+function save(store,links,registry,hierarchy){
+ const checked=L.validateLinks(links,registry,hierarchy),old=store.getItem(KEY),previous=store.getItem(PREV);
+ // Never overwrite the live register unless its recovery snapshot is durable.
+ store.setItem(PREV,old===null?'[]':old);
+ try{store.setItem(KEY,JSON.stringify(checked))}
+ catch(error){
+  // Restore the prior backup if possible; the live register was not touched by a failed setItem.
+  try{if(previous===null)store.removeItem(PREV);else store.setItem(PREV,previous)}catch(_){}
+  throw error;
+ }
+ return checked;
+}
 function snapshot(store){return {registry:S.read(store),hierarchy:W.read(store).data.hierarchy,links:read(store)}}
 function mount(){
  if(!D||!H||!W||!L||!S||!root.document)return false;
@@ -75,8 +86,9 @@ function mount(){
  function render(){
   const s=snapshot(localStorage);populate();list.replaceChildren();const report=L.reconcile(s.registry,s.hierarchy,s.links);
   const warning=element('p','Documenti '+report.documents+' · collegati '+report.linked+' · senza collegamento '+report.unlinked+' · anomalie '+(report.invalidLinks.length+report.orphaned.length));list.append(warning);
-  if(report.invalidLinks.length||report.orphaned.length){list.append(element('p','Riferimenti incoerenti: correggere anagrafiche e collegamenti prima di consultare lo storico.'));return}
-  const rows=L.timeline(s.registry,s.hierarchy,s.links,{clientId:filter.value||undefined,siteId:siteFilter.value||undefined,plantId:plantFilter.value||undefined});
+  if(report.invalidLinks.length||report.orphaned.length)list.append(element('p','Attenzione: '+report.invalidLinks.length+' collegamenti incoerenti e '+report.orphaned.length+' documenti orfani. I documenti validi restano consultabili; correggere le anomalie prima di modificare i collegamenti.'));
+  const result=L.inspect(s.registry,s.hierarchy,s.links,{clientId:filter.value||undefined,siteId:siteFilter.value||undefined,plantId:plantFilter.value||undefined});
+  const rows=result.rows;
   for(const row of rows){const item=element('div');item.className='item';item.append(element('strong',row.date+' — '+row.filename));const site=s.hierarchy.sites.find(x=>x.id===row.siteId),plantRecord=s.hierarchy.plants.find(x=>x.id===row.plantId),job=s.hierarchy.interventions.find(x=>x.id===row.interventionId);item.append(element('p',row.type+' · '+row.status+' · sede '+(site?(site.address||site.id):'—')+' · impianto '+(plantRecord?(plantRecord.description||plantRecord.id):'—')+' · intervento '+(job?(job.id+' ('+job.status+')'):'—')));list.append(item)}
   if(!rows.length)list.append(element('p','Nessun documento per il filtro selezionato.'));
  }
