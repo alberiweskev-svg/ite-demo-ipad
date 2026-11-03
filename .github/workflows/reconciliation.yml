@@ -1,0 +1,28 @@
+name: ITE 4.0 reconciliation regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-reconciliation-planner.js'
+      - 'test-reconciliation-planner.js'
+      - 'ite-cross-archive-audit.js'
+      - 'ite-document-history.js'
+      - 'ite-document-intake.js'
+      - 'ite-hierarchy-workspace.js'
+      - 'ite-atomic-workspace.js'
+      - '.github/workflows/reconciliation.yml'
+  workflow_dispatch:
+jobs:
+  reconciliation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check ite-reconciliation-planner.js
+          node --check test-reconciliation-planner.js
+      - name: Run synthetic reconciliation tests
+        run: node test-reconciliation-planner.js
