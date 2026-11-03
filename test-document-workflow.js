@@ -1,0 +1,26 @@
+'use strict';
+const assert=require('node:assert/strict');
+const D=require('./ite-document-intake.js');
+const UI=require('./ite-document-staging-ui.js');
+class Storage{constructor(){this.data=new Map();this.fail=null}getItem(k){return this.data.has(k)?this.data.get(k):null}setItem(k,v){if(this.fail===k)throw Error('QUOTA');this.data.set(k,String(v))}}
+const h={clients:[{id:'C1',name:'Cliente Demo'},{id:'C2',name:'Altro Demo'}],sites:[{id:'S1',clientId:'C1',address:'Sede Demo'}]};
+const store=new Storage();
+const sample={id:'D1',filename:'dico-demo.pdf',type:'DICO_ELETTRICO',status:'DA_VERIFICARE',addedAt:'2026-11-03',notes:'test sintetico',clientId:'C1',siteId:'S1',number:'01'};
+let state=D.add(D.empty(),sample);
+assert.equal(D.linkCheck(state,h).items.length,1);
+UI.write(store,state);
+state=D.update(UI.read(store),'D1',{number:'02',notes:'corretto',documentDate:'2026-11-02'});
+UI.write(store,state);
+assert.equal(UI.read(store).items[0].number,'02');
+assert.throws(()=>D.update(state,'D1',{clientId:'C2'}).items&&D.linkCheck(D.update(state,'D1',{clientId:'C2'}),h),/SEDE_NON_COHERENTE/);
+assert.throws(()=>D.add(state,{...sample,id:'D2',number:'02'}),/POSSIBILE_DUPLICATO/);
+assert.throws(()=>D.update(state,'D1',{documentDate:'2026-02-30'}),/DATA_NON_VALIDA/);
+state=D.verify(state,'Tecnico Demo');UI.write(store,state);
+assert.throws(()=>D.update(state,'D1',{type:'ALTRO'}),/VERIFICA_ORIGINALE_OBBLIGATORIA/);
+state=D.archive(state,'D1');UI.write(store,state);
+assert.equal(D.summary(UI.read(store)).archived,1);
+assert.equal(D.summary(D.importJSON(store.getItem(UI.PREVIOUS))).verified,1);
+store.fail=UI.PREVIOUS;
+assert.throws(()=>UI.write(store,D.empty()),/QUOTA/);
+assert.equal(UI.read(store).items[0].status,'ARCHIVIATO');
+console.log('Document workflow: metadata corrections, links, duplicates, verification, archive, backup OK');
