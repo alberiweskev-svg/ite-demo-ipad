@@ -1,0 +1,23 @@
+name: ITE 4.0 document history regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-history.js'
+      - 'test-document-history.js'
+      - 'ite-document-intake.js'
+      - 'ite-hierarchy-workspace.js'
+      - '.github/workflows/document-history.yml'
+  workflow_dispatch:
+jobs:
+  document-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-document-history.js
+      - run: node --check test-document-history.js
+      - run: node test-document-history.js
