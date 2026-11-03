@@ -20,3 +20,13 @@ assert.equal(bad.blocked.length,2);
 assert.equal(P.review(bad,3).ready,false);
 assert.equal(snapshot.revision,3);
 console.log('PASS: reconciliation planner, duplicate detection, non-destructive review and revision guard');
+
+const fs=require('node:fs');
+const page=fs.readFileSync(require('node:path').join(__dirname,'index.html'),'utf8');
+const uiSource=fs.readFileSync(require('node:path').join(__dirname,'ite-document-history-ui.js'),'utf8');
+assert(page.includes('ite-reconciliation-planner.js?v=4.0.7'));
+assert(page.indexOf('ite-reconciliation-planner.js?v=4.0.7')<page.indexOf('ite-document-history-ui.js?v=4.0.7'));
+assert(uiSource.includes('Prepara piano riconciliazione (sola lettura)'));
+assert(uiSource.includes('planner.review(plan,plan.sourceRevision)'));
+assert(uiSource.includes('textContent='));
+console.log('PASS: reconciliation UI integration and safe text rendering');
