@@ -1,0 +1,22 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8'),ui=fs.readFileSync('ite-integrated-workspace.js','utf8');
+const files=['ite-hierarchy-workspace.js','ite-commercial-workspace.js','ite-accounting-workspace.js','ite-operational-transactions.js','ite-atomic-workspace.js','ite-atomic-migration.js','ite-integrated-workspace.js'];
+for(const file of files){assert.ok(html.includes('./'+file+'?'),file+' not loaded');}
+for(let j=1;j<files.length;j++)assert.ok(html.indexOf('./'+files[j-1]+'?')<html.indexOf('./'+files[j]+'?'),'script order '+files[j]);
+assert.match(ui,/W\.save\(localStorage,\{hierarchy,commercial,accounting\},revision\)/);
+assert.match(ui,/W\.read\(localStorage\)/);
+assert.match(ui,/M\.preview\(localStorage\)/);
+assert.match(ui,/M\.migrate\(localStorage,p\.revision,true\)/);
+assert.match(ui,/W\.restorePrevious/);
+assert.match(ui,/W\.importJSON/);
+assert.doesNotMatch(ui,/H\.save\(localStorage/);
+assert.doesNotMatch(ui,/Q\.save\(localStorage/);
+assert.doesNotMatch(ui,/A\.save\(localStorage/);
+const W=require('./ite-atomic-workspace.js'),H=require('./ite-hierarchy-workspace.js');
+const memory=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v))}};
+const storage=memory(),first=W.read(storage);let h=H.add(first.data.hierarchy,'clients',{id:'DEMO-C',name:'Cliente fittizio'});
+const saved=W.save(storage,{...first.data,hierarchy:h},0);
+assert.equal(saved.revision,1);assert.equal(W.read(storage).data.hierarchy.clients.length,1);
+assert.throws(()=>W.save(storage,first.data,0),/ARCHIVIO_MODIFICATO/);
+console.log('PASS: integrated scripts, atomic-only persistence, migration controls, revision guard');
