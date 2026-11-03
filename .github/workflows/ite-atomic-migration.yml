@@ -1,0 +1,22 @@
+name: ITE 4.0 migration and atomic integration
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-atomic-migration.js'
+      - 'test-atomic-migration.js'
+      - 'ite-atomic-workspace.js'
+      - '.github/workflows/ite-atomic-migration.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-atomic-migration.js
+      - run: node test-atomic-migration.js
+      - run: node test-atomic-workspace.js
+      - run: node test-operational-transactions.js
