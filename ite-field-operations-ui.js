@@ -16,7 +16,7 @@ function mount(){
  function select(label){const l=el('label',label),s=el('select');l.append(s);form.append(l);return s}
  const client=select('Cliente'),site=select('Sede'),device=select('Apparecchiatura (facoltativa)'),operator=field('Operatore'),start=field('Inizio appuntamento','datetime-local'),end=field('Fine appuntamento','datetime-local');
  const filter=field('Filtra agenda per operatore'),from=field('Agenda da','datetime-local'),to=field('Agenda fino a','datetime-local');
- const job=select('Intervento'),when=field('Data e ora operazione','datetime-local'),extra=field('Altri lavori eseguiti (facoltativo)'),reason=field('Motivo revisione');
+ const appointment=select('Appuntamento da riprogrammare'),job=select('Intervento'),when=field('Data e ora operazione','datetime-local'),extra=field('Altri lavori eseguiti (facoltativo)'),reason=field('Motivo revisione');
  const result=el('div');panel.append(result);
  const buttons=el('div');buttons.className='actions';panel.append(buttons);
  const state=()=>H.load(localStorage);
@@ -26,11 +26,14 @@ function mount(){
   opts(client,s.clients.map(x=>[x.id,x.name||x.id]),'Seleziona cliente');
   opts(site,s.sites.filter(x=>x.clientId===client.value).map(x=>[x.id,x.address||x.id]),'Seleziona sede');
   opts(device,s.devices.filter(x=>{const p=s.plants.find(p=>p.id===x.plantId);return p&&p.siteId===site.value}).map(x=>[x.id,x.description||x.id]),'Nessuna apparecchiatura');
+  opts(appointment,s.appointments.map(x=>[x.id,x.start+' · '+x.operator+' · '+x.id]),'Seleziona appuntamento');
   opts(job,s.interventions.map(x=>[x.id,x.id+' — '+x.status]),'Seleziona intervento');
   result.replaceChildren();
   let rows;
   try{rows=F.agenda(s,filter.value.trim(),from.value,to.value)}catch(e){result.append(el('p','Impostare un intervallo agenda valido.'));return}
   result.append(el('h3','Appuntamenti ('+rows.length+')'));
+  const load=F.operatorLoad(s,from.value,to.value);
+  result.append(el('p','Carico operatori: '+(load.map(x=>x.operator+' — '+x.appointments+' appuntamenti / '+x.minutes+' minuti').join('; ')||'nessun appuntamento')));
   for(const a of rows){
    const c=s.clients.find(x=>x.id===a.clientId),location=s.sites.find(x=>x.id===a.siteId);
    const jobs=s.interventions.filter(x=>x.appointmentId===a.id);
@@ -48,6 +51,11 @@ function mount(){
   const id='APP-'+Date.now().toString(36);
   H.save(localStorage,F.schedule(state(),{id,clientId:client.value,siteId:site.value,...(device.value?{deviceId:device.value}:{}),operator:operator.value.trim(),start:start.value,end:end.value}));
   return 'Appuntamento registrato: '+id;
+ });
+ button('Riprogramma appuntamento',()=>{
+  if(!appointment.value)throw Error('SELEZIONARE_APPUNTAMENTO');
+  const next=F.reschedule(state(),appointment.value,{start:start.value,end:end.value,operator:operator.value.trim()},operator.value.trim(),when.value||stamp());
+  H.save(localStorage,next);return 'Appuntamento riprogrammato con storico';
  });
  button('Chiudi intervento',()=>{
   if(!job.value)throw Error('SELEZIONARE_INTERVENTO');
