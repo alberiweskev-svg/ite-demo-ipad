@@ -1,17 +1,30 @@
 /* I.T.E. 4.0 - integrated synthetic workspace. No production records or network calls. */
 (function(root){'use strict';
-const H=root.ITEHierarchyWorkspace,C=root.ITECalendarService,Q=root.ITECommercialWorkspace,A=root.ITEAccountingWorkspace;
+const H=root.ITEHierarchyWorkspace,C=root.ITECalendarService,Q=root.ITECommercialWorkspace,A=root.ITEAccountingWorkspace,W=root.ITEAtomicWorkspace,M=root.ITEAtomicMigration;
 const $=id=>document.getElementById(id);
 const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);return e};
 const option=(select,value,label)=>{const o=node('option',label);o.value=value;select.append(o)};
 const field=(parent,label,type='text')=>{const l=node('label',label),i=node('input');i.type=type;l.append(i);parent.append(l);return i};
 const selectField=(parent,label,options)=>{const l=node('label',label),s=node('select');for(const [v,t] of options)option(s,v,t);l.append(s);parent.append(l);return s};
-const action=(parent,label,fn)=>{const b=node('button',label);b.type='button';b.addEventListener('click',()=>{try{fn();render();message.textContent='Operazione completata nel solo archivio dimostrativo locale.'}catch(e){message.textContent='Controllo: '+e.message}});parent.append(b)};
-let hierarchy,commercial,accounting,message,calendar,history,quotes,docs;
-function persist(){H.save(localStorage,hierarchy);Q.save(localStorage,commercial,hierarchy);A.save(localStorage,accounting)}
-function restore(){hierarchy=H.load(localStorage);commercial=Q.load(localStorage,hierarchy);accounting=A.load(localStorage)}
+const action=(parent,label,fn)=>{const b=node('button',label);b.type='button';b.addEventListener('click',()=>{try{fn();render();message.textContent='Operazione completata nel solo archivio dimostrativo locale.'}catch(e){restore();render();message.textContent='Controllo: '+e.message}});parent.append(b)};
+let hierarchy,commercial,accounting,message,calendar,history,quotes,docs,revision=0;
+function persist(){const saved=W.save(localStorage,{hierarchy,commercial,accounting},revision);revision=saved.revision;restore()}
+function restore(){const snap=W.read(localStorage);revision=snap.revision;hierarchy=snap.data.hierarchy;commercial=snap.data.commercial;accounting=snap.data.accounting}
+function download(text,name){const blob=new Blob([text],{type:'application/json'}),url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}
+function atomicControls(panel){
+ const tools=node('section');tools.append(node('h3','Archivio unico 4.0 — migrazione e sicurezza'));
+ const status=node('p');status.setAttribute('role','status');tools.append(status);
+ const update=()=>{const p=M.preview(localStorage);status.textContent='Revisione '+W.read(localStorage).revision+' · Origine: '+JSON.stringify(p.source)+' · Destinazione: '+JSON.stringify(p.target)};
+ action(tools,'Verifica archivi precedenti',update);
+ action(tools,'Migra archivi demo precedenti (solo se destinazione vuota)',()=>{const p=M.preview(localStorage);if(!p.hasSource)throw Error('Nessun archivio demo precedente');if(p.occupied)throw Error('Archivio unico già popolato: migrazione bloccata');if(!confirm('Migrare i soli archivi dimostrativi? Gli originali rimangono invariati.'))return;M.migrate(localStorage,p.revision,true);restore();update()});
+ action(tools,'Esporta backup JSON',()=>download(W.exportJSON(W.read(localStorage)),'ITE40-demo-backup.json'));
+ const input=node('input');input.type='file';input.accept='.json,application/json';input.setAttribute('aria-label','Seleziona backup JSON ITE 4.0');tools.append(input);
+ action(tools,'Importa backup selezionato',()=>{const file=input.files&&input.files[0];if(!file)throw Error('Selezionare un file JSON');if(file.size>5000000)throw Error('File troppo grande');const reader=new FileReader();reader.onload=()=>{try{const raw=String(reader.result),parsed=W.parse(raw);if(!confirm('Sostituire i dati demo correnti con il backup validato, revisione '+parsed.revision+'?'))return;W.importJSON(localStorage,raw,W.read(localStorage).revision);restore();render();update();message.textContent='Backup importato.'}catch(e){restore();message.textContent='Importazione rifiutata: '+e.message}};reader.onerror=()=>message.textContent='Lettura file non riuscita';reader.readAsText(file)});
+ action(tools,'Ripristina versione precedente',()=>{if(!confirm('Ripristinare il precedente archivio demo?'))return;W.restorePrevious(localStorage,W.read(localStorage).revision);restore();update()});
+ panel.append(tools);update()
+}
 function mount(){
- if(!H||!C||!Q||!A)return;
+ if(!H||!C||!Q||!A||!W||!M)return;
  const target=$('importazioni');if(!target||$('ite40-workspace'))return;
  const panel=node('div');panel.id='ite40-workspace';panel.className='panel';
  panel.append(node('h2','I.T.E. 4.0 — Area integrata di collaudo'));
@@ -52,6 +65,7 @@ function mount(){
  });
  docs=node('div');panel.append(docs);
  target.prepend(panel);
+ restore();atomicControls(panel);
  function render(){
  calendar.replaceChildren();quotes.replaceChildren();docs.replaceChildren();clientSelect.replaceChildren();
  for(const s of hierarchy.sites){const c=hierarchy.clients.find(x=>x.id===s.clientId);option(clientSelect,c.id+'|'+s.id,(c.name||c.id)+' — '+(s.address||s.id))}
@@ -64,7 +78,7 @@ function mount(){
  for(const d of accounting.documents)docs.append(node('p',d.kind+' '+d.number+' — € '+d.total.toFixed(2)+' — '+d.status));
  }
  function localNow(){const d=new Date(),pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())}
- restore();render();
+ render();
 }
 if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{try{mount()}catch(e){console.warn('Demo workspace:',e.message)}});else try{mount()}catch(e){console.warn('Demo workspace:',e.message)}}
 root.ITEIntegratedWorkspace={mount};
