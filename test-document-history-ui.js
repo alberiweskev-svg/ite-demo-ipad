@@ -1,0 +1,31 @@
+/* I.T.E. 4.0 document-history UI regression — synthetic records only. */
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const H=require('./ite-hierarchy-workspace.js');
+const D=require('./ite-document-intake.js');
+const L=require('./ite-document-history.js');
+const UI=require('./ite-document-history-ui.js');
+const h=H.add(H.add(H.add(H.add(H.empty(),'clients',{id:'C',name:'Cliente DEMO'}),'sites',{id:'S',clientId:'C',address:'Via Fittizia 1'}),'plants',{id:'P',siteId:'S',description:'Impianto DEMO'}),'devices',{id:'A',plantId:'P',description:'Generatore DEMO'});
+const docs=D.add(D.empty(),{id:'DOC',filename:'dico_demo.pdf',type:'DICO_IDRICO',status:'DA_VERIFICARE',addedAt:'2026-11-03',clientId:'C',siteId:'S'});
+const storage=new Map(),store={getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>storage.set(k,String(v))};
+const link={documentId:'DOC',plantId:'P',deviceId:'A',note:'Collaudo'};
+assert.deepEqual(UI.read(store),[]);
+assert.equal(UI.save(store,[link],docs,h).length,1);
+assert.equal(UI.read(store)[0].plantId,'P');
+assert.equal(L.timeline(docs,h,UI.read(store),{clientId:'C'}).length,1);
+assert.equal(L.reconcile(docs,h,UI.read(store)).invalidLinks.length,0);
+assert.throws(()=>UI.save(store,[{...link,plantId:'inesistente'}],docs,h),/RIFERIMENTO_INESISTENTE/);
+assert.equal(UI.read(store)[0].plantId,'P');
+UI.save(store,[{...link,note:'Seconda revisione'}],docs,h);
+assert.equal(JSON.parse(store.getItem(UI.PREV))[0].note,'Collaudo');
+const failStore={getItem:k=>store.getItem(k),setItem:(k,v)=>{if(k===UI.PREV)throw Error('QUOTA');store.setItem(k,v)}};
+assert.throws(()=>UI.save(failStore,[{...link,note:'Non salvare'}],docs,h),/QUOTA/);
+assert.equal(UI.read(store)[0].note,'Seconda revisione');
+assert.equal(UI.mount(),false); // no DOM: safe on Node
+const html=fs.readFileSync('index.html','utf8');
+const scripts=['ite-document-intake.js','ite-hierarchy-workspace.js','ite-atomic-workspace.js','ite-document-staging-ui.js','ite-document-history.js','ite-document-history-ui.js'];
+for(const script of scripts)assert.ok(html.includes('./'+script+'?'),script+' not loaded');
+assert.ok(html.indexOf('ite-document-staging-ui.js')<html.indexOf('ite-document-history-ui.js'));
+assert.ok(html.indexOf('ite-document-history.js')<html.indexOf('ite-document-history-ui.js'));
+console.log('OK: local document history, backup, invalid links, UI entrypoint');
