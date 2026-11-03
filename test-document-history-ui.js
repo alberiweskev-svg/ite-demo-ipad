@@ -38,4 +38,13 @@ assert.ok(uiSource.includes("plant.value=current.plantId||''"),'existing plant m
 assert.ok(uiSource.includes("appointment.value=current.appointmentId||''"),'existing appointment must restore');
 assert.equal(L.timeline(docs,h,[link],{siteId:'S',plantId:'P'}).length,1);
 assert.equal(L.timeline(docs,h,[link],{siteId:'S',plantId:'missing'}).length,0);
+const store={data:new Map(),fail:false,getItem(k){return this.data.has(k)?this.data.get(k):null},setItem(k,v){if(this.fail&&k===U.KEY)throw Error('QUOTA');this.data.set(k,v)},removeItem(k){this.data.delete(k)}};
+U.save(store,[link],docs,h);
+assert.equal(JSON.parse(store.getItem(U.KEY)).length,1);
+assert.equal(store.getItem(U.PREV),'[]');
+store.fail=true;
+assert.throws(()=>U.save(store,[],docs,h),/QUOTA/);
+assert.equal(JSON.parse(store.getItem(U.KEY)).length,1);
+assert.equal(store.getItem(U.PREV),'[]');
+assert.ok(uiSource.includes('L.inspect('),'UI must preserve valid history on stale links');
 console.log('OK: local document history, backup, invalid links, UI entrypoint');
