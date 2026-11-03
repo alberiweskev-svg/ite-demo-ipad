@@ -11,6 +11,28 @@ function schedule(state,record){
  if(s.appointments.some(a=>a.operator===record.operator&&a.start<record.end&&record.start<a.end))throw Error('OPERATORE_GIA_OCCUPATO');
  return H.add(s,'appointments',record);
 }
+function reschedule(state,appointmentId,change,actor,at){
+ const s=checked(state),a=s.appointments.find(x=>x.id===appointmentId);
+ if(!a||!change||!String(actor||'').trim()||!stamp(at))throw Error('RIPROGRAMMAZIONE_NON_VALIDA');
+ if(s.interventions.some(j=>j.appointmentId===appointmentId))throw Error('APPUNTAMENTO_GIA_AVVIATO');
+ const start=change.start??a.start,end=change.end??a.end,operator=change.operator??a.operator;
+ if(!stamp(start)||!stamp(end)||end<=start||!String(operator||'').trim())throw Error('INTERVALLO_NON_VALIDO');
+ if(s.appointments.some(x=>x.id!==appointmentId&&x.operator===operator&&x.start<end&&start<x.end))throw Error('OPERATORE_GIA_OCCUPATO');
+ const appointments=s.appointments.map(x=>x.id!==appointmentId?x:{...x,start,end,operator,
+  history:[...(x.history||[]),{action:'RIPROGRAMMAZIONE',at,actor:String(actor).trim(),previous:{start:x.start,end:x.end,operator:x.operator}}]});
+ return checked({...s,appointments});
+}
+function operatorLoad(state,from,to){
+ const s=checked(state);if(!stamp(from)||!stamp(to)||to<=from)throw Error('INTERVALLO_NON_VALIDO');
+ const byOperator=new Map();
+ for(const a of s.appointments){
+  const start=Math.max(Date.parse(a.start),Date.parse(from)),end=Math.min(Date.parse(a.end),Date.parse(to));
+  if(end<=start)continue;
+  const entry=byOperator.get(a.operator)||{operator:a.operator,appointments:0,minutes:0};
+  entry.appointments++;entry.minutes+=(end-start)/60000;byOperator.set(a.operator,entry);
+ }
+ return [...byOperator.values()].sort((a,b)=>a.operator.localeCompare(b.operator,'it'));
+}
 function start(state,appointmentId,operator,id,when){
  const s=checked(state),a=s.appointments.find(x=>x.id===appointmentId);
  if(!a||a.operator!==operator||!stamp(when))throw Error('ARRIVO_NON_VALIDO');
@@ -40,6 +62,6 @@ function agenda(state,operator,from,to){
  const s=checked(state);if(!stamp(from)||!stamp(to)||to<=from)throw Error('INTERVALLO_NON_VALIDO');
  return s.appointments.filter(a=>(!operator||a.operator===operator)&&a.start<to&&a.end>from).sort((a,b)=>a.start.localeCompare(b.start)||a.id.localeCompare(b.id));
 }
-const api=Object.freeze({schedule,start,close,reopen,revise,agenda});
+const api=Object.freeze({schedule,reschedule,operatorLoad,start,close,reopen,revise,agenda});
 root.ITEFieldOperations=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
