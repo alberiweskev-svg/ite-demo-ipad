@@ -4,6 +4,9 @@ on:
     branches: [sviluppo-4.0.0-base]
     paths:
       - 'ite-document-intake.js'
+      - 'ite-document-staging-ui.js'
+      - 'test-document-staging-ui.js'
+      - 'index.html'
       - 'test-document-intake.js'
       - '.github/workflows/ite-document-intake.yml'
   workflow_dispatch:
@@ -16,6 +19,6 @@ jobs:
         with:
           node-version: '22'
       - name: Syntax check
-        run: node --check ite-document-intake.js && node --check test-document-intake.js
+        run: node --check ite-document-intake.js && node --check test-document-intake.js && node --check ite-document-staging-ui.js && node --check test-document-staging-ui.js
       - name: Synthetic regression
-        run: node test-document-intake.js
+        run: node test-document-intake.js && node test-document-staging-ui.js
