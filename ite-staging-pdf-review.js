@@ -7,7 +7,7 @@ const Review=root.ITEDocumentReview||(typeof require==='function'?require('./ite
 function normalizeDate(value){
  const s=String(value||'').trim(),m=s.match(/^(\d{2})[\/.\-](\d{2})[\/.\-](\d{4})$/);
  if(!m)return null;const date=m[3]+'-'+m[2]+'-'+m[1];
- return new Date(date+'T12:00:00Z').toISOString().slice(0,10)===date?date:null;
+ const parsed=new Date(date+'T12:00:00Z');return Number.isNaN(parsed.getTime())?null:parsed.toISOString().slice(0,10)===date?date:null;
 }
 function inspect(filename,text){
  if(!Intake||!Review)throw Error('MOTORI_DOCUMENTALI_NON_DISPONIBILI');
