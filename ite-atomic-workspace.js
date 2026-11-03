@@ -23,9 +23,11 @@ function save(storage,data,expectedRevision){
  const nextRaw=JSON.stringify(next);
  // The authoritative state changes with ONE storage write; failed writes cannot
  // leave hierarchy, accounting and commercial data at different revisions.
+ // Preserve the last valid snapshot BEFORE committing the new one.
+ // If the backup cannot be written, refuse the update rather than silently
+ // leaving the user without a recovery point.
+ if(oldRaw!==null)storage.setItem(PREVIOUS,oldRaw);
  storage.setItem(KEY,nextRaw);
- // Backup is best-effort after the atomic authoritative write.
- if(oldRaw!==null){try{storage.setItem(PREVIOUS,oldRaw)}catch(_){}}
  return next;
 }
 function transact(storage,expectedRevision,operation,...args){
