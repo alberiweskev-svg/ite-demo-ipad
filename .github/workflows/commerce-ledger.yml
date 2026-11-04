@@ -2,9 +2,9 @@ name: ITE 4.0 commerce ledger
 on:
   push:
     branches: [sviluppo-4.0.0-base]
-    paths: ['ite-commerce.js', 'ite-commerce-ledger.js', 'test-commerce-ledger.js', '.github/workflows/commerce-ledger.yml']
+    paths: ['ite-commerce.js', 'ite-commerce-ledger.js', 'ite-commerce-ledger-ui.js', 'test-commerce-ledger-ui.js', 'index.html', 'test-commerce-ledger.js', '.github/workflows/commerce-ledger.yml']
   pull_request:
-    paths: ['ite-commerce.js', 'ite-commerce-ledger.js', 'test-commerce-ledger.js', '.github/workflows/commerce-ledger.yml']
+    paths: ['ite-commerce.js', 'ite-commerce-ledger.js', 'ite-commerce-ledger-ui.js', 'test-commerce-ledger-ui.js', 'index.html', 'test-commerce-ledger.js', '.github/workflows/commerce-ledger.yml']
   workflow_dispatch:
 jobs:
   ledger:
@@ -14,5 +14,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --check ite-commerce.js && node --check ite-commerce-ledger.js && node --check test-commerce-ledger.js
-      - run: node test-commerce-ledger.js
+      - run: node --check ite-commerce.js && node --check ite-commerce-ledger.js && node --check test-commerce-ledger.js && node --check ite-commerce-ledger-ui.js && node --check test-commerce-ledger-ui.js
+      - run: node test-commerce-ledger.js && node test-commerce-ledger-ui.js
