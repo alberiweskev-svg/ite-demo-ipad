@@ -1,0 +1,23 @@
+name: Finance audit tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-finance-audit.js'
+      - 'ite-finance-audit-ui.js'
+      - 'test-finance-audit.js'
+      - 'index.html'
+      - '.github/workflows/finance-audit.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-finance-audit.js && node --check ite-finance-audit-ui.js && node --check test-finance-audit.js
+      - run: node test-finance-audit.js
+      - run: node test-finance-workflow.js && node test-finance-import.js && node test-finance-reconciliation.js
+      - run: node -e "const fs=require('fs');const h=fs.readFileSync('index.html','utf8');for(const p of ['ite-finance-audit.js','ite-finance-audit-ui.js'])if(!h.includes(p))throw Error(p+' missing')"
