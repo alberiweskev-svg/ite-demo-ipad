@@ -3,7 +3,7 @@
 const C=root.ITECommerce,L=root.ITECommerceLedger,H=root.ITEHierarchyWorkspace;
 const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);return n};
 const euros=n=>(n/100).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
-const cents=value=>{const s=String(value).trim();if(!/^\\d+(?:[.,]\\d{1,2})?$/.test(s))throw Error('IMPORTO_NON_VALIDO');const [a,b='']=s.replace(',','.').split('.');const n=Number(a)*100+Number((b+'00').slice(0,2));if(!Number.isSafeInteger(n)||n>1e11)throw Error('IMPORTO_NON_VALIDO');return n};
+const cents=value=>{const s=String(value).trim();if(!/^\d+(?:[.,]\d{1,2})?$/.test(s))throw Error('IMPORTO_NON_VALIDO');const [a,b='']=s.replace(',','.').split('.');const n=Number(a)*100+Number((b+'00').slice(0,2));if(!Number.isSafeInteger(n)||n>1e11)throw Error('IMPORTO_NON_VALIDO');return n};
 const makeId=prefix=>prefix+'-'+Date.now().toString(36)+'-'+Math.floor(Math.random()*1e6).toString(36);
 function mount(){
  if(!C||!L||!H||!root.localStorage||document.getElementById('ite40-ledger'))return;
