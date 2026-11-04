@@ -1,0 +1,16 @@
+name: ITE 4.0 Finance Workflow
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-finance-workflow.js', 'test-finance-workflow.js', '.github/workflows/finance-workflow.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-finance-workflow.js
+      - run: node test-finance-workflow.js
