@@ -1,0 +1,21 @@
+name: Document intake commerce bridge
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-intake-commerce-bridge.js'
+      - 'test-document-intake-commerce-bridge.js'
+      - 'ite-document-intake.js'
+      - 'ite-commerce.js'
+      - '.github/workflows/document-intake-commerce-bridge.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-document-intake-commerce-bridge.js
+      - run: node test-document-intake-commerce-bridge.js
