@@ -1,0 +1,34 @@
+'use strict';
+const assert=require('node:assert/strict');
+const H=require('./ite-hierarchy-workspace.js'),I=require('./ite-document-intake.js'),D=require('./ite-technical-dossier.js'),L=require('./ite-technical-dossier-lifecycle.js');
+let h=H.empty();
+h=H.add(h,'clients',{id:'c',name:'Cliente Fittizio'});
+h=H.add(h,'sites',{id:'s',clientId:'c',address:'Via Demo 1'});
+h=H.add(h,'plants',{id:'p',siteId:'s'});
+let q=I.empty();
+for(const [id,type] of [['d1','DICO_IDRICO'],['d2','DIRI']]){
+ q=I.add(q,{id,filename:id+'.pdf',addedAt:'2026-11-04',type,clientId:'c',siteId:'s'});
+ q=I.verify(q,id,'Operatore Fittizio');
+}
+const refs=['d1','d2'].map(documentId=>({documentId,clientId:'c',siteId:'s',plantId:'p',linkedAt:'2026-11-04'}));
+const before=D.empty();
+assert.equal(L.preflight(before,q,h).verifiedUnlinked.length,2);
+const preview=L.previewBatch(before,q,h,refs);
+assert.equal(preview.ok,true);assert.equal(preview.added,2);
+assert.equal(before.links.length,0);
+assert.equal(L.attachBatch(before,q,h,refs).links.length,2);
+assert.equal(L.previewBatch(before,q,h,[refs[0],refs[0]]).ok,false);
+assert.equal(before.links.length,0);
+assert.equal(L.previewBatch(before,q,h,[refs[0],{...refs[1],siteId:'wrong'}]).ok,false);
+const linked=L.attachBatch(before,q,h,refs);
+assert.equal(L.preflight(linked,q,h).valid,true);
+assert.equal(L.preflight(linked,q,h).byType.DIRI,1);
+assert.throws(()=>L.detach(linked,q,h,'d1','short','Tecnico'),/MOTIVO/);
+const removed=L.detach(linked,q,h,'d1','Riassegnazione dopo controllo','Tecnico Demo');
+assert.equal(removed.state.links.length,1);
+assert.equal(removed.audit.documentId,'d1');
+assert.equal(linked.links.length,2);
+const missing=L.preflight(linked,I.empty(),h);
+assert.equal(missing.valid,false);
+assert.deepEqual(missing.missingDocuments,['d1','d2']);
+console.log('Technical dossier lifecycle: synthetic tests passed');
