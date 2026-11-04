@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const html=fs.readFileSync('index.html','utf8');
+assert.match(html,/<script src="ite-technical-register\.js"><\/script>/);
+assert.match(html,/<script src="ite-technical-demo-ui\.js"><\/script>/);
+assert.ok(html.indexOf('ite-technical-register.js')<html.indexOf('ite-technical-demo-ui.js'));
+const code=fs.readFileSync('ite-technical-demo-ui.js','utf8');
+new vm.Script(code);
+assert.match(code,/SOLO_DATI_FITTIZI/);
+assert.match(code,/M\.addBatch/);
+assert.match(code,/M\.transition/);
+assert.match(code,/M\.attachMetadata/);
+assert.doesNotMatch(code,/type="file"/);
+console.log('ITE technical demo integration: OK');
