@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const intake=require('./ite-pdf-intake.js'),reg=require('./ite-technical-register.js');
+const text='DICHIARAZIONE TEST-ALFA\\nNumero: TEST-001\\nData: 04/11/2026\\nCommittente: TEST Cliente\\nIndirizzo: TEST Via Fittizia 1\\nImpianto: TEST idrico';
+const hierarchy={clients:[{id:'TEST-C',sites:[{id:'TEST-S',plants:[{id:'TEST-P',devices:[{id:'TEST-D'}]}]}]}]};
+const item={id:'TEST-PDF-1',kind:'DICO_IDRICA',text,clientId:'TEST-C',siteId:'TEST-S',plantId:'TEST-P',deviceId:'TEST-D'};
+const p=intake.parse(text,'DICO_IDRICA');assert.equal(p.fields.date,'2026-11-04');assert.equal(p.missing.length,0);assert.equal(p.requiresReview,true);
+const result=intake.register({records:[]},[item],hierarchy,reg,'TECNICO TEST','2026-11-05T00:50:00Z');
+assert.equal(result.records[0].status,'BOZZA_DA_VERIFICARE');assert.equal(result.records[0].source,'TESTO_ESTRATTO_SIMULATO');
+assert.equal(result.records[0].history.length,1);
+assert.throws(()=>intake.parse(text.replace('TEST-ALFA','REALE').replaceAll('TEST','VERO'),'DICO_IDRICA'),/SOLO_TESTI_FITTIZI/);
+assert.throws(()=>intake.register({records:[]},[item,item],hierarchy,reg,'TECNICO TEST','2026-11-05T00:50:00Z'),/DOCUMENTO_DUPLICATO/);
+assert.equal(intake.previewBatch([{kind:'CAD',text:'reale'}])[0].ok,false);
+assert.throws(()=>intake.register({records:[]},[{...item,text:'TEST documento senza campi obbligatori'}],hierarchy,reg,'TECNICO TEST','2026-11-05T00:50:00Z'),/REVISIONE_CAMPI_OBBLIGATORIA/);
+console.log('ITE PDF text intake synthetic: OK');
