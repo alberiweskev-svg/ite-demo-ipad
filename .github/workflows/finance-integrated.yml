@@ -1,0 +1,26 @@
+name: ITE 4.0 Finance Integrated
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-finance-*.js'
+      - 'test-finance-*.js'
+      - 'index.html'
+      - '.github/workflows/finance-integrated.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-finance-demo-ui.js
+      - run: node --check ite-finance-import.js
+      - run: node --check ite-finance-reconciliation.js
+      - run: node test-finance-workflow.js
+      - run: node test-finance-import.js
+      - run: node test-finance-reconciliation.js
+      - run: node test-finance-integrated.js
+      - run: node -e "const fs=require('fs');const h=fs.readFileSync('index.html','utf8');for(const f of ['ite-finance-workflow.js','ite-finance-import.js','ite-finance-reconciliation.js','ite-finance-demo-ui.js'])if(!h.includes('src=\"'+f+'\"'))throw Error(f+' missing')"
