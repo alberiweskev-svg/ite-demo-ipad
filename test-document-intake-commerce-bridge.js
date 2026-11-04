@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const I=require('./ite-document-intake.js'),C=require('./ite-commerce.js'),B=require('./ite-document-intake-commerce-bridge.js');
+let q=I.empty(),c=C.empty();
+q=I.add(q,{id:'test-doc',filename:'Fattura TEST.pdf',addedAt:'2026-11-04',type:'FATTURA_VENDITA',number:'TEST-001'});
+assert.equal(B.preview(q,'test-doc').ready,false);
+assert.throws(()=>B.importInvoice(q,c,null,'test-doc',{id:'f1'}),/IMPORTAZIONE_RICHIEDE_VERIFICA/);
+q=I.verify(q,'test-doc','Operatore fittizio');
+const p=B.preview(q,'test-doc');assert.equal(p.ready,true);
+const result=B.importInvoice(q,c,null,'test-doc',{id:'f1',kind:'FATTURA',direction:'VENDITA',number:'TEST-001',netCents:10000,vatCents:1000});
+assert.equal(result.commerce.invoices.length,1);
+assert.equal(result.commerce.invoices[0].totalCents,11000);
+assert.equal(result.intake.items[0].status,'ARCHIVIATO');
+assert.equal(q.items[0].status,'VERIFICATO');
+assert.throws(()=>B.importInvoice(result.intake,result.commerce,null,'test-doc',{id:'f2'}),/IMPORTAZIONE_RICHIEDE_VERIFICA/);
+console.log('OK document intake bridge: review, import, archive, no mutation');
