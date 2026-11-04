@@ -1,0 +1,17 @@
+name: ITE 4.0 Agenda Integrated UI
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['index.html', 'ite-agenda-demo-ui.js', 'ite-field-agenda.js', 'ite-agenda-planning.js', 'test-agenda-demo-integration.js', '.github/workflows/agenda-demo-integration.yml']
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test-field-agenda.js
+      - run: node test-agenda-planning.js
+      - run: node test-agenda-demo-integration.js
