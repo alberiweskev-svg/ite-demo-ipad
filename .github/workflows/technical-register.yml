@@ -1,0 +1,16 @@
+name: ITE technical register regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  node-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test-technical-register.js
+      - run: node test-finance-integrated.js
+      - run: node test-finance-audit.js
