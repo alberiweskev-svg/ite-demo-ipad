@@ -28,7 +28,7 @@ function mount(doc,storage){
  }
  replacement.addEventListener('click',()=>run(()=>{
   const {master,queue}=data(),r=A.transact(storage,queue,master,selection(),operator(),new Date().toISOString());
-  message(r.events.length+' collegamenti registrati con audit.');U.mount(doc,storage);refresh();
+  message(r.events.length+' collegamenti registrati con audit.');U.mount(doc,storage);mount(doc,storage);
  }));
  $('dossier-preview').addEventListener('click',()=>run(()=>{
   const {master,queue,state}=data(),r=A.prepare(state,queue,master,storage.getItem(A.KEY),selection(),operator(),new Date().toISOString());
