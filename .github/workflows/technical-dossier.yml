@@ -1,0 +1,27 @@
+name: ITE 4.0 Technical Dossier
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-dossier.js'
+      - 'test-technical-dossier.js'
+      - 'ite-document-intake.js'
+      - 'ite-hierarchy-workspace.js'
+      - '.github/workflows/technical-dossier.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-technical-dossier.js
+          node --check test-technical-dossier.js
+      - name: Synthetic integration tests
+        run: node test-technical-dossier.js
