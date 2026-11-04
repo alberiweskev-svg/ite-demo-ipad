@@ -1,0 +1,25 @@
+name: ITE 4.0 commerce audit
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-commerce*.js'
+      - 'ite-hierarchy-workspace.js'
+      - 'test-commerce-audit.js'
+      - '.github/workflows/commerce-audit.yml'
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and regression
+        run: |
+          node --check ite-commerce-audit.js
+          node --check test-commerce-audit.js
+          node test-commerce-audit.js
