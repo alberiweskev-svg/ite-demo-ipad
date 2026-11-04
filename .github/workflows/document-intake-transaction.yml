@@ -1,0 +1,26 @@
+name: ITE 4.0 document intake transaction
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-intake*.js'
+      - 'ite-commerce.js'
+      - 'test-document-intake*.js'
+      - '.github/workflows/document-intake-transaction.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-document-intake-transaction.js
+          node --check test-document-intake-transaction.js
+      - name: Existing bridge regression
+        run: node test-document-intake-commerce-bridge.js
+      - name: Atomic transaction and recovery
+        run: node test-document-intake-transaction.js
