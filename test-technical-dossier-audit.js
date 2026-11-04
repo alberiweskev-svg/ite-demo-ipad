@@ -1,0 +1,51 @@
+'use strict';
+const assert=require('node:assert/strict');
+const H=require('./ite-hierarchy-workspace.js'),I=require('./ite-document-intake.js');
+const D=require('./ite-technical-dossier.js'),A=require('./ite-technical-dossier-audit.js');
+let h=H.empty();
+h=H.add(h,'clients',{id:'c',name:'Cliente Fittizio'});
+h=H.add(h,'sites',{id:'s',clientId:'c',address:'Via Demo 1'});
+h=H.add(h,'plants',{id:'p',siteId:'s'});
+let q=I.empty();
+for(const [id,type] of [['d1','DICO_IDRICO'],['d2','DIRI']]){
+ q=I.add(q,{id,filename:id+'.pdf',addedAt:'2026-11-04',type,clientId:'c',siteId:'s'});
+ q=I.verify(q,id,'Operatore Fittizio');
+}
+const at='2026-11-04T10:46:00+01:00',operator='Tecnico Demo';
+const ref=id=>({documentId:id,clientId:'c',siteId:'s',plantId:'p',linkedAt:'2026-11-04'});
+const attach=id=>({action:'COLLEGAMENTO',ref:ref(id)});
+const detach=id=>({action:'DISTACCO',documentId:id,reason:'Riassegnazione verificata'});
+const data=new Map();
+const storage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+const result=A.transact(storage,q,h,[attach('d1'),attach('d2')],operator,at);
+assert.equal(result.state.links.length,2);
+assert.equal(result.audit.events.length,2);
+assert.equal(result.audit.events[1].previousId,result.audit.events[0].id);
+assert.equal(A.inspect(storage,q,h).coverage.valid,true);
+assert.equal(A.inspect(storage,q,h).audit.events.length,2);
+const before=data.get(D.KEY),log=data.get(A.KEY);
+assert.throws(()=>A.transact(storage,q,h,[detach('d1'),attach('bad')],operator,at));
+assert.equal(data.get(D.KEY),before);assert.equal(data.get(A.KEY),log);
+const detached=A.transact(storage,q,h,[detach('d1')],operator,'2026-11-04T10:47:00+01:00');
+assert.equal(detached.state.links.length,1);
+assert.equal(detached.audit.events[2].action,'DISTACCO');
+assert.equal(detached.audit.events[2].reason,'Riassegnazione verificata');
+assert.equal(A.inspect(storage,q,h).state.links.length,1);
+assert.throws(()=>A.auditValidate({version:1,events:[{...detached.audit.events[0],previousId:'tampered'}]}),/REGISTRO/);
+const failedData=new Map();
+let fail=true;
+const failing={getItem:k=>failedData.has(k)?failedData.get(k):null,
+ setItem:(k,v)=>{if(k===A.KEY&&fail){fail=false;throw Error('DISCO_PIENO')}failedData.set(k,String(v))},
+ removeItem:k=>failedData.delete(k)};
+assert.throws(()=>A.transact(failing,q,h,[attach('d1')],operator,at),/DISCO_PIENO/);
+assert.equal(JSON.parse(failedData.get(D.KEY)).links.length,0);
+assert.equal(JSON.parse(failedData.get(A.KEY)).events.length,0);
+assert.equal(failedData.has(A.JOURNAL),false);
+const crash=new Map([[D.KEY,JSON.stringify(D.empty())],[A.KEY,JSON.stringify({version:1,events:[]})]]);
+crash.set(A.JOURNAL,JSON.stringify({version:1,beforeDossier:crash.get(D.KEY),beforeAudit:crash.get(A.KEY)}));
+crash.set(D.KEY,JSON.stringify(result.state));
+const recovering={getItem:k=>crash.has(k)?crash.get(k):null,setItem:(k,v)=>crash.set(k,String(v)),removeItem:k=>crash.delete(k)};
+assert.equal(A.recover(recovering),true);
+assert.equal(JSON.parse(crash.get(D.KEY)).links.length,0);
+assert.equal(crash.has(A.JOURNAL),false);
+console.log('Dossier audit transaction: synthetic tests passed');
