@@ -1,6 +1,6 @@
 /* I.T.E. 4.0 - registro documenti tecnici integrato, esclusivamente dati sintetici. */
 (function(root){'use strict';
-const M=root.ITETechnicalRegister;
+const M=root.ITETechnicalRegister, Intake=root.ITEPdfIntake;
 if(!M||typeof document==='undefined')return;
 const KEY='ite40-technical-demo-v1';
 const hierarchy={clients:[{id:'TEST-CLIENTE',sites:[{id:'TEST-SEDE',plants:[{id:'TEST-IMPIANTO',devices:[{id:'TEST-APPARECCHIO'}]}]}]}]};
@@ -21,6 +21,7 @@ function build(){if($('panel'))return;
 const el=document.createElement('section');el.id='ite-tech-panel';el.className='panel';el.innerHTML=
 '<h2>Registro tecnico 4.0 — Di.Co., Di.Ri., GAS, POS e CAD</h2>'+
 '<p class="hint">Ambiente di prova: solo metadati e anagrafiche TEST-. Non caricare PDF o dati reali. Questo registro non sostituisce i moduli 2.7.5.</p>'+
+'<fieldset><legend>Importazione testo PDF simulato (solo TEST)</legend><p class="hint">Incolla esclusivamente testo sintetico. Nessun PDF viene letto, trasmesso o archiviato. La verifica umana resta obbligatoria.</p><label>Testo estratto simulato<textarea id="ite-tech-pdf-text" rows="5">DICHIARAZIONE TEST-DEMO\nNumero: TEST-999\nData: 04/11/2026\nCommittente: TEST Cliente\nIndirizzo: TEST Via Fittizia 1\nImpianto: TEST idrico</textarea></label><div class="actions"><button id="ite-tech-pdf-preview">Anteprima campi</button><button id="ite-tech-pdf-import" class="secondary">Importa in bozza</button></div><pre id="ite-tech-pdf-result" style="white-space:pre-wrap"></pre></fieldset>'+
 '<div class="actions"><button id="ite-tech-example">Inserisci lotto dimostrativo</button><button id="ite-tech-reset" class="secondary">Azzera registro TEST</button></div>'+
 '<fieldset><legend>Nuovo documento collegato all’anagrafica fittizia</legend><div class="grid">'+
 '<label>Identificativo TEST-<input id="ite-tech-id" value="TEST-DOC-001"></label>'+
@@ -45,6 +46,10 @@ $('reset').onclick=()=>act(()=>save(empty()));
 const transition=action=>act(()=>save(M.transition(state,$('record').value,action,$('operator').value,new Date().toISOString(),$('reason').value)));
 $('confirm').onclick=()=>transition('CONFERMA');$('reject').onclick=()=>transition('RESPINGI');$('resubmit').onclick=()=>transition('RIPRESENTA');$('reopen').onclick=()=>transition('RIAPRI');
 $('attach').onclick=()=>act(()=>save(M.attachMetadata(state,$('record').value,{id:'TEST-ATT-'+Date.now(),kind:$('attachment-kind').value,label:$('attachment-label').value})));
+if(Intake){const intakeItem=()=>({...raw(),id:'TEST-PDF-'+$('id').value.replace(/[^A-Z0-9-]/gi,'').slice(0,30),text:$('pdf-text').value});
+$('pdf-preview').onclick=()=>act(()=>{$('pdf-result').textContent=JSON.stringify(Intake.parse($('pdf-text').value,$('kind').value),null,2)});
+$('pdf-import').onclick=()=>act(()=>save(Intake.register(state,[intakeItem()],hierarchy,M,'TECNICO TEST',new Date().toISOString())));
+}else{$('pdf-preview').disabled=true;$('pdf-import').disabled=true;}
 render();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build,{once:true});else build();
