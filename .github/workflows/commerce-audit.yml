@@ -6,6 +6,9 @@ on:
       - 'ite-commerce*.js'
       - 'ite-hierarchy-workspace.js'
       - 'test-commerce-audit.js'
+      - 'test-commerce-audit-ui.js'
+      - 'ite-commerce-ledger-ui.js'
+      - 'index.html'
       - '.github/workflows/commerce-audit.yml'
   workflow_dispatch:
 jobs:
@@ -23,3 +26,7 @@ jobs:
           node --check ite-commerce-audit.js
           node --check test-commerce-audit.js
           node test-commerce-audit.js
+          node --check ite-commerce-audit-ui.js
+          node --check ite-commerce-ledger-ui.js
+          node --check test-commerce-audit-ui.js
+          node test-commerce-audit-ui.js
