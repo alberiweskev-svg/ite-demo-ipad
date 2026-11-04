@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const A=require('./ite-finance-audit.js');
+const doc=(id,extra={})=>({id,number:id,kind:'FATTURA',direction:'VENDITA',netCents:10000,vatCents:1000,totalCents:11000,reviewed:true,...extra});
+const mov=(id,documentId,extra={})=>({id,documentId,amountCents:5000,direction:'ENTRATA',...extra});
+const clean={documents:[doc('TEST-D1')],movements:[mov('TEST-M1','TEST-D1')]};
+assert.equal(A.inspect(clean).ready,true);
+assert.equal(A.inspect(clean).balances[0].remainingCents,6000);
+assert.equal(A.inspect({documents:[doc('TEST-D1')],movements:[mov('TEST-M1','TEST-D1',{amountCents:12000})]}).errors[0].code,'PAGAMENTI_ECCESSIVI');
+assert(A.inspect({documents:[doc('TEST-D1',{kind:'PROFORMA'})],movements:[mov('TEST-M1','TEST-D1')]}).errors.some(x=>x.code==='PROFORMA_RICONCILIATA'));
+assert(A.inspect({documents:[doc('TEST-D1',{reviewed:false})],movements:[mov('TEST-M1','TEST-D1')]}).errors.some(x=>x.code==='DOCUMENTO_NON_VERIFICATO_RICONCILIATO'));
+assert(A.inspect({documents:[doc('TEST-D1')],movements:[mov('TEST-M1','TEST-D2')]}).errors.some(x=>x.code==='DOCUMENTO_COLLEGATO_ASSENTE'));
+assert(A.inspect({documents:[doc('TEST-D1',{kind:'NOTA_CREDITO',recoveredCents:3000,paymentState:'DA_RECUPERARE'})],movements:[]}).warnings.some(x=>x.code==='STATO_CREDITO_DA_ALLINEARE'));
+assert.equal(A.snapshot(clean).schema,'ITE40_FINANCE_AUDIT_TEST_V1');
+assert.equal(clean.movements[0].amountCents,5000);
+console.log('ITE finance audit tests OK');
