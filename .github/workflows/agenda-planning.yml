@@ -1,0 +1,16 @@
+name: ITE 4.0 Agenda Planning
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-field-agenda.js', 'ite-field-workflow.js', 'ite-agenda-planning.js', 'test-agenda-planning.js', '.github/workflows/agenda-planning.yml']
+  workflow_dispatch:
+jobs:
+  agenda:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test-field-agenda.js
+      - run: node test-agenda-planning.js
