@@ -1,0 +1,18 @@
+name: Dossier audit UI
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-dossier*.js'
+      - 'test-technical-dossier*.js'
+      - '.github/workflows/dossier-audit-ui.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test-technical-dossier.js && node test-technical-dossier-lifecycle.js && node test-technical-dossier-audit.js && node test-technical-dossier-audit-ui.js
