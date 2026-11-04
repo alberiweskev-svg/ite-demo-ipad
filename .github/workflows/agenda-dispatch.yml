@@ -1,0 +1,17 @@
+name: Agenda dispatch tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-agenda-dispatch.js','test-agenda-dispatch.js','ite-agenda-demo-ui.js','index.html','.github/workflows/agenda-dispatch.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test-agenda-dispatch.js
+      - run: node test-agenda-calendar.js
+      - run: node test-agenda-demo-integration.js
