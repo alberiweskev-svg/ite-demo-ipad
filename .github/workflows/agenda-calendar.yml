@@ -1,0 +1,26 @@
+name: ITE 4.0 agenda calendar and extras
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-agenda-calendar.js'
+      - 'ite-agenda-demo-ui.js'
+      - 'ite-field-agenda.js'
+      - 'ite-field-workflow.js'
+      - 'index.html'
+      - 'test-agenda-calendar.js'
+      - 'test-agenda-demo-integration.js'
+      - '.github/workflows/agenda-calendar.yml'
+  workflow_dispatch:
+jobs:
+  agenda:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-agenda-calendar.js
+      - run: node --check ite-agenda-demo-ui.js
+      - run: node test-agenda-calendar.js
+      - run: node test-agenda-demo-integration.js
