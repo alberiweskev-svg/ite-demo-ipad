@@ -1,12 +1,12 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),ui=fs.readFileSync('ite-agenda-demo-ui.js','utf8');
-for(const file of ['ite-field-workflow.js','ite-field-agenda.js','ite-agenda-planning.js','ite-agenda-demo-ui.js'])assert(html.includes('src="./'+file+'?'),file+' non caricato');
+for(const file of ['ite-field-workflow.js','ite-field-agenda.js','ite-agenda-planning.js','ite-agenda-calendar.js','ite-agenda-demo-ui.js'])assert(html.includes('src="./'+file+'?'),file+' non caricato');
 assert(html.includes('id="ite-agenda-collaudo"'),'Sezione agenda assente');
 assert(html.indexOf('ite-field-agenda.js?')<html.indexOf('ite-agenda-planning.js?'));
-assert(html.indexOf('ite-agenda-planning.js?')<html.indexOf('ite-agenda-demo-ui.js?'));
+assert(html.indexOf('ite-agenda-planning.js?')<html.indexOf('ite-agenda-calendar.js?'));assert(html.indexOf('ite-agenda-calendar.js?')<html.indexOf('ite-agenda-demo-ui.js?'));
 new vm.Script(ui,{filename:'ite-agenda-demo-ui.js'});
-assert(ui.includes("ite40_agenda_demo_v1"));assert(ui.includes("demo-c"));assert(ui.includes("ITEAgendaPlanning"));
+assert(ui.includes("ite-ag-view"));assert(ui.includes("Aggiungi Extra"));assert(ui.includes("approveLines"));assert(ui.includes("ite40_agenda_demo_v1"));assert(ui.includes("demo-c"));assert(ui.includes("ITEAgendaPlanning"));
 assert(!ui.includes('fetch('));assert(!ui.includes('XMLHttpRequest'));assert(!ui.includes('ite40_agenda_production'));
 const A=require('./ite-field-agenda.js'),P=require('./ite-agenda-planning.js');
 const m={clients:[{id:'demo-c'}],sites:[{id:'demo-s',clientId:'demo-c'}],systems:[{id:'demo-i',siteId:'demo-s'}],equipment:[{id:'demo-e',systemId:'demo-i'}],operators:[{id:'demo-t1'}]};
