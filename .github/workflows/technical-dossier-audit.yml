@@ -1,0 +1,25 @@
+name: ITE 4.0 dossier audit transaction
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-dossier*.js'
+      - 'test-technical-dossier*.js'
+      - '.github/workflows/technical-dossier-audit.yml'
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and synthetic dossier integration
+        run: |
+          node --check ite-technical-dossier-audit.js
+          node --check test-technical-dossier-audit.js
+          node test-technical-dossier.js
+          node test-technical-dossier-ui.js
+          node test-technical-dossier-lifecycle.js
+          node test-technical-dossier-audit.js
