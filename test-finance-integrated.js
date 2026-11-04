@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const F=require('./ite-finance-workflow.js'),I=require('./ite-finance-import.js'),R=require('./ite-finance-reconciliation.js');
+const rows=[{id:'TEST-F-1',type:'TD01',number:'TEST-1',date:'2026-11-04',issuerVat:'03857941201',netCents:10000,vatCents:1000,totalCents:11000},{id:'TEST-PR-1',type:'PR',number:'PR-TEST-1',date:'2026-11-04',issuerVat:'03857941201',netCents:2000,vatCents:200,totalCents:2200}];
+let s={documents:[],movements:[],reconciliationHistory:[]};
+assert.equal(I.preview(s,rows,'MANUALE').ready,true);
+s=I.importBatch(s,rows,'MANUALE');
+assert.equal(I.summary(s).toReview,2);
+s=I.review(s,'TEST-F-1','TECNICO TEST','2026-11-04T12:00:00Z','CONFERMA','');
+s=R.register(s,{id:'TEST-M-1',date:'2026-11-04',amountCents:5000,reference:'TEST-BONIFICO',direction:'ENTRATA'});
+s=R.match(s,'TEST-M-1','TEST-F-1','TECNICO TEST','2026-11-04T12:05:00Z');
+assert.equal(R.overview(s)[0].remainingCents,6000);
+assert.equal(R.overview(s)[1].status,'NON_RICONCILIABILE');
+assert.throws(()=>R.match(s,'TEST-M-1','TEST-PR-1','TECNICO TEST','2026-11-04T12:05:00Z'));
+assert.equal(I.preview(s,rows,'MANUALE').ready,false);
+console.log('ITE finance integrated smoke: OK');
