@@ -1,0 +1,29 @@
+name: ITE 4.0 technical dossier integration
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-dossier*.js'
+      - 'ite-hierarchy-workspace.js'
+      - 'ite-document-intake.js'
+      - 'index.html'
+      - '.github/workflows/technical-dossier-integration.yml'
+  workflow_dispatch:
+jobs:
+  dossier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-technical-dossier.js
+          node --check ite-technical-dossier-ui.js
+          node --check test-technical-dossier.js
+          node --check test-technical-dossier-ui.js
+      - name: Synthetic domain and UI integration tests
+        run: |
+          node test-technical-dossier.js
+          node test-technical-dossier-ui.js
