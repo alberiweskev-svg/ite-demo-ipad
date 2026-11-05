@@ -1,0 +1,21 @@
+/* Regression checks: technical workflow integration and domain constraints. */
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const base=path.join(__dirname,'..');
+const html=fs.readFileSync(path.join(base,'index.html'),'utf8');
+const ui=fs.readFileSync(path.join(base,'ite-technical-workflow-ui-40.js'),'utf8');
+assert(html.includes('ite-technical-registry-ui-40.js'));
+assert(html.includes('ite-technical-workflow-ui-40.js'));
+assert(html.indexOf('ite-technical-registry-ui-40.js')<html.indexOf('ite-technical-workflow-ui-40.js'));
+for(const token of ['interventionId:selected','tech.create(','tech.update(','tech.restore(','tech.backup(','attachment:','root.localStorage','filter.addEventListener'])assert(ui.includes(token),token);
+assert(!ui.includes('FileReader('),'Never ingest real attachment bytes');
+const tech=require(path.join(base,'ite-technical-registry-40.js'));
+const ops={clients:[{id:'TEST-C',sites:[{id:'TEST-S',plants:[{id:'TEST-P',devices:[{id:'TEST-D'}]}]}]}],appointments:[{id:'TEST-A',clientId:'TEST-C',siteId:'TEST-S',plantId:'TEST-P',deviceId:'TEST-D'}],interventions:[{id:'TEST-I',appointmentId:'TEST-A'}]};
+let reg=tech.create(tech.empty(),ops,{id:'TEST-DOC',clientId:'TEST-C',siteId:'TEST-S',plantId:'TEST-P',deviceId:'TEST-D',interventionId:'TEST-I',type:'DICO_IDRICO',title:'Dichiarazione TEST'},'TEST-OP','2026-11-05T16:00:00Z');
+assert.equal(reg.documents[0].interventionId,'TEST-I');
+reg=tech.update(reg,ops,'TEST-DOC',{attachment:{id:'TEST-ATT',filename:'test.pdf',mime:'application/pdf',bytes:1024}},'TEST-OP','2026-11-05T16:01:00Z');
+assert.equal(reg.documents[0].attachments.length,1);
+assert.equal(tech.restore(tech.backup(reg,ops),ops).documents[0].revision,2);
+assert.throws(()=>tech.create(tech.empty(),ops,{id:'TEST-X',clientId:'TEST-C',interventionId:'TEST-UNKNOWN',type:'CAD',title:'TEST'},'TEST-OP','2026-11-05T16:00:00Z'),/INTERVENTO_ASSENTE/);
+assert.throws(()=>tech.update(reg,ops,'TEST-DOC',{attachment:{id:'TEST-BAD',filename:'real.pdf',mime:'application/pdf',bytes:2,content:'secret'}},'TEST-OP','2026-11-05T16:02:00Z'),/CONTENUTO_ALLEGATO_VIETATO/);
+console.log('Technical workflow domain + integration checks passed');
