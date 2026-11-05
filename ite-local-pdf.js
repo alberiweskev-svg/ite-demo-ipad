@@ -27,7 +27,7 @@ async function extract(file,engine){
   return {text,pages:doc.numPages,bytes:file.size,filename:file.name};
  }finally{if(doc&&typeof doc.destroy==='function')await doc.destroy()}
 }
-function preview(text,kind,intake){const api=intake||root.ITEPdfIntake;if(!api)throw Error('MODULO_INTAKE_NON_DISPONIBILE');return api.parse(text,kind)}
+function preview(text,kind,intake){const api=intake||root.ITEPdfIntake;if(!api)throw Error('MODULO_INTAKE_NON_DISPONIBILE');const normalized=String(text).replace(/\\s+(?=(?:Numero|Data|Committente|Indirizzo|Impianto)\\s*:)/gi,'\\n');return api.parse(normalized,kind)}
 function mount(){
  const panel=document.getElementById('ite-tech-panel');
  if(!panel||document.getElementById('ite-local-pdf'))return;
@@ -57,7 +57,7 @@ function mount(){
   if(selected.kind!==document.getElementById('ite-tech-kind').value){$('result').textContent='Tipologia cambiata: ripetere anteprima';return}
   const text=document.getElementById('ite-tech-pdf-text');
   if(!text){$('result').textContent='Modulo registro non disponibile';return}
-  text.value=selected.extracted.text;
+  text.value=selected.extracted.text.replace(/\\s+(?=(?:Numero|Data|Committente|Indirizzo|Impianto)\\s*:)/gi,'\\n');
   document.getElementById('ite-tech-pdf-import').click();
   $('result').textContent+='\nRichiesta di registrazione inoltrata al registro TEST. Controllare il messaggio e la bozza.';
   selected=null;$('import').disabled=true;
