@@ -17,7 +17,7 @@ function parse(xml,identifier){
  const buyerName=field(section(buyer,'Anagrafica'),'Denominazione')||field(section(buyer,'Anagrafica'),'Nome');
  if(!/^TEST(?:[-\s]|$)/i.test(number)||!/^TEST(?:[-\s]|$)/i.test(sellerName)||!/^TEST(?:[-\s]|$)/i.test(buyerName))throw Error('SOLO_DATI_TEST');
  const issuer=/^TEST[-\s]ITE(?:[-\s]|$)/i.test(sellerName)?'ITE':/^TEST[-\s]ITE(?:[-\s]|$)/i.test(buyerName)?'ESTERNO':'INCERTO';
- const summary=section(body,'DatiRiepilogo');if(!summary)throw Error('RIEPILOGO_MANCANTE');
+ const summaries=body.match(/<(?:[A-Za-z_][\\w.-]*:)?DatiRiepilogo(?:\\s[^>]*)?>/gi)||[];if(summaries.length!==1)throw Error('RIEPILOGHI_MULTIPLI_NON_SUPPORTATI');const summary=section(body,'DatiRiepilogo');if(!summary)throw Error('RIEPILOGO_MANCANTE');
  const net=money(field(summary,'ImponibileImporto')),vat=money(field(summary,'Imposta'));
  const total=net+vat;
  const declared=field(general,'ImportoTotaleDocumento');
