@@ -1,0 +1,14 @@
+'use strict';const assert=require('node:assert/strict'),f=require('./ite-finance-40.js');
+const stamp='2026-11-05T09:00:00Z';
+const base={id:'TEST-F1',number:'PR-1',date:'2026-11-05',party:'Fornitore TEST',issuer:'ESTERNO',reference:'PR-1 PROFORMA',net:100,vat:22,total:122};
+let s=f.add(f.empty(),base,'DEMO',stamp);assert.equal(s.documents[0].type,'PROFORMA');assert.throws(()=>f.settle(s,'TEST-F1',10,'DEMO',stamp),/PAGAMENTO_NON_CONSENTITO/);
+s=f.add(s,{...base,id:'TEST-F2',number:'NC-2',reference:'',code:'TD04',net:50,vat:11,total:61},'DEMO',stamp);assert.equal(s.documents[1].status,'DA_RECUPERARE');
+s=f.settle(s,'TEST-F2',20,'DEMO',stamp);assert.equal(s.documents[1].status,'PARZIALMENTE_RECUPERATA');s=f.settle(s,'TEST-F2',41,'DEMO',stamp);assert.equal(s.documents[1].status,'RECUPERATA');
+s=f.add(s,{...base,id:'TEST-F3',number:'3',reference:'Fattura',issuer:'ITE'},'DEMO',stamp);assert.equal(f.report(s).salesToCollect,122);
+s=f.settle(s,'TEST-F3',122,'DEMO',stamp);assert.equal(s.documents[2].status,'PAGATA');
+s=f.add(s,{...base,id:'TEST-F4',number:'4',reference:'Fattura',issuer:'INCERTO'},'DEMO',stamp);assert.equal(f.report(s).toReview,1);
+s=f.confirm(s,'TEST-F4','ACQUISTO','DEMO',stamp);assert.equal(f.report(s).purchasesDue,122);
+assert.throws(()=>f.add(s,{...base,id:'REAL-1'},'DEMO',stamp),/SOLO_IDENTIFICATIVI_TEST/);
+assert.throws(()=>f.add(s,{...base,id:'TEST-F5',total:999},'DEMO',stamp),/TOTALE_NON_COERENTE/);
+assert.throws(()=>f.settle(s,'TEST-F4',123,'DEMO',stamp),/IMPORTO_SUPERIORE/);
+assert.equal(f.report(s).toReview,0);console.log('PASS: finance classification, TD04, proforma, payments, review, TEST safety');
