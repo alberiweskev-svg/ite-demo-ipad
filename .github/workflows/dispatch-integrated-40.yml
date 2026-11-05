@@ -1,0 +1,29 @@
+name: ITE 4.0.27 Dispatch integrated TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-dispatch-40.js'
+      - 'ite-dispatch-ui-40.js'
+      - 'ite-operations-40.js'
+      - 'ite-operations-workspace-40.js'
+      - 'tests/test-dispatch*.js'
+      - 'index.html'
+      - '.github/workflows/dispatch-integrated-40.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and integration regression
+        run: |
+          node --check ite-dispatch-40.js
+          node --check ite-dispatch-ui-40.js
+          node --check ite-operations-40.js
+          node --check ite-operations-workspace-40.js
+          node tests/test-dispatch-40.js
+          node tests/test-dispatch-ui-40.js
