@@ -7,7 +7,7 @@ function pdfEngine(){return root.pdfjsLib||root['pdfjs-dist/build/pdf']||null}
 async function extract(file,engine){
  if(!file||typeof file.arrayBuffer!=='function'||file.size>MAX_BYTES||file.size<8)throw Error('PDF_DIMENSIONE_NON_VALIDA');
  if(!/\.pdf$/i.test(file.name||'')||file.type&&file.type!=='application/pdf')throw Error('SOLO_FILE_PDF');
- const pdf=engine||pdfEngine();if(!pdf||typeof pdf.getDocument!=='function')throw Error('MOTORE_PDF_NON_DISPONIBILE');
+ if(!engine&&!pdfEngine()&&root.ITEPDFLocalReader){const extracted=await root.ITEPDFLocalReader.extract(file);if(extracted.pages>MAX_PAGES)throw Error('PDF_TROPPE_PAGINE');if(!extracted.text.trim())throw Error('PDF_SCANSIONE_SENZA_TESTO');if(!/\\bTEST[- _]/i.test(extracted.text))throw Error('SOLO_PDF_FITTIZI_TEST');return {text:extracted.text,pages:extracted.pages,bytes:file.size,filename:file.name};}\n const pdf=engine||pdfEngine();if(!pdf||typeof pdf.getDocument!=='function')throw Error('MOTORE_PDF_NON_DISPONIBILE');
  const bytes=new Uint8Array(await file.arrayBuffer());
  if(String.fromCharCode(...bytes.slice(0,5))!=='%PDF-')throw Error('FIRMA_PDF_NON_VALIDA');
  let doc;try{
