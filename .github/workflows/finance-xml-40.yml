@@ -6,6 +6,7 @@ on:
       - 'ite-finance-xml-40.js'
       - 'ite-finance-xml-ui-40.js'
       - 'test-finance-xml-40.js'
+      - 'test-finance-xml-multivat-40.js'
       - 'ite-finance-batch-40.js'
       - 'ite-finance-40.js'
       - 'index.html'
@@ -20,4 +21,4 @@ jobs:
         with:
           node-version: '22'
       - run: node --check ite-finance-xml-40.js && node --check ite-finance-xml-ui-40.js
-      - run: node test-finance-40.js && node test-finance-batch-40.js && node test-finance-xml-40.js
+      - run: node test-finance-40.js && node test-finance-batch-40.js && node test-finance-xml-40.js && node test-finance-xml-multivat-40.js
