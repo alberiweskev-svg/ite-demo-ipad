@@ -1,0 +1,26 @@
+name: ITE 4.0.28 Field dashboard TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-field-dashboard-40.js'
+      - 'ite-field-dashboard-ui-40.js'
+      - 'tests/test-field-dashboard-40.js'
+      - 'index.html'
+      - '.github/workflows/field-dashboard-40.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and functional regression
+        run: |
+          node --check ite-field-dashboard-40.js
+          node --check ite-field-dashboard-ui-40.js
+          node tests/test-field-dashboard-40.js
+          node tests/test-dispatch-40.js
+          node tests/test-dispatch-ui-40.js
