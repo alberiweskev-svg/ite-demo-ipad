@@ -1,0 +1,28 @@
+name: ITE 4.0 technical workflow TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-registry-40.js'
+      - 'ite-technical-registry-ui-40.js'
+      - 'ite-technical-workflow-ui-40.js'
+      - 'index.html'
+      - 'tests/test-technical-workflow-40.js'
+      - '.github/workflows/technical-workflow-40.yml'
+  workflow_dispatch:
+jobs:
+  technical-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check ite-technical-registry-40.js
+          node --check ite-technical-registry-ui-40.js
+          node --check ite-technical-workflow-ui-40.js
+          node --check tests/test-technical-workflow-40.js
+      - name: Technical domain and integration tests
+        run: node tests/test-technical-workflow-40.js
