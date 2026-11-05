@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const M=require('./ite-technical-register.js'),Q=require('./ite-technical-quality.js');
+const h={clients:[{id:'TEST-C',sites:[{id:'TEST-S',plants:[{id:'TEST-P',devices:[{id:'TEST-D'}]}]}]}]};
+const base={id:'TEST-DOC',kind:'DICO_IDRICA',number:'TEST-001',date:'2026-11-05',clientId:'TEST-C',siteId:'TEST-S',plantId:'TEST-P',deviceId:'TEST-D'};
+let s=M.addBatch({records:[]},[base],h);
+assert.equal(Q.inspectRegister(s,h,M)[0].ready,false);
+assert.throws(()=>Q.confirmBatch(s,['TEST-DOC'],h,M,'TECNICO TEST',new Date().toISOString()),/INCOMPLETO/);
+for(const kind of ['SCHEMA','MATERIALI','PROVE'])s=M.attachMetadata(s,'TEST-DOC',{id:'TEST-'+kind,kind,label:'Allegato TEST '+kind});
+assert.equal(Q.inspectRegister(s,h,M)[0].ready,true);
+const verified=Q.confirmBatch(s,['TEST-DOC'],h,M,'TECNICO TEST',new Date().toISOString());
+assert.equal(verified.records[0].status,'VERIFICATO');
+assert.equal(s.records[0].status,'BOZZA_DA_VERIFICARE');
+assert.throws(()=>Q.confirmBatch(s,['TEST-DOC','TEST-MISSING'],h,M,'TECNICO TEST',new Date().toISOString()),/ASSENTE/);
+const fs=require('node:fs');const html=fs.readFileSync('index.html','utf8');
+assert(html.includes('ite-technical-quality-ui.js'));
+assert(html.indexOf('ite-technical-quality.js')<html.indexOf('ite-technical-quality-ui.js'));
+console.log('quality integrated: OK');
