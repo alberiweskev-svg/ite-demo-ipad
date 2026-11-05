@@ -34,14 +34,14 @@ create.addEventListener('submit',()=>{const selected=intervention.value;if(!sele
  /* Create a replacement through the validated domain API; never mutate an existing document in place. */
  const without={...reg,documents:reg.documents.slice(0,-1),events:reg.events.slice(0,-1)};
  const linked=tech.create(without,state,{id:last.id,clientId:last.clientId,siteId:last.siteId,plantId:last.plantId,deviceId:last.deviceId,interventionId:selected,type:last.type,title:last.title},actor,last.createdAt);
- save(linked);status('Documento TEST collegato all’intervento '+selected);
+ save(linked);status('Documento TEST collegato all’intervento '+selected);root.location.reload();
  }catch(e){status('Collegamento non riuscito: '+e.message,true)}
 });
 slot.querySelector('#ite40-attachment-form').addEventListener('submit',e=>{e.preventDefault();try{
  const f=e.currentTarget,d=Object.fromEntries(new FormData(f).entries()),bytes=Number(d.bytes);
  if(!Number.isInteger(bytes)||bytes<0||bytes>20000000)throw Error('DIMENSIONE_NON_VALIDA');
  const next=tech.update(read(),ws.read(),docSelect.value,{attachment:{id:id(),filename:d.filename,mime:d.mime,bytes}},actor,new Date().toISOString());
- save(next);f.reset();status('Metadati allegato registrati (nessun file acquisito)');refresh();
+ save(next);f.reset();status('Metadati allegato registrati (nessun file acquisito)');root.location.reload();
  }catch(err){status('Allegato non registrato: '+err.message,true)}});
 slot.querySelector('#ite40-tech-download').addEventListener('click',()=>{try{const b=new Blob([tech.backup(read(),ws.read())],{type:'application/json'}),url=URL.createObjectURL(b),a=doc.createElement('a');a.href=url;a.download='ite40-fascicolo-TEST.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status('Backup TEST esportato')}catch(e){status(e.message,true)}});
 slot.querySelector('#ite40-tech-restore').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{if(f.size>2000000)throw Error('BACKUP_TROPPO_GRANDE');const data=await f.text(),next=tech.restore(data,ws.read());save(next);status('Backup TEST validato e ripristinato');root.location.reload()}catch(err){status('Ripristino rifiutato: '+err.message,true)}finally{e.target.value=''}});
