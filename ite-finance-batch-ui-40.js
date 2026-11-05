@@ -17,7 +17,7 @@ function init(){
  function read(){return f.validate(JSON.parse(localStorage.getItem(KEY)||'null')||f.empty())}
  preview.onclick=()=>{approved=null;commit.disabled=true;try{const rows=JSON.parse(area.value),checks=b.preview(read(),rows);output.textContent=checks.map(x=>(x.index+1)+'. '+(x.valid?'OK '+x.type+' '+x.direction:'BLOCCATO '+x.error)).join('\n');if(checks.every(x=>x.valid)){approved=area.value;commit.disabled=false}}catch(e){output.textContent='Errore: '+e.message}};
  area.addEventListener('input',()=>{approved=null;commit.disabled=true});
- commit.onclick=()=>{if(!approved||approved!==area.value)return;try{const result=b.importBatch(read(),JSON.parse(approved),'DEMO',new Date().toISOString());localStorage.setItem(KEY,JSON.stringify(result.state));output.textContent='Importati '+result.imported+' documenti TEST. Aggiornare il riepilogo con un ricaricamento.';approved=null;commit.disabled=true;}catch(e){output.textContent='Importazione annullata: '+e.message}};
+ commit.onclick=()=>{if(!approved||approved!==area.value)return;try{const result=b.importBatch(read(),JSON.parse(approved),'DEMO',new Date().toISOString());localStorage.setItem(KEY,JSON.stringify(result.state));root.dispatchEvent(new CustomEvent('ite40:finance-changed',{detail:{source:'batch-import',count:result.imported}}));output.textContent='Importati '+result.imported+' documenti TEST. Riepilogo aggiornato.';approved=null;commit.disabled=true;}catch(e){output.textContent='Importazione annullata: '+e.message}};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })(typeof window!=='undefined'?window:globalThis);
