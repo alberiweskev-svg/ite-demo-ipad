@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('node:assert/strict'),f=require('./ite-finance-40.js'),b=require('./ite-finance-batch-40.js'),x=require('./ite-finance-xml-40.js');
+const xml=(type='TD01',seller='TEST Fornitore',buyer='TEST ITE',total='122.00')=>`<?xml version="1.0"?><FatturaElettronica><FatturaElettronicaHeader><CedentePrestatore><DatiAnagrafici><Anagrafica><Denominazione>${seller}</Denominazione></Anagrafica></DatiAnagrafici></CedentePrestatore><CessionarioCommittente><DatiAnagrafici><Anagrafica><Denominazione>${buyer}</Denominazione></Anagrafica></DatiAnagrafici></CessionarioCommittente></FatturaElettronicaHeader><FatturaElettronicaBody><DatiGenerali><DatiGeneraliDocumento><TipoDocumento>${type}</TipoDocumento><Data>2026-11-05</Data><Numero>TEST-XML-1</Numero><ImportoTotaleDocumento>${total}</ImportoTotaleDocumento></DatiGeneraliDocumento></DatiGenerali><DatiBeniServizi><DatiRiepilogo><ImponibileImporto>100.00</ImponibileImporto><Imposta>22.00</Imposta></DatiRiepilogo></DatiBeniServizi></FatturaElettronicaBody></FatturaElettronica>`;
+let r=x.parse(xml(),'TEST-XML-1');assert.equal(r.issuer,'ESTERNO');assert.equal(r.total,122);
+let imported=b.importBatch(f.empty(),[r],'DEMO','2026-11-05T12:00:00Z');assert.equal(imported.state.documents[0].direction,'ACQUISTO');
+assert.equal(x.parse(xml('TD04','TEST ITE','TEST Cliente'),'TEST-XML-2').kind,'TD04');
+assert.throws(()=>x.parse(xml('TD01','Azienda Reale','TEST ITE'),'TEST-XML-3'),/SOLO_DATI_TEST/);
+assert.throws(()=>x.parse(xml('TD01','TEST Fornitore','TEST ITE','500.00'),'TEST-XML-4'),/TOTALE_XML_NON_COERENTE/);
+assert.throws(()=>x.parse('<!DOCTYPE a>'+xml(),'TEST-XML-5'),/XML_NON_SICURO/);
+assert.throws(()=>x.parse(xml('TD05'),'TEST-XML-6'),/TIPO_XML_NON_SUPPORTATO/);
+console.log('PASS: XML synthetic purchase, credit note, privacy, totals, XXE, unsupported type');
