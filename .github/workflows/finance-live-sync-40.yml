@@ -1,0 +1,28 @@
+name: Finance live synchronization
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-finance-demo-ui-40.js'
+      - 'ite-finance-batch-ui-40.js'
+      - 'test-finance-live-sync-40.js'
+      - '.github/workflows/finance-live-sync-40.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check ite-finance-demo-ui-40.js
+          node --check ite-finance-batch-ui-40.js
+      - name: Finance live sync regression
+        run: node test-finance-live-sync-40.js
+      - name: Existing finance regression
+        run: |
+          node test-finance-40.js
+          node test-finance-batch-40.js
