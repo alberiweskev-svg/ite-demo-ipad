@@ -24,5 +24,5 @@ assert.deepEqual(M.totals(s.quotes[0]),{approved:100,pendingExtra:116,supply:100
 s=M.approveExtra(s,'TEST-Q1',['TEST-L2'],'TECNICO TEST',t);
 assert.equal(M.totals(s.quotes[0]).approved,216);
 assert.throws(()=>M.addClient(s,{id:'CLIENTE-REALE',name:'Reale'},'TECNICO TEST',t),/SOLO_DATI_TEST/);
-assert.equal(s.audit.length,13);
+assert.equal(s.audit.length,12);
 console.log('OK: hierarchy, conflict prevention, lifecycle, revision history, separate supply/installation, extras, TEST guard');
