@@ -1,0 +1,22 @@
+name: ITE 4.0 integrated operations UI
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-40.js'
+      - 'ite-operations-workspace-40.js'
+      - 'ite-operations-demo-ui-40.js'
+      - 'test-operations-demo-ui-40.js'
+      - 'index.html'
+      - '.github/workflows/operations-demo-ui-40.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-operations-40.js && node --check ite-operations-workspace-40.js && node --check ite-operations-demo-ui-40.js
+      - run: node test-operations-40.js && node test-operations-workspace-40.js && node test-operations-demo-ui-40.js
