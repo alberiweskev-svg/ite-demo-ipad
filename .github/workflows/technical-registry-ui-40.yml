@@ -1,0 +1,16 @@
+name: Technical registry UI 4.0 TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-technical-registry-40.js', 'ite-technical-registry-ui-40.js', 'test-technical-registry*.js', 'index.html', '.github/workflows/technical-registry-ui-40.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-technical-registry-40.js && node --check ite-technical-registry-ui-40.js
+      - run: node test-technical-registry-40.js && node test-technical-registry-ui-40.js
