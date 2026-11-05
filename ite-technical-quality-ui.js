@@ -26,13 +26,17 @@ if(!ids.length)throw Error('NESSUN_DOCUMENTO_IDONEO_IN_BOZZA');
 const operator=$('ite-tech-operator')?.value||'TECNICO TEST';
 const next=Q.confirmBatch(r.state,ids,H,M,operator,new Date().toISOString());
 localStorage.setItem(KEY,JSON.stringify(next));
-$('ite-tech-quality-summary').textContent=ids.length+' documenti confermati. Aggiorna la pagina per sincronizzare il registro principale.';
+document.dispatchEvent(new CustomEvent('ite:technical-register-external-update'));
+report();
+$('ite-tech-quality-summary').textContent=ids.length+' documenti confermati e registro sincronizzato.';
 }catch(e){$('ite-tech-quality-summary').textContent='Conferma respinta: '+e.message}});
 /* Il vecchio pulsante di conferma non deve aggirare il controllo qualità. */
 $('ite-tech-confirm')?.addEventListener('click',event=>{try{
 const r=report(),id=$('ite-tech-record')?.value;
 if(!r||!Q.inspect(r.state.records.find(d=>d.id===id),H,M).ready)throw Error('REQUISITI_DOCUMENTALI_INCOMPLETI');
 }catch(e){event.stopImmediatePropagation();event.preventDefault();$('ite-tech-quality-summary').textContent='Conferma bloccata: '+e.message}},true);
+document.addEventListener('ite:technical-register-changed',report);
+window.addEventListener('storage',event=>{if(event.key===KEY)report()});
 report();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
