@@ -4,12 +4,12 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 const id=x=>{if(typeof x!=='string'||!/^TEST-[A-Za-z0-9_-]{1,70}$/.test(x))throw Error('SOLO_IDENTIFICATIVI_TEST');return x};
 const text=(x,max=180)=>{if(typeof x!=='string'||!x.trim()||x.length>max)throw Error('TESTO_NON_VALIDO');return x.trim()};
 const amount=x=>{if(typeof x!=='number'||!Number.isFinite(x)||x<0||x>10000000)throw Error('IMPORTO_NON_VALIDO');return Math.round(x*100)/100};
-const date=x=>{if(typeof x!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(x)||new Date(x+'T12:00:00Z').toISOString().slice(0,10)!==x)throw Error('DATA_NON_VALIDA');return x};
+const date=x=>{if(typeof x!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(x)||(Number.isFinite(Date.parse(x+'T12:00:00Z'))?new Date(x+'T12:00:00Z').toISOString().slice(0,10):'')!==x)throw Error('DATA_NON_VALIDA');return x};
 const empty=()=>({schema:1,documents:[],audit:[]});
 function validate(s){if(!s||s.schema!==1||!Array.isArray(s.documents)||!Array.isArray(s.audit))throw Error('ARCHIVIO_NON_VALIDO');const ids=new Set();
 for(const d of s.documents){id(d.id);if(ids.has(d.id))throw Error('DOCUMENTO_DUPLICATO');ids.add(d.id);if(!['ACQUISTO','VENDITA'].includes(d.direction)||!['FATTURA','PROFORMA','NOTA_CREDITO'].includes(d.type))throw Error('TIPO_NON_VALIDO');if(d.type==='NOTA_CREDITO'&&d.code!=='TD04')throw Error('TD04_OBBLIGATORIO');if(d.type==='PROFORMA'&&d.code==='TD04')throw Error('TIPO_INCOERENTE');if(!['DA_VERIFICARE','DA_PAGARE','PARZIALE','PAGATA','DA_RECUPERARE','PARZIALMENTE_RECUPERATA','RECUPERATA'].includes(d.status))throw Error('STATO_NON_VALIDO');if(d.paid<0||d.paid>d.total)throw Error('SALDO_NON_VALIDO');}
 return s}
-function classify(raw){const code=String(raw.code||'').trim().toUpperCase(),reference=String(raw.reference||'').toUpperCase();const type=code==='TD04'?'NOTA_CREDITO':(/\\bPR(?:OFORMA)?[-\\s#:]?\\d|PROFORMA/.test(reference)?'PROFORMA':'FATTURA');
+function classify(raw){const code=String(raw.code||'').trim().toUpperCase(),reference=String(raw.reference||'').toUpperCase();const type=code==='TD04'?'NOTA_CREDITO':(/\bPR(?:OFORMA)?[-\s#:]?\d|PROFORMA/.test(reference)?'PROFORMA':'FATTURA');
 const direction=raw.issuer==='ITE'?'VENDITA':raw.issuer==='ESTERNO'?'ACQUISTO':null;
 return {type,direction,needsReview:!direction||!!raw.ambiguous};}
 function add(state,raw,operator,at){const s=clone(validate(state)),key=id(raw.id);if(s.documents.some(d=>d.id===key))throw Error('DOCUMENTO_DUPLICATO');const detected=classify(raw);const type=detected.type,direction=detected.direction||'ACQUISTO';const net=amount(raw.net),vat=amount(raw.vat),total=amount(raw.total);
