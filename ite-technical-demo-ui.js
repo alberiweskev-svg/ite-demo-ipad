@@ -11,7 +11,7 @@ function read(){try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(!v|
 let state=read();
 const $=id=>document.getElementById('ite-tech-'+id);
 function message(s,error=false){$('message').textContent=s;$('message').style.color=error?'#a03132':'#17603b'}
-function save(next){if(next.records.some(r=>!String(r.id).startsWith('TEST-')))throw Error('SOLO_DATI_FITTIZI');localStorage.setItem(KEY,JSON.stringify(next));state=next;render()}
+function save(next){if(next.records.some(r=>!String(r.id).startsWith('TEST-')))throw Error('SOLO_DATI_FITTIZI');localStorage.setItem(KEY,JSON.stringify(next));state=next;render();document.dispatchEvent(new CustomEvent('ite:technical-register-changed',{detail:{count:next.records.length}}))}
 function act(fn){try{fn();message('Operazione registrata')}catch(e){message('Operazione respinta: '+e.message,true)}}
 function render(){const rows=M.overview(state);$('count').textContent=rows.length+' documenti · '+rows.filter(x=>x.status==='VERIFICATO').length+' verificati';
 $('records').innerHTML=rows.length?rows.map(r=>'<div class="item"><strong>'+escape(r.number)+'</strong><small>'+escape(r.kind)+' · '+escape(r.status)+' · '+escape(r.clientId)+' / '+escape(r.siteId)+' · Allegati: '+r.attachments+' · Revisione: '+r.revision+'</small></div>').join(''):'<p>Nessun documento di collaudo.</p>';
@@ -52,6 +52,8 @@ $('pdf-preview').onclick=()=>act(()=>{$('pdf-result').textContent=JSON.stringify
 $('pdf-import').onclick=()=>act(()=>save(Intake.register(state,[intakeItem()],hierarchy,M,'TECNICO TEST',new Date().toISOString())));
 }else{$('pdf-preview').disabled=true;$('pdf-import').disabled=true;}
 if(Review){$('review-save').onclick=()=>act(()=>{const id=$('record').value,field=$('review-field').value,value=$('review-value').value;save(Review.revise(state,id,{[field]:value},$('operator').value,new Date().toISOString(),$('reason').value));$('review-audit').textContent=JSON.stringify(Review.audit(state),null,2)});}else $('review-save').disabled=true;
+document.addEventListener('ite:technical-register-external-update',()=>{state=read();render()});
+window.addEventListener('storage',event=>{if(event.key===KEY){state=read();render()}});
 render();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build,{once:true});else build();
