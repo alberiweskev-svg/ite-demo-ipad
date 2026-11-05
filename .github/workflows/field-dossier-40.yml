@@ -1,0 +1,22 @@
+name: ITE 4.0 field dossier TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-field-dossier-40.js'
+      - 'ite-field-dossier-ui-40.js'
+      - 'tests/test-field-dossier-40.js'
+      - 'ite-operations-40.js'
+      - 'index.html'
+      - '.github/workflows/field-dossier-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-field-dossier-40.js && node --check ite-field-dossier-ui-40.js
+      - run: node tests/test-field-dossier-40.js
