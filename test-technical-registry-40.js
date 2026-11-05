@@ -1,0 +1,23 @@
+'use strict';
+const assert=require('node:assert/strict');
+const op=require('./ite-operations-40.js');
+const tech=require('./ite-technical-registry-40.js');
+const now='2026-11-05T14:00:00.000Z';
+let s=op.empty();
+s=op.addClient(s,{id:'TEST-C1',name:'Cliente TEST'},'TEST-O1',now);
+s=op.addSite(s,'TEST-C1',{id:'TEST-S1',address:'Via Test 1'},'TEST-O1',now);
+s=op.addPlant(s,'TEST-C1','TEST-S1',{id:'TEST-P1',type:'Riscaldamento'},'TEST-O1',now);
+s=op.addDevice(s,{clientId:'TEST-C1',siteId:'TEST-S1',plantId:'TEST-P1'},{id:'TEST-D1',brand:'TEST',model:'M1',serial:'TEST-001'},'TEST-O1',now);
+let r=tech.create(tech.empty(),s,{id:'TEST-DOC1',clientId:'TEST-C1',siteId:'TEST-S1',plantId:'TEST-P1',deviceId:'TEST-D1',type:'DICO_IDRICO',title:'DICO di prova'},'TEST-O1',now);
+assert.equal(tech.forEquipment(r,'TEST-D1').length,1);
+r=tech.update(r,s,'TEST-DOC1',{status:'DA_VERIFICARE',attachment:{id:'TEST-ATT1',filename:'documento-TEST.pdf',mime:'application/pdf',bytes:1234}},'TEST-O1',now);
+assert.equal(r.documents[0].revision,2);
+assert.equal(r.documents[0].attachments.length,1);
+assert.equal(tech.restore(tech.backup(r,s),s).documents[0].history.length,2);
+assert.throws(()=>tech.create(r,s,{id:'TEST-DOC2',clientId:'TEST-C1',siteId:'TEST-OTHER',type:'POS',title:'Non valido'},'TEST-O1',now),/SEDE_ASSENTE/);
+assert.throws(()=>tech.create(r,s,{id:'REAL-1',clientId:'TEST-C1',type:'POS',title:'Non valido'},'TEST-O1',now),/SOLO_IDENTIFICATIVI_TEST/);
+assert.throws(()=>tech.update(r,s,'TEST-DOC1',{attachment:{id:'TEST-ATT2',filename:'dati.pdf',mime:'application/pdf',bytes:1,base64:'PRIVATE'}},'TEST-O1',now),/CONTENUTO_ALLEGATO_VIETATO/);
+r=tech.update(r,s,'TEST-DOC1',{status:'ARCHIVIATO'},'TEST-O1',now);
+assert.throws(()=>tech.update(r,s,'TEST-DOC1',{title:'Modifica'},'TEST-O1',now),/DOCUMENTO_ARCHIVIATO/);
+for(const type of ['DICO_ELETTRICO','DIRI','ALLEGATI_GAS','POS','CAD']){const x=tech.create(tech.empty(),s,{id:'TEST-'+type,clientId:'TEST-C1',type,title:'Prova '+type},'TEST-O1',now);assert.equal(x.documents[0].type,type)}
+console.log('Technical registry TEST: OK');
