@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict'),f=require('./ite-finance-40.js'),b=require('./ite-finance-batch-40.js');
+const row=(id,kind='FATTURA',issuer='ESTERNO')=>({id,number:'TEST-'+id,date:'2026-11-05',party:'TEST Fornitore',issuer,kind,net:100,vat:22,total:122});
+let s=f.empty();let rows=[row('TEST-1'),row('TEST-2','PROFORMA','ITE'),row('TEST-3','TD04','INCERTO')];
+assert.equal(b.preview(s,rows).filter(x=>x.valid).length,3);
+let out=b.importBatch(s,rows,'DEMO','2026-11-05T10:00:00Z');s=out.state;
+assert.equal(s.documents.length,3);assert.equal(b.reconcile(s).toReview,1);
+assert.equal(s.documents[1].type,'PROFORMA');assert.equal(s.documents[2].type,'NOTA_CREDITO');
+assert.equal(b.preview(s,[row('TEST-1')])[0].error,'ID_DUPLICATO');
+assert.equal(b.preview(s,[{...row('TEST-4'),number:'TEST-TEST-1'}])[0].error,'DOCUMENTO_GIA_PRESENTE');
+const before=JSON.stringify(s);
+assert.throws(()=>b.importBatch(s,[row('TEST-5'),{...row('TEST-6'),total:500}],'DEMO','2026-11-05T10:00:00Z'),/LOTTO_BLOCCATO/);
+assert.equal(JSON.stringify(s),before);
+assert.equal(b.preview(s,[{...row('TEST-7'),party:'Cliente reale'}])[0].error,'SOLO_DATI_TEST');
+assert.equal(b.preview(s,[row('TEST-8'),row('TEST-8')])[1].error,'ID_DUPLICATO');
+assert.throws(()=>b.preview(s,[]),/LOTTO_NON_VALIDO/);
+console.log('PASS: atomic batch, duplicate checks, TD04, PR, uncertain issuer, TEST-only');
