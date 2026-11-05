@@ -1,0 +1,22 @@
+name: ITE 4.0.26 dispatch TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-dispatch-40.js'
+      - 'ite-operations-40.js'
+      - 'tests/test-dispatch-40.js'
+      - '.github/workflows/dispatch-40.yml'
+  workflow_dispatch:
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-dispatch-40.js
+      - run: node --check tests/test-dispatch-40.js
+      - run: node tests/test-dispatch-40.js
+      - run: node tests/test-field-dossier-40.js
