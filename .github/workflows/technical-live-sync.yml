@@ -1,0 +1,28 @@
+name: Technical register live synchronization
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-demo-ui.js'
+      - 'ite-technical-quality-ui.js'
+      - 'ite-local-pdf.js'
+      - 'test-technical-live-sync.js'
+      - '.github/workflows/technical-live-sync.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-technical-demo-ui.js
+      - run: node --check ite-technical-quality-ui.js
+      - run: node --check ite-local-pdf.js
+      - run: node test-technical-live-sync.js
+      - run: node test-technical-register.js
+      - run: node test-technical-quality.js
+      - run: node test-local-pdf.js
