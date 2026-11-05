@@ -8,6 +8,7 @@ function money(s){if(!/^-?\d+(?:[.,]\d{1,2})?$/.test(s))throw Error('IMPORTO_XML
 function parse(xml,identifier){
  if(typeof xml!=='string'||xml.length>500000||/<!DOCTYPE|<!ENTITY|<\?xml-stylesheet/i.test(xml))throw Error('XML_NON_SICURO');
  if(!/<(?:\w+:)?FatturaElettronica(?:\s|>)/i.test(xml))throw Error('NON_FATTURAPA');
+ const bodies=xml.match(/<(?:[A-Za-z_][\w.-]*:)?FatturaElettronicaBody(?:\s[^>]*)?>/gi)||[];if(bodies.length!==1)throw Error('MULTI_BODY_NON_SUPPORTATO');
  const body=section(xml,'FatturaElettronicaBody'),header=section(xml,'FatturaElettronicaHeader');
  if(!body||!header)throw Error('STRUTTURA_XML_INCOMPLETA');
  const general=section(body,'DatiGeneraliDocumento'),seller=section(header,'CedentePrestatore'),buyer=section(header,'CessionarioCommittente');
@@ -17,12 +18,19 @@ function parse(xml,identifier){
  const buyerName=field(section(buyer,'Anagrafica'),'Denominazione')||field(section(buyer,'Anagrafica'),'Nome');
  if(!/^TEST(?:[-\s]|$)/i.test(number)||!/^TEST(?:[-\s]|$)/i.test(sellerName)||!/^TEST(?:[-\s]|$)/i.test(buyerName))throw Error('SOLO_DATI_TEST');
  const issuer=/^TEST[-\s]ITE(?:[-\s]|$)/i.test(sellerName)?'ITE':/^TEST[-\s]ITE(?:[-\s]|$)/i.test(buyerName)?'ESTERNO':'INCERTO';
- const summaries=body.match(/<(?:[A-Za-z_][\\w.-]*:)?DatiRiepilogo(?:\\s[^>]*)?>/gi)||[];if(summaries.length!==1)throw Error('RIEPILOGHI_MULTIPLI_NON_SUPPORTATI');const summary=section(body,'DatiRiepilogo');if(!summary)throw Error('RIEPILOGO_MANCANTE');
- const net=money(field(summary,'ImponibileImporto')),vat=money(field(summary,'Imposta'));
- const total=net+vat;
+ const summaries=body.match(/<(?:[A-Za-z_][\\w.-]*:)?DatiRiepilogo(?:\\s[^>]*)?>/gi)||[];
+ if(!summaries.length||summaries.length>20)throw Error('RIEPILOGHI_NON_VALIDI');
+ const segments=body.match(/<(?:[A-Za-z_][\\w.-]*:)?DatiRiepilogo(?:\\s[^>]*)?>[\\s\\S]*?<\\/(?:[A-Za-z_][\\w.-]*:)?DatiRiepilogo\\s*>/gi)||[];
+ if(segments.length!==summaries.length)throw Error('RIEPILOGHI_NON_VALIDI');
+ let netCents=0,vatCents=0;
+ for(const segment of segments){
+   const n=money(field(segment,'ImponibileImporto')),v=money(field(segment,'Imposta'));
+   if(n<0||v<0)throw Error('IMPORTO_NEGATIVO');
+   netCents+=Math.round(n*100);vatCents+=Math.round(v*100);
+ }
+ const net=netCents/100,vat=vatCents/100,total=(netCents+vatCents)/100;
  const declared=field(general,'ImportoTotaleDocumento');
- if(declared&&Math.abs(Math.abs(money(declared))-total)>0.02)throw Error('TOTALE_XML_NON_COERENTE');
- if(net<0||vat<0)throw Error('IMPORTO_NEGATIVO');
+ if(declared&&Math.abs(Math.abs(Math.round(money(declared)*100))-(netCents+vatCents))>2)throw Error('TOTALE_XML_NON_COERENTE');
  const row={id:identifier,number,date,party:issuer==='ITE'?buyerName:sellerName,issuer,kind:type==='TD04'?'TD04':'FATTURA',net,vat,total:Math.round(total*100)/100};
  if(!batch)throw Error('BATCH_NON_DISPONIBILE');
  return batch.normalize(row);
