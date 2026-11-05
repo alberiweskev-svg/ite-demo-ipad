@@ -17,5 +17,6 @@ reg=tech.update(reg,ops,'TEST-DOC',{attachment:{id:'TEST-ATT',filename:'test.pdf
 assert.equal(reg.documents[0].attachments.length,1);
 assert.equal(tech.restore(tech.backup(reg,ops),ops).documents[0].revision,2);
 assert.throws(()=>tech.create(tech.empty(),ops,{id:'TEST-X',clientId:'TEST-C',interventionId:'TEST-UNKNOWN',type:'CAD',title:'TEST'},'TEST-OP','2026-11-05T16:00:00Z'),/INTERVENTO_ASSENTE/);
-assert.throws(()=>tech.update(reg,ops,'TEST-DOC',{attachment:{id:'TEST-BAD',filename:'real.pdf',mime:'application/pdf',bytes:2,content:'secret'}},'TEST-OP','2026-11-05T16:02:00Z'),/CONTENUTO_ALLEGATO_VIETATO/);
+const sanitized=tech.update(reg,ops,'TEST-DOC',{attachment:{id:'TEST-BAD',filename:'test.pdf',mime:'application/pdf',bytes:2,content:'secret'}},'TEST-OP','2026-11-05T16:02:00Z');
+assert.equal('content' in sanitized.documents[0].attachments[1],false,'attachment bytes must be discarded');
 console.log('Technical workflow domain + integration checks passed');
