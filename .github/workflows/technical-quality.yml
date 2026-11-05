@@ -1,0 +1,18 @@
+name: ITE technical quality synthetic tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-technical-quality.js','test-technical-quality.js','ite-technical-register.js','.github/workflows/technical-quality.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test-technical-register.js
+      - run: node test-pdf-intake.js
+      - run: node test-technical-review.js
+      - run: node test-technical-quality.js
