@@ -1,0 +1,7 @@
+'use strict';const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');const audit=require('../ite-technical-dossier-audit-40.js').audit;
+const ops={clients:[{id:'TEST-C',sites:[{id:'TEST-S',plants:[{id:'TEST-P',devices:[{id:'TEST-D'}]}]}]}],appointments:[{id:'TEST-A',clientId:'TEST-C',siteId:'TEST-S',plantId:'TEST-P',deviceId:'TEST-D'}],interventions:[{id:'TEST-I',appointmentId:'TEST-A'},{id:'TEST-I2',appointmentId:'TEST-A'}]};
+const d={id:'TEST-DOC',type:'DICO_IDRICO',status:'VERIFICATO',clientId:'TEST-C',siteId:'TEST-S',plantId:'TEST-P',deviceId:'TEST-D',interventionId:'TEST-I',revision:1,history:[{}],attachments:[]};
+const input={documents:[d]},before=JSON.stringify(input),r=audit(input,ops);assert.equal(JSON.stringify(input),before);assert.equal(r.counts.linkedInterventions,1);assert(r.issues.some(x=>x.code==='NESSUN_ALLEGATO'));assert(r.issues.some(x=>x.code==='INTERVENTO_SENZA_DOCUMENTO'));
+const broken=audit({documents:[{...d,clientId:'TEST-MISSING',revision:2}]},ops);assert(broken.issues.some(x=>x.code==='CLIENTE_ASSENTE'));assert(broken.issues.some(x=>x.code==='STORICO_INCOERENTE'));assert(broken.issues.some(x=>x.code==='INTERVENTO_NON_COERENTE'));
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');assert(html.includes('ite-technical-dossier-audit-40.js'));assert(html.includes('ite-technical-dossier-audit-ui-40.js'));assert(html.indexOf('ite-technical-workflow-ui-40.js')<html.indexOf('ite-technical-dossier-audit-ui-40.js'));
+console.log('Fascicolo audit TEST: checks passed');
