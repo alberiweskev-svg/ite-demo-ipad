@@ -1,0 +1,31 @@
+name: ITE 4.0 local PDF intake
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-local-pdf.js'
+      - 'test-local-pdf.js'
+      - 'ite-pdf-intake.js'
+      - 'ite-pdf-local-reader.js'
+      - 'index.html'
+      - '.github/workflows/local-pdf.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax and synthetic PDF tests
+        run: |
+          node --check ite-local-pdf.js
+          node --check test-local-pdf.js
+          node test-local-pdf.js
+          node test-pdf-intake.js
+          node test-technical-register.js
+          node test-technical-review.js
+          node test-technical-quality.js
+      - name: Confirm unified demo includes local PDF script
+        run: grep -F 'ite-local-pdf.js?v=4.0.19' index.html
