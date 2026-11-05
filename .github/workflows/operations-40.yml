@@ -1,0 +1,22 @@
+name: ITE 4.0 integrated operations
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-40.js'
+      - 'test-operations-40.js'
+      - '.github/workflows/operations-40.yml'
+  workflow_dispatch:
+jobs:
+  operations:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-operations-40.js
+      - run: node --check test-operations-40.js
+      - run: node test-operations-40.js
