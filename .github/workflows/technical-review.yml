@@ -1,0 +1,26 @@
+name: Technical review synthetic integration
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-review.js'
+      - 'test-technical-review.js'
+      - 'ite-technical-demo-ui.js'
+      - 'index.html'
+      - '.github/workflows/technical-review.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-technical-review.js
+      - run: node --check ite-technical-demo-ui.js
+      - run: node test-technical-register.js
+      - run: node test-pdf-intake.js
+      - run: node test-technical-review.js
+      - run: node test-technical-demo-integration.js
+      - run: node -e "const fs=require('fs'),h=fs.readFileSync('index.html','utf8');if(!(h.indexOf('ite-technical-review.js')>0&&h.indexOf('ite-technical-review.js')<h.indexOf('ite-technical-demo-ui.js')))process.exit(1)"
