@@ -1,0 +1,24 @@
+name: ITE 4.0.40 hierarchy finance bridge
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-hierarchy-finance-bridge-40.js'
+      - 'ite-hierarchy-finance-bridge-ui-40.js'
+      - 'test-hierarchy-finance-bridge-40.js'
+      - 'ite-hierarchy-test-40.js'
+      - 'ite-finance-review-40.js'
+      - 'index.html'
+      - '.github/workflows/hierarchy-finance-40.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-hierarchy-finance-bridge-40.js
+      - run: node --check ite-hierarchy-finance-bridge-ui-40.js
+      - run: node test-hierarchy-finance-bridge-40.js
