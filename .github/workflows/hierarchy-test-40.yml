@@ -1,0 +1,22 @@
+name: ITE 4.0.39 Hierarchy TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-hierarchy-test-40.js'
+      - 'ite-hierarchy-test-ui-40.js'
+      - 'tests/test-hierarchy-test-40.js'
+      - 'index.html'
+      - '.github/workflows/hierarchy-test-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-hierarchy-test-40.js && node --check ite-hierarchy-test-ui-40.js
+      - run: node tests/test-hierarchy-test-40.js
+      - run: node tests/test-finance-review-40.js
