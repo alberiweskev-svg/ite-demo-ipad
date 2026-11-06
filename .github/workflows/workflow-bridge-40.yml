@@ -1,0 +1,26 @@
+name: ITE 4.0.42 Workflow Bridge TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workflows-integrated-40.js'
+      - 'ite-workflow-bridge-40.js'
+      - 'ite-workflow-bridge-ui-40.js'
+      - 'test-workflow-bridge-40.js'
+      - '.github/workflows/workflow-bridge-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check ite-workflows-integrated-40.js
+          node --check ite-workflow-bridge-40.js
+          node --check ite-workflow-bridge-ui-40.js
+      - name: Regression
+        run: node test-workflow-bridge-40.js
