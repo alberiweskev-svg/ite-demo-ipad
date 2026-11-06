@@ -45,7 +45,10 @@ function validate(db,h){
    check(!("data" in a)&&!("content" in a)&&!("base64" in a)&&!("url" in a),"Non archiviare contenuti o URL PDF nel fascicolo TEST");
   }
  }
- for(const e of db.audit)check(id(e.documentId)&&id(e.operatorId)&&["CREATE","ATTACH","SUBMIT","APPROVE","ARCHIVE","REOPEN"].includes(e.action)&&date(e.date),"Storico non valido");
+ for(const e of db.audit)check(id(e.documentId)&&used.has(e.documentId)&&id(e.operatorId)&&["CREATE","ATTACH","SUBMIT","APPROVE","ARCHIVE","REOPEN"].includes(e.action)&&date(e.date),"Storico non valido");
+ const counts=new Map();
+ for(const e of db.audit){counts.set(e.documentId,(counts.get(e.documentId)||0)+1);}
+ for(const d of db.documents)check(db.audit.some(e=>e.documentId===d.id&&e.action==="CREATE"),"Storico creazione mancante");
  return true;
 }
 function empty(){return {schema:"ITE-DOSSIER-40-1",documents:[],audit:[]};}
@@ -79,7 +82,18 @@ function list(db,h,filter={}){
  validate(db,h);
  return db.documents.filter(d=>["clientId","siteId","plantId","equipmentId","appointmentId"].every(k=>!filter[k]||d.link[k]===filter[k])&&(!filter.type||d.type===filter.type)&&(!filter.state||d.state===filter.state)).map(clone);
 }
+function report(db,h,filter={}){
+ const docs=list(db,h,filter);
+ const byType=Object.fromEntries(TYPES.map(t=>[t,0]));
+ const byState=Object.fromEntries(STATES.map(s=>[s,0]));
+ const rows=docs.map(d=>{
+   byType[d.type]++;byState[d.state]++;
+   const events=db.audit.filter(e=>e.documentId===d.id);
+   return {id:d.id,type:d.type,title:d.title,state:d.state,date:d.date,clientId:d.link.clientId,siteId:d.link.siteId,plantId:d.link.plantId||null,equipmentId:d.link.equipmentId||null,appointmentId:d.link.appointmentId||null,attachmentCount:d.attachments.length,auditCount:events.length,lastAction:events.length?events[events.length-1].action:null};
+ });
+ return {total:rows.length,byType,byState,rows};
+}
 function exportJson(db,h){validate(db,h);return JSON.stringify(db,null,2);}
 function importJson(json,h){check(typeof json==="string"&&json.length<=2000000,"Dimensione archivio non valida");const db=JSON.parse(json);check(db.schema==="ITE-DOSSIER-40-1","Schema incompatibile");validate(db,h);return clone(db);}
-return {TYPES,STATES,empty,validate,create,attach,transition,list,exportJson,importJson};
+return {TYPES,STATES,empty,validate,create,attach,transition,list,report,exportJson,importJson};
 });
