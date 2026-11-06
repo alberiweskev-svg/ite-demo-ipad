@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict'),a=require('./ite-agenda-40.js');
+assert.deepEqual(a.range('2026-11-06','week'),['2026-11-02','2026-11-09']);
+assert.deepEqual(a.range('2026-12-15','month'),['2026-12-01','2027-01-01']);
+assert.deepEqual(a.range('2026-11-06','day'),['2026-11-06','2026-11-07']);
+const db={appointments:[{id:'TEST-A',start:'2026-11-06T09:00:00',end:'2026-11-06T10:00:00',operatorId:'TEST-OP1',clientId:'TEST-C',siteId:'TEST-S',equipmentId:'TEST-E',status:'PLANNED'},{id:'TEST-B',start:'2026-11-06T11:00:00',end:'2026-11-06T12:00:00',operatorId:'TEST-OP2',status:'CANCELLED'},{id:'TEST-C',start:'2026-11-07T11:00:00',end:'2026-11-07T12:00:00',operatorId:'TEST-OP2',status:'PLANNED'}],clients:[{id:'TEST-C',name:'Cliente fittizio'}],sites:[{id:'TEST-S',name:'Sede TEST'}],equipment:[{id:'TEST-E',name:'Caldaia TEST'}],operators:[{id:'TEST-OP1',name:'Tecnico TEST'}]};
+assert.equal(a.list(db,'2026-11-06','day').length,1);
+assert.equal(a.list(db,'2026-11-06','week','TEST-OP1').length,1);
+assert.equal(a.list(db,'2026-11-06','week','TEST-OP2').length,1);
+assert.match(a.printable(a.list(db,'2026-11-06','day')),/Cliente fittizio/);
+assert.throws(()=>a.range('2026-11-06','year'),/Vista/);
+console.log('Agenda 4.0.43: test superati');
