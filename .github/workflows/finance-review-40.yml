@@ -1,0 +1,26 @@
+name: ITE 4.0.38 finance review integrated
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-finance-review-40.js'
+      - 'ite-finance-review-ui-40.js'
+      - 'ite-finance-reconciliation-40.js'
+      - 'tests/test-finance-review-40.js'
+      - '.github/workflows/finance-review-40.yml'
+      - 'index.html'
+  workflow_dispatch:
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check ite-finance-review-40.js
+          node --check ite-finance-review-ui-40.js
+          node tests/test-finance-review-40.js
+          node tests/test-finance-reconciliation-40.js
+          node tests/test-finance-ledger-40.js
