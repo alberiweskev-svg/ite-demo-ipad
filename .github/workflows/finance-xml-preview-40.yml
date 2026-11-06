@@ -1,0 +1,25 @@
+name: ITE 4.0.35 Finance XML Preview TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-finance-xml-preview*.js'
+      - 'tests/test-finance-xml-preview-40.js'
+      - '.github/workflows/finance-xml-preview-40.yml'
+      - 'index.html'
+  workflow_dispatch:
+jobs:
+  xml-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check ite-finance-xml-preview-40.js
+          node --check ite-finance-xml-preview-ui-40.js
+          node tests/test-finance-xml-preview-40.js
+          node tests/test-finance-intake-40.js
+          node tests/test-finance-ledger-40.js
+          node tests/test-finance-batch-intake-40.js
