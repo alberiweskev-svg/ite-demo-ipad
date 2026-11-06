@@ -17,7 +17,7 @@ function parse(xml,options={}){
  const invoices=Array.from(headers).map((h,i)=>{
   const type=text(h,'TipoDocumento'),number=text(h,'Numero'),date=text(h,'Data');
   if(!['TD01','TD04','TD24','TD25'].includes(type))throw Error('TIPO_DOCUMENTO_DA_VERIFICARE');
-  if(!number||!/^\\d{4}-\\d{2}-\\d{2}$/.test(date))throw Error('ESTREMI_DOCUMENTO_NON_VALIDI');
+  if(!number||!/^\d{4}-\d{2}-\d{2}$/.test(date))throw Error('ESTREMI_DOCUMENTO_NON_VALIDI');
   const body=h.closest&&h.closest('FatturaElettronicaBody');
   const summaries=body?Array.from(body.getElementsByTagName('DatiRiepilogo')):Array.from(doc.getElementsByTagName('DatiRiepilogo'));
   if(!summaries.length)throw Error('RIEPILOGO_ASSENTE');
