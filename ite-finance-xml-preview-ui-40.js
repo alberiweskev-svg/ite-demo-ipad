@@ -1,0 +1,12 @@
+(function(root){'use strict';if(typeof document==='undefined')return;
+function mount(){const host=document.getElementById('importazioni'),api=root.ITE40FinanceXmlPreview;if(!host||!api)return;
+ const panel=document.createElement('div');panel.className='panel';
+ const heading=document.createElement('h3');heading.textContent='Anteprima fattura elettronica XML — 4.0.35';
+ const help=document.createElement('p');help.textContent='Lettura esclusivamente locale. Nessun caricamento su server e nessuna registrazione automatica. Per il collaudo usare solo XML con dati fittizi.';
+ const label=document.createElement('label');label.textContent='Seleziona XML TEST ';
+ const input=document.createElement('input');input.type='file';input.accept='.xml,text/xml,application/xml';label.append(input);
+ const output=document.createElement('pre');output.setAttribute('aria-live','polite');output.style.whiteSpace='pre-wrap';output.style.overflowWrap='anywhere';
+ panel.append(heading,help,label,output);host.append(panel);
+ input.addEventListener('change',async()=>{const file=input.files&&input.files[0];if(!file)return;try{if(file.size>1500000)throw Error('XML_TROPPO_GRANDE');const result=api.parse(await file.text());output.textContent=JSON.stringify(result,null,2)}catch(e){output.textContent='Anteprima non disponibile: '+e.message}finally{input.value=''}});
+}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
+})(typeof window!=='undefined'?window:globalThis);
