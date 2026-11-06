@@ -1,0 +1,27 @@
+name: ITE 4.0.33 Finance Ledger TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-finance-*.js'
+      - 'tests/test-finance-*.js'
+      - '.github/workflows/finance-ledger-40.yml'
+      - 'index.html'
+  workflow_dispatch:
+jobs:
+  finance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-finance-intake-40.js
+          node --check ite-finance-ledger-40.js
+          node --check ite-finance-intake-ui-40.js
+      - name: Finance regressions
+        run: |
+          node tests/test-finance-intake-40.js
+          node tests/test-finance-ledger-40.js
