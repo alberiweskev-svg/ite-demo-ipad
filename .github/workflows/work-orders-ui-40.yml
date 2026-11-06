@@ -1,0 +1,33 @@
+name: ITE 4.0.30 Integrated work orders TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-work-orders-40.js'
+      - 'ite-work-orders-ui-40.js'
+      - 'ite-operations-workspace-40.js'
+      - 'index.html'
+      - 'tests/test-work-orders*.js'
+      - '.github/workflows/work-orders-ui-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-work-orders-40.js
+          node --check ite-work-orders-ui-40.js
+          node --check tests/test-work-orders-ui-40.js
+      - name: Work orders and UI integration
+        run: |
+          node tests/test-work-orders-40.js
+          node tests/test-work-orders-ui-40.js
+      - name: Operational regressions
+        run: |
+          node tests/test-field-dashboard-40.js
+          node tests/test-dispatch-40.js
