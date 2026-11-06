@@ -1,0 +1,23 @@
+name: ITE 4.0 finance reconciliation TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-finance-reconciliation-40.js'
+      - 'tests/test-finance-reconciliation-40.js'
+      - '.github/workflows/finance-reconciliation-40.yml'
+  workflow_dispatch:
+jobs:
+  reconciliation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check ite-finance-reconciliation-40.js
+          node tests/test-finance-reconciliation-40.js
+          node tests/test-finance-intake-40.js
+          node tests/test-finance-ledger-40.js
+          node tests/test-finance-xml-ledger-40.js
