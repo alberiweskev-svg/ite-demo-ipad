@@ -33,4 +33,15 @@ assert.equal(r.rows[0].auditCount,5);
 assert.equal(d.report(db,h,{state:"DRAFT"}).total,0);
 assert.throws(()=>d.importJson(JSON.stringify({...db,audit:[{documentId:"TEST-GHOST",operatorId:"TEST-OPERATOR",date:"2026-11-06",action:"CREATE"}]}),h),/Storico/);
 assert.throws(()=>d.importJson(JSON.stringify({...db,audit:[]}),h),/Storico creazione/);
-console.log("ITE 4.0.47 technical dossier audit, filters and report tests passed");
+// Imported TEST archives must preserve a truthful, sequential document lifecycle.
+const forgedState=JSON.parse(JSON.stringify(db));forgedState.documents[0].state="APPROVED";
+assert.throws(()=>d.importJson(JSON.stringify(forgedState),h),/Stato documento/);
+const missingAttach=JSON.parse(JSON.stringify(db));missingAttach.audit=missingAttach.audit.filter(e=>e.action!=="ATTACH");
+assert.throws(()=>d.importJson(JSON.stringify(missingAttach),h),/Revisione senza allegati|Numero allegati/);
+const invalidOrder=JSON.parse(JSON.stringify(db));invalidOrder.audit[2].date="2026-11-05";
+assert.throws(()=>d.importJson(JSON.stringify(invalidOrder),h),/cronologiche/);
+const extraAttach=JSON.parse(JSON.stringify(db));extraAttach.documents[0].attachments.push({...pdf,id:"TEST-PDF2",sha256:"b".repeat(64)});
+assert.throws(()=>d.importJson(JSON.stringify(extraAttach),h),/Numero allegati/);
+const forgedArchive=JSON.parse(JSON.stringify(db));forgedArchive.audit[4].action="APPROVE";
+assert.throws(()=>d.importJson(JSON.stringify(forgedArchive),h),/Transizione storico/);
+console.log("ITE 4.0.48 dossier lifecycle, archive integrity, filters and audit tests passed");
