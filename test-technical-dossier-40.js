@@ -24,4 +24,13 @@ assert.throws(()=>d.create(db,h,{...input,id:"TEST-OTHER",link:{...link,siteId:"
 assert.throws(()=>d.importJson(JSON.stringify({...db,schema:"UNKNOWN"}),h),/Schema/);
 assert.throws(()=>d.create(db,h,{...input,id:"TEST-OTHER",date:"2026-02-30"},"TEST-OPERATOR"),/Data/);
 assert.equal(db.documents[0].attachments[0].sha256,"a".repeat(64));
-console.log("ITE 4.0.45 technical dossier tests passed");
+const r=d.report(db,h,{clientId:"TEST-CLIENT"});
+assert.equal(r.total,1);
+assert.equal(r.byState.ARCHIVED,1);
+assert.equal(r.byType.DICO_IDRICO,1);
+assert.equal(r.rows[0].attachmentCount,1);
+assert.equal(r.rows[0].auditCount,5);
+assert.equal(d.report(db,h,{state:"DRAFT"}).total,0);
+assert.throws(()=>d.importJson(JSON.stringify({...db,audit:[{documentId:"TEST-GHOST",operatorId:"TEST-OPERATOR",date:"2026-11-06",action:"CREATE"}]}),h),/Storico/);
+assert.throws(()=>d.importJson(JSON.stringify({...db,audit:[]}),h),/Storico creazione/);
+console.log("ITE 4.0.47 technical dossier audit, filters and report tests passed");
