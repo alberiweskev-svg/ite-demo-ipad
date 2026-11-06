@@ -1,0 +1,12 @@
+/* I.T.E. 4.0.43 — agenda TEST: pure, local-only, no operational data. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;root.ITEAgenda40=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+const day=s=>String(s).slice(0,10);
+function monday(date){const d=new Date(date+'T12:00:00');if(Number.isNaN(d.getTime()))throw Error('Data non valida');const offset=(d.getDay()+6)%7;d.setDate(d.getDate()-offset);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function plus(date,n){const d=new Date(date+'T12:00:00');if(Number.isNaN(d.getTime()))throw Error('Data non valida');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function range(date,view){if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw Error('Data non valida');if(view==='day')return [date,plus(date,1)];if(view==='week'){const m=monday(date);return [m,plus(m,7)]}if(view==='month'){const first=date.slice(0,7)+'-01';const d=new Date(first+'T12:00:00');d.setMonth(d.getMonth()+1);return [first,d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')]}throw Error('Vista sconosciuta')}
+function list(db,date,view,operatorId=''){if(!db||!Array.isArray(db.appointments))throw Error('Archivio appuntamenti mancante');const [start,end]=range(date,view);return db.appointments.filter(a=>a.status!=='CANCELLED'&&(!operatorId||a.operatorId===operatorId)&&day(a.start)<end&&day(a.end)>=start).sort((a,b)=>a.start.localeCompare(b.start)||a.id.localeCompare(b.id)).map(a=>{const eq=(db.equipment||[]).find(x=>x.id===a.equipmentId),site=(db.sites||[]).find(x=>x.id===a.siteId),client=(db.clients||[]).find(x=>x.id===a.clientId),op=(db.operators||[]).find(x=>x.id===a.operatorId);return {...a,equipmentName:eq?.name||a.equipmentId,siteName:site?.name||a.siteId,clientName:client?.name||a.clientId,operatorName:op?.name||a.operatorId}})}
+function grouped(rows){const out={};for(const a of rows){const key=day(a.start);(out[key]||(out[key]=[])).push(a)}return out}
+function printable(rows){return rows.map(a=>[a.start.replace('T',' '),a.end.replace('T',' '),a.clientName,a.siteName,a.equipmentName,a.operatorName,a.status].join(' | ')).join('\n')}
+return {monday,plus,range,list,grouped,printable};
+});
