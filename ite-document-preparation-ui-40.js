@@ -4,8 +4,8 @@ function mount(){
  const api=root.ITEDocumentPreparation40,host=document.getElementById('ite-dossier-test');
  if(!api||!host)return;
  const panel=document.createElement('section');panel.className='panel';panel.id='ite-preparation-test';
- const heading=document.createElement('h4');heading.textContent='Preparazione documenti tecnici — TEST 4.0.49';
- const warning=document.createElement('p');warning.className='hint';warning.textContent='Bozza strutturata per Di.Co., Di.Ri., GAS, POS, CAD e rapporti. Non importa PDF, non firma, non emette dichiarazioni. Dati esclusivamente fittizi.';
+ const heading=document.createElement('h4');heading.textContent='Preparazione documenti tecnici — TEST 4.0.50';
+ const warning=document.createElement('p');warning.className='hint';warning.textContent='Bozza strutturata per Di.Co., Di.Ri., GAS, POS, CAD e rapporti. Precompilazione da anagrafiche TEST con controllo dei collegamenti. Non importa PDF, non firma, non emette dichiarazioni. Dati esclusivamente fittizi.';
  const select=document.createElement('select'),refresh=document.createElement('button'),autofill=document.createElement('button'),fields=document.createElement('div'),preview=document.createElement('pre'),message=document.createElement('p'),generate=document.createElement('button');
  refresh.type='button';refresh.textContent='Aggiorna fascicoli TEST';
  generate.type='button';generate.textContent='Prepara bozza per revisione';autofill.type='button';autofill.textContent='Precompila da anagrafica TEST';
