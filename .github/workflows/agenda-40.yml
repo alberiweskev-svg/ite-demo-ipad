@@ -1,0 +1,16 @@
+name: ITE 4.0.43 agenda TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-agenda-40.js','ite-agenda-ui-40.js','test-agenda-40.js','index.html','.github/workflows/agenda-40.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-agenda-40.js && node --check ite-agenda-ui-40.js && node test-agenda-40.js
+      - run: node -e "const fs=require('fs');const s=fs.readFileSync('index.html','utf8');for(const x of ['ite-agenda-40.js','ite-agenda-ui-40.js'])if(!s.includes(x))throw Error(x+' missing')"
