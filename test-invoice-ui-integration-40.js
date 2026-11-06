@@ -1,0 +1,13 @@
+const assert=require("node:assert/strict");const ledger=require("./ite-invoice-ledger-40.js");
+let db=ledger.empty();const base={number:"PR-001",party:"Cliente TEST",date:"2026-11-06",lines:[{quantity:2,unitPrice:100,vat:10}]};
+db=ledger.add(db,{...base,id:"TEST-INV-001",type:"PROFORMA"});
+db=ledger.add(db,{...base,id:"TEST-INV-002",type:"CREDIT_NOTE",number:"NC-001"});
+db=ledger.add(db,{...base,id:"TEST-INV-003",type:"SALE",number:"FT-001"});
+assert.equal(ledger.summary(db).proformas,220);assert.equal(ledger.summary(db).creditsToRecover,220);
+db=ledger.payment(db,"TEST-INV-002",100,"2026-11-06");assert.equal(ledger.summary(db).rows[1].status,"PARTIALLY_RECOVERED");
+db=ledger.payment(db,"TEST-INV-002",120,"2026-11-06");assert.equal(ledger.summary(db).rows[1].status,"RECOVERED");
+assert.throws(()=>ledger.payment(db,"TEST-INV-002",1,"2026-11-06"));
+assert.deepEqual(ledger.importJson(ledger.exportJson(db)),db);
+assert.throws(()=>ledger.add(db,{...base,id:"LIVE-001",type:"SALE"}));
+assert.equal(ledger.classify({documentCode:"TD04"}).type,"CREDIT_NOTE");
+console.log("Invoice TEST regression OK");
