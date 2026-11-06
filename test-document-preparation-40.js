@@ -28,3 +28,30 @@ assert(q.flags.includes("DATI_DA_CONFRONTARE_CON_PDF_ORIGINALE"));
 assert(q.flags.includes("VERIFICHE_TECNICHE_E_FIRME_NON_ATTESTATE"));
 assert.throws(()=>p.importJson('{"schema":"wrong"}',d),/incompatibile/);
 console.log("ITE 4.0.49: seven document families, required fields, safe import/export, anti-forgery tests passed");
+
+const hierarchy={
+ clients:[{id:"TEST-C-1",name:"Cliente Demo"}],
+ sites:[{id:"TEST-S-1",clientId:"TEST-C-1",address:"Via Esempio 1",name:"Sede Demo"}],
+ plants:[{id:"TEST-P-1",siteId:"TEST-S-1",name:"Impianto Demo"}],
+ equipment:[{id:"TEST-E-1",plantId:"TEST-P-1",model:"Generatore Demo"}],
+ operators:[{id:"TEST-O-1",name:"Tecnico Demo"}],
+ appointments:[{id:"TEST-A-1",clientId:"TEST-C-1",siteId:"TEST-S-1",equipmentId:"TEST-E-1",operatorId:"TEST-O-1"}]
+};
+const linked={id:"TEST-DOC-3",type:"DICO_IDRICO",state:"DRAFT",attachments:[],link:{clientId:"TEST-C-1",siteId:"TEST-S-1",plantId:"TEST-P-1",equipmentId:"TEST-E-1",appointmentId:"TEST-A-1"}};
+const suggestion=p.suggest(linked,hierarchy,{impresa:"Impresa TEST"});
+assert.equal(suggestion.fields.committente,"Cliente Demo");
+assert.equal(suggestion.fields.indirizzo,"Via Esempio 1");
+assert.match(suggestion.fields.descrizioneImpianto,/Impianto Demo/);
+assert.equal(suggestion.fields.impresa,"Impresa TEST");
+assert.equal(suggestion.requiresManualVerification,true);
+const kept=p.suggest(linked,hierarchy,{committente:"Nome inserito a mano"});
+assert.equal(kept.fields.committente,"Nome inserito a mano");
+assert(kept.conflicts.includes("committente"));
+assert(!kept.filled.includes("committente"));
+assert.throws(()=>p.suggest({...linked,link:{...linked.link,clientId:"CLIENTE-REALE"}},hierarchy),/non TEST/);
+assert.throws(()=>p.suggest(linked,{...hierarchy,sites:[{...hierarchy.sites[0],clientId:"TEST-C-2"}]}),/non coerenti/);
+assert.throws(()=>p.suggest({...linked,link:{...linked.link,equipmentId:"TEST-E-404"}},hierarchy),/non trovato/);
+const report=p.prepare(linked,suggestion.fields);
+assert.equal(report.validForIssue,false);
+assert(report.missing.includes("responsabileTecnico"));
+console.log("ITE 4.0.50: TEST hierarchy autofill, conflict protection, broken links and issue guard passed");
