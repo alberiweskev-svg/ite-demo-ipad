@@ -1,0 +1,34 @@
+name: ITE 4.0.31 - Work order integrity and regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-workspace-40.js'
+      - 'ite-work-orders-40.js'
+      - 'ite-work-orders-ui-40.js'
+      - 'tests/test-workorder-integrity-40.js'
+      - 'tests/test-work-orders-40.js'
+      - 'tests/test-work-orders-ui-40.js'
+      - '.github/workflows/workorder-integrity-40.yml'
+  workflow_dispatch:
+jobs:
+  workorder-integrity:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-operations-workspace-40.js
+          node --check ite-work-orders-40.js
+          node --check ite-work-orders-ui-40.js
+          node --check tests/test-workorder-integrity-40.js
+      - name: Integrated regressions
+        run: |
+          node tests/test-work-orders-40.js
+          node tests/test-work-orders-ui-40.js
+          node tests/test-workorder-integrity-40.js
