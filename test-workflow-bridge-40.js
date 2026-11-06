@@ -1,0 +1,27 @@
+/* I.T.E. 4.0.42 — Node regression, synthetic data only. */
+'use strict';
+const assert=require('node:assert/strict');
+const engine=require('./ite-workflows-integrated-40.js');
+const bridge=require('./ite-workflow-bridge-40.js');
+const memory=()=>{const m=new Map();return {getItem:k=>m.get(k)||null,setItem:(k,v)=>m.set(k,v)}};
+const h={clienti:[{id:'TEST-C1',nome:'Cliente Fittizio'}],sedi:[{id:'TEST-S1',nome:'Sede prova',clienteId:'TEST-C1'}],impianti:[{id:'TEST-P1',nome:'Impianto prova',sedeId:'TEST-S1'}],apparecchiature:[{id:'TEST-E1',nome:'Caldaia prova',impiantoId:'TEST-P1'}],interventi:[]};
+const storage=memory(),db=bridge.create(storage,engine);
+db.load();db.sync(h);db.sync(h);assert.equal(db.get().clients.length,1);
+db.operator('TEST-O1','Tecnico fittizio');
+const base={equipmentId:'TEST-E1',clientId:'TEST-C1',siteId:'TEST-S1',operatorId:'TEST-O1'};
+db.schedule({...base,id:'TEST-A1',start:'2026-11-10T09:00:00',end:'2026-11-10T10:00:00'});
+assert.throws(()=>db.schedule({...base,id:'TEST-A2',start:'2026-11-10T09:30:00',end:'2026-11-10T10:30:00'}),/impegnato/);
+assert.equal(db.get().appointments.length,1);
+db.transition('TEST-A1','ARRIVE','2026-11-10T09:01:00','TEST-O1');
+assert.throws(()=>db.transition('TEST-A1','CLOSE','2026-11-10T08:00:00','TEST-O1'),/Uscita/);
+db.transition('TEST-A1','CLOSE','2026-11-10T09:45:00','TEST-O1');
+db.transition('TEST-A1','REVISE','2026-11-10T10:00:00','TEST-O1');
+db.transition('TEST-A1','CLOSE','2026-11-10T10:15:00','TEST-O1');
+assert.equal(db.get().interventions[0].history.length,4);
+db.estimate('TEST-Q1','TEST-C1');db.addExtra('TEST-Q1',{id:'TEST-X1',amount:150});db.approveExtra('TEST-Q1','TEST-X1',true);
+assert.equal(engine.totals(db.get(),'TEST-Q1').EXTRA,150);
+const backup=db.backup();const other=bridge.create(memory(),engine);other.restore(backup);assert.deepEqual(other.get(),db.get());
+assert.throws(()=>other.restore('{"format":"INVALID","version":1,"data":{}}'),/Formato/);
+assert.throws(()=>db.sync({...h,clienti:[{id:'TEST-C1',nome:'Nome diverso'}]}),/Conflitto/);
+assert.equal(db.get().clients[0].name,'Cliente Fittizio');
+console.log('PASS 4.0.42: hierarchy, idempotence, overlap, lifecycle, extras, backup, conflicts');
