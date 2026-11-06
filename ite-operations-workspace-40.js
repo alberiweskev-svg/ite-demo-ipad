@@ -27,6 +27,32 @@ function inspect(s){
  for(const q of s.quotes){unique(q.id,'PREVENTIVO');if(!s.clients.some(x=>x.id===q.clientId))errors.push('PREVENTIVO_ORFANO:'+q.id);
   for(const line of q.lines||[]){unique(line.id,'RIGA');if(!['FORNITURA','POSA'].includes(line.kind))errors.push('TIPO_RIGA:'+line.id)}
  }
+
+ // Ordini di lavoro: verifica strutturale e referenziale anche durante restore/backup.
+ // Non fidarsi dei soli controlli del motore al momento della creazione: JSON e storage possono essere alterati.
+ if(s.workOrders!==undefined&&!Array.isArray(s.workOrders))errors.push('ORDINI:FORMATO_NON_VALIDO');
+ for(const w of (Array.isArray(s.workOrders)?s.workOrders:[])){
+  if(!w||typeof w!=='object'){errors.push('ORDINE:FORMATO_NON_VALIDO');continue}
+  unique(w.id,'ORDINE');
+  const a=s.appointments.find(x=>x.id===w.appointmentId);
+  if(!a){errors.push('ORDINE:APPUNTAMENTO_ORFANO:'+w.id);continue}
+  if(w.clientId!==a.clientId||w.siteId!==a.siteId||w.plantId!==a.plantId||((w.deviceId||null)!==(a.deviceId||null)))errors.push('ORDINE:GERARCHIA_NON_COHERENTE:'+w.id);
+  if(!s.operators.some(x=>x.id===w.operatorId))errors.push('ORDINE:OPERATORE_ASSENTE:'+w.id);
+  if(!['PREPARATO','IN_CORSO','COMPLETATO','ARCHIVIATO'].includes(w.status))errors.push('ORDINE:STATO_NON_VALIDO:'+w.id);
+  if(!Array.isArray(w.quoteIds)||new Set(w.quoteIds).size!==w.quoteIds.length)errors.push('ORDINE:PREVENTIVI_DUPLICATI:'+w.id);
+  else for(const qid of w.quoteIds){const q=s.quotes.find(x=>x.id===qid);if(!q||q.clientId!==w.clientId)errors.push('ORDINE:PREVENTIVO_NON_COHERENTE:'+w.id)}
+  if(!Array.isArray(w.documents))errors.push('ORDINE:DOCUMENTI_NON_VALIDI:'+w.id);
+  else {const docIds=new Set();for(const d of w.documents){
+   if(!d||!safeId(d.id)||docIds.has(d.id)||!['DICO_ELETTRICA','DICO_IDRICA','DIRI','ALLEGATI_GAS','POS','CAD','RAPPORTO'].includes(d.type)||!['DA_COMPILARE','IN_REVISIONE','VERIFICATO'].includes(d.status)||typeof d.title!=='string'||!d.title.trim()||d.title.length>120)errors.push('ORDINE:DOCUMENTO_NON_VALIDO:'+w.id);
+   if(d&&d.id)docIds.add(d.id);
+  }}
+  if(!Array.isArray(w.notes)||w.notes.some(n=>!n||typeof n.text!=='string'||!n.text.trim()||n.text.length>500||!safeId(n.actor)||!Number.isFinite(Date.parse(n.at))))errors.push('ORDINE:NOTE_NON_VALIDE:'+w.id);
+  if(!Array.isArray(w.history)||!w.history.length||w.history.some(h=>!h||typeof h.action!=='string'||!safeId(h.actor)||!Number.isFinite(Date.parse(h.at))))errors.push('ORDINE:STORICO_NON_VALIDO:'+w.id);
+  if(w.status==='ARCHIVIATO'){
+   if(a.status!=='CHIUSO'||!s.interventions.some(i=>i.appointmentId===a.id&&i.status==='CHIUSO'))errors.push('ORDINE:ARCHIVIAZIONE_INCOERENTE:'+w.id);
+   if(Array.isArray(w.documents)&&w.documents.some(d=>d.status!=='VERIFICATO'))errors.push('ORDINE:DOCUMENTI_NON_VERIFICATI:'+w.id);
+  }
+ }
  return {valid:errors.length===0,errors};
 }
 function create(storage){const store=storage||(typeof localStorage!=='undefined'?localStorage:null);
