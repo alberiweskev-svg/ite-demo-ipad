@@ -44,5 +44,29 @@ function validate(prep,dossier){
 function preview(prep,dossier){validate(prep,dossier);const lines=["BOZZA TECNICA TEST — NON VALIDA PER EMISSIONE",dossier.type+" — "+dossier.id,""];for(const k of REQUIRED[dossier.type])lines.push(LABELS[k]+": "+(prep.fields[k]||"[DA COMPILARE]"));lines.push("","Controlli da completare: "+(prep.flags.join(", ")||"revisione manuale"));return lines.join("\n")}
 function exportJson(prep,dossier){validate(prep,dossier);return JSON.stringify(prep,null,2)}
 function importJson(json,dossier){check(typeof json==="string"&&json.length<=20000,"Archivio troppo grande");const p=JSON.parse(json);validate(p,dossier);return prepare(dossier,p.fields)}
-return {TYPES,REQUIRED,LABELS,prepare,validate,preview,exportJson,importJson};
+
+/* Derive a reviewable TEST draft from linked records; never overwrite entered values. */
+function suggest(dossier,hierarchy,existing={}){
+ check(dossier&&/^TEST-[A-Z0-9-]{2,60}$/.test(dossier.id||""),"Solo fascicoli TEST");
+ check(hierarchy&&typeof hierarchy==="object","Gerarchia TEST mancante");
+ const link=dossier.link||{},get=(collection,id)=>{if(!id)return null;check(/^TEST-[A-Z0-9-]{2,60}$/.test(id),"Riferimento non TEST");const rows=hierarchy[collection];check(Array.isArray(rows),"Archivio "+collection+" mancante");const record=rows.find(x=>x.id===id);check(record,"Riferimento non trovato: "+id);return record};
+ const client=get("clients",link.clientId),site=get("sites",link.siteId),plant=get("plants",link.plantId),equipment=get("equipment",link.equipmentId),appointment=get("appointments",link.appointmentId);
+ check(client&&site&&site.clientId===client.id,"Cliente e sede non coerenti");
+ if(plant)check(plant.siteId===site.id,"Impianto non coerente");
+ if(equipment)check(plant&&equipment.plantId===plant.id,"Apparecchiatura non coerente");
+ if(appointment)check(appointment.clientId===client.id&&appointment.siteId===site.id&&(!equipment||appointment.equipmentId===equipment.id),"Appuntamento non coerente");
+ const choose=(x,keys)=>{for(const k of keys)if(typeof x?.[k]==="string"&&x[k].trim())return x[k].trim();return ""};
+ const address=choose(site,["address","indirizzo","name","nome"]);
+ const customer=choose(client,["name","nome","ragioneSociale"]);
+ const plantDescription=choose(plant,["description","descrizione","name","nome"]);
+ const deviceDescription=choose(equipment,["description","descrizione","name","nome","model","modello"]);
+ const operator=appointment?get("operators",appointment.operatorId):null;
+ const candidates={committente:customer,indirizzo:address,descrizioneImpianto:[plantDescription,deviceDescription].filter(Boolean).join(" — "),cantiere:choose(site,["name","nome"])||address,operatore:choose(operator,["name","nome"])};
+ const allowed=REQUIRED[dossier.type];check(allowed,"Tipologia non supportata");
+ const result=safeRecord(existing),filled=[],conflicts=[];
+ for(const key of allowed){const candidate=candidates[key];if(!candidate)continue;const value=clean(candidate.slice(0,FIELD_LIMIT));if(!result[key]){result[key]=value;filled.push(key)}else if(result[key]!==value)conflicts.push(key)}
+ return {fields:Object.fromEntries(Object.entries(result)),filled,conflicts,source:"GERARCHIA_TEST",requiresManualVerification:true};
+}
+
+return {TYPES,REQUIRED,LABELS,prepare,validate,preview,exportJson,importJson,suggest};
 });
