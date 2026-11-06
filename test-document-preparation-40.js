@@ -1,0 +1,30 @@
+const assert=require("node:assert/strict");
+const p=require("./ite-document-preparation-40.js");
+for(const type of p.TYPES){
+ const d={id:"TEST-DOC-001",type,state:"DRAFT",attachments:[]};
+ const empty=p.prepare(d,{});
+ assert.equal(empty.readyForManualReview,false);
+ assert.equal(empty.validForIssue,false);
+ assert.equal(empty.missing.length,p.REQUIRED[type].length);
+ const fields=Object.fromEntries(p.REQUIRED[type].map(k=>[k,"Valore fittizio TEST"]));
+ const full=p.prepare(d,fields);
+ assert.equal(full.readyForManualReview,true);
+ assert.equal(full.validForIssue,false);
+ assert.match(p.preview(full,d),/NON VALIDA PER EMISSIONE/);
+ assert.deepEqual(p.importJson(p.exportJson(full,d),d),full);
+ const altered={...full,validForIssue:true};
+ assert.throws(()=>p.validate(altered,d),/Emissione/);
+ const tampered={...full,missing:["committente"]};
+ assert.throws(()=>p.validate(tampered,d),/alterati/);
+ assert.throws(()=>p.prepare({...d,id:"CLIENTE-REALE"},fields),/TEST/);
+ assert.throws(()=>p.prepare({...d,state:"APPROVED"},fields),/modificabile/);
+ assert.throws(()=>p.prepare(d,{...fields,iban:"segreto"}),/non riconosciuto/);
+ assert.throws(()=>p.prepare(d,{...fields,[p.REQUIRED[type][0]]:"X".repeat(251)}),/troppo lungo/);
+}
+const d={id:"TEST-DOC-002",type:"DICO_IDRICO",state:"DRAFT",attachments:[]};
+const q=p.prepare(d,{committente:" Mario   TEST "},{source:"PDF"});
+assert.equal(q.fields.committente,"Mario TEST");
+assert(q.flags.includes("DATI_DA_CONFRONTARE_CON_PDF_ORIGINALE"));
+assert(q.flags.includes("VERIFICHE_TECNICHE_E_FIRME_NON_ATTESTATE"));
+assert.throws(()=>p.importJson('{"schema":"wrong"}',d),/incompatibile/);
+console.log("ITE 4.0.49: seven document families, required fields, safe import/export, anti-forgery tests passed");
