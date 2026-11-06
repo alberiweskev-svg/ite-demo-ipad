@@ -1,0 +1,6 @@
+(function(root){'use strict';const api=root.ITE40FinanceIntake||(typeof module!=='undefined'?require('./ite-finance-intake-40.js'):null);
+function parse(text){if(typeof text!=='string'||text.length>250000)throw Error('LOTTO_TROPPO_GRANDE');let x;try{x=JSON.parse(text)}catch(e){throw Error('JSON_NON_VALIDO')}if(x?.format!=='ITE40_FINANCE_TEST_BATCH_V1'||!Array.isArray(x.documents)||!x.documents.length||x.documents.length>250)throw Error('FORMATO_LOTTO_NON_VALIDO');return x.documents}
+function stage(docs,current){let s={documents:[...(current.documents||[])]},errors=[],accepted=[];docs.forEach((d,i)=>{try{s=api.add(s,d);accepted.push({row:i+1,id:d.id,totalCents:s.documents.at(-1).totalCents})}catch(e){errors.push({row:i+1,error:e.message})}});return {ok:!errors.length,errors,accepted,documents:s.documents}}
+function commit(ledger,docs){const result=stage(docs,ledger.get());if(!result.ok)throw Error('LOTTO_RIFIUTATO: '+JSON.stringify(result.errors));const backup=JSON.parse(ledger.exportBackup());backup.documents=result.documents;ledger.restore(JSON.stringify(backup));return {added:result.accepted.length,summary:ledger.summary()}}
+const exports=Object.freeze({parse,stage,commit});root.ITE40FinanceBatchIntake=exports;if(typeof module!=='undefined'&&module.exports)module.exports=exports;
+})(typeof window!=='undefined'?window:globalThis);
