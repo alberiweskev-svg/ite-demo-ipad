@@ -1,0 +1,19 @@
+name: ITE 4.0.45 Technical Dossier
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-dossier-40.js'
+      - 'test-technical-dossier-40.js'
+      - '.github/workflows/technical-dossier-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-technical-dossier-40.js
+      - run: node test-technical-dossier-40.js
