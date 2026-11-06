@@ -1,0 +1,21 @@
+name: ITE 4.0 integrated workflows
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workflows-integrated-40.js'
+      - 'tests/test-workflows-integrated-40.js'
+      - '.github/workflows/workflows-integrated-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Integrated workflow regressions
+        run: node --test tests/test-workflows-integrated-40.js
+      - name: Syntax check
+        run: node --check ite-workflows-integrated-40.js
