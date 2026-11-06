@@ -46,9 +46,25 @@ function validate(db,h){
   }
  }
  for(const e of db.audit)check(id(e.documentId)&&used.has(e.documentId)&&id(e.operatorId)&&["CREATE","ATTACH","SUBMIT","APPROVE","ARCHIVE","REOPEN"].includes(e.action)&&date(e.date),"Storico non valido");
- const counts=new Map();
- for(const e of db.audit){counts.set(e.documentId,(counts.get(e.documentId)||0)+1);}
- for(const d of db.documents)check(db.audit.some(e=>e.documentId===d.id&&e.action==="CREATE"),"Storico creazione mancante");
+ // Replay each document's audit trail: imported JSON must not forge approval or archive states.
+ for(const d of db.documents){
+  const events=db.audit.filter(e=>e.documentId===d.id);
+  check(events.length>0&&events[0].action==="CREATE","Storico creazione mancante");
+  let state="DRAFT",attachments=0,lastDate=d.date;
+  for(let i=0;i<events.length;i++){
+   const e=events[i];
+   check(e.date>=lastDate,"Storico con date non cronologiche");lastDate=e.date;
+   if(i===0){check(e.date===d.date,"Data creazione non coerente");continue;}
+   if(e.action==="ATTACH"){check(state==="DRAFT","Allegato fuori bozza");attachments++;continue;}
+   const transitions={DRAFT:{SUBMIT:"REVIEW"},REVIEW:{APPROVE:"APPROVED",REOPEN:"DRAFT"},APPROVED:{ARCHIVE:"ARCHIVED"}};
+   const next=(transitions[state]||{})[e.action];
+   check(!!next,"Transizione storico non consentita");
+   if(e.action==="SUBMIT")check(attachments>0,"Revisione senza allegati");
+   state=next;
+  }
+  check(state===d.state,"Stato documento non coerente con storico");
+  check(attachments===d.attachments.length,"Numero allegati non coerente con storico");
+ }
  return true;
 }
 function empty(){return {schema:"ITE-DOSSIER-40-1",documents:[],audit:[]};}
