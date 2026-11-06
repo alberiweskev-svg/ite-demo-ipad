@@ -1,0 +1,15 @@
+name: ITE finance TEST 4.0.32
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-finance-intake-40.js','ite-finance-intake-ui-40.js','tests/test-finance-intake-40.js','index.html','.github/workflows/finance-intake-40.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-finance-intake-40.js && node --check ite-finance-intake-ui-40.js && node tests/test-finance-intake-40.js
