@@ -2,7 +2,7 @@
 (function(root){"use strict";
 if(typeof document==="undefined"||!root.ITEServiceTechnicalBridge40||!root.ITETechnicalDossier40)return;
 const Bridge=root.ITEServiceTechnicalBridge40,T=root.ITETechnicalDossier40,R=root.ITEServiceRegistry40;
-const keys={service:"ite40_service_registry_TEST_v1",technical:"ITE-TECHNICAL-DOSSIER-40-1"};
+const keys={service:"ite40_service_registry_TEST_v1",technical:"ITE40_TECH_DOSSIER_TEST_1"};
 const make=(tag,parent,value)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=String(value);parent.append(e);return e;};
 const panel=make("section",document.querySelector(".wrap")||document.body);panel.id="ite-service-technical-bridge-test";panel.className="panel";
 make("h2",panel,"I.T.E. 4.0.68 — Documenti tecnici per intervento TEST");
