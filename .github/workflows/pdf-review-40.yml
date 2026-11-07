@@ -1,0 +1,25 @@
+name: ITE 4.0.72 PDF review
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-pdf-review-40.js'
+      - 'ite-pdf-review-ui-40.js'
+      - 'test-pdf-review-40.js'
+      - 'index.html'
+      - '.github/workflows/pdf-review-40.yml'
+  workflow_dispatch:
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check ite-pdf-review-40.js
+          node --check ite-pdf-review-ui-40.js
+          node --check test-pdf-review-40.js
+          node test-pdf-review-40.js
+          node -e "const s=require('fs').readFileSync('index.html','utf8');if(!s.includes('ite-pdf-review-ui-40.js?v=4.0.72'))process.exit(1)"
