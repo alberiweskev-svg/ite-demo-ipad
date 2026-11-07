@@ -1,0 +1,23 @@
+name: ITE 4.0.69 Technical Batch Regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-batch-40.js'
+      - 'test-technical-batch-40.js'
+      - 'ite-service-technical-bridge-40.js'
+      - 'ite-technical-dossier-40.js'
+      - '.github/workflows/technical-batch-40.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-technical-batch-40.js
+      - run: node --check test-technical-batch-40.js
+      - run: node test-service-technical-bridge-40.js
+      - run: node test-technical-batch-40.js
