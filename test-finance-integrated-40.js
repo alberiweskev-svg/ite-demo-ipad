@@ -1,0 +1,16 @@
+"use strict";
+const assert=require("node:assert/strict");
+const B=require("./ite-finance-bridge-40.js"),W=require("./ite-finance-workspace-40.js");
+const d=(id,number,td="TD01")=>({id,partyId:"TEST-CLIENT-01",appointmentId:"TEST-APP-01",direction:"VENDITA",td,number,net:100,tax:10,total:110,paid:0});
+const original=W.empty(),batch=[d("TEST-INV-01","F1"),d("TEST-INV-02","F2"),d("TEST-NC-01","NC1","TD04")];
+const p=B.previewMerge(original,batch,[{id:"TEST-APP-01"}]);
+assert.equal(p.audit.documents,3);assert.equal(original.documents.length,0);
+assert.equal(p.archive.links.length,3);
+assert.ok(p.audit.warnings.includes("TD04_DA_RECUPERARE:TEST-NC-01"));
+const serialized=W.exportJSON(p.archive),restored=W.importJSON(serialized);
+assert.deepEqual(restored,p.archive);
+assert.throws(()=>B.merge(restored,[d("TEST-INV-03","F1")]),/duplicato/i);
+assert.throws(()=>B.merge(original,[d("TEST-INV-01","F1"),d("TEST-INV-02","F1")]),/duplicato/i);
+assert.equal(original.documents.length,0);
+assert.ok(B.audit(restored,[]).warnings.some(x=>x.startsWith("APPUNTAMENTO_NON_PRESENTE")));
+console.log("Finance integrated 4.0.77: 8 checks OK");
