@@ -1,0 +1,33 @@
+name: ITE 4.0.73 PDF handoff regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-pdf-handoff-40.js'
+      - 'ite-pdf-handoff-ui-40.js'
+      - 'test-pdf-handoff-40.js'
+      - 'ite-pdf-review-40.js'
+      - 'ite-technical-batch-40.js'
+      - 'index.html'
+      - '.github/workflows/pdf-handoff-40.yml'
+  workflow_dispatch:
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-pdf-handoff-40.js
+      - run: node --check ite-pdf-handoff-ui-40.js
+      - run: node test-pdf-handoff-40.js
+      - name: Verify script order
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),assert=require('assert');
+          const s=fs.readFileSync('index.html','utf8');
+          const names=['ite-pdf-review-40.js','ite-technical-batch-40.js','ite-pdf-handoff-40.js','ite-pdf-handoff-ui-40.js'];
+          const offsets=names.map(n=>s.indexOf('src="'+n));
+          assert(offsets.every(x=>x>=0));assert(offsets[0]<offsets[2]&&offsets[1]<offsets[2]&&offsets[2]<offsets[3]);
+          NODE
