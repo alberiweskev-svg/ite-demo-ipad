@@ -20,3 +20,21 @@ assert.equal(intake.inspect(ledger.empty(),[make("TEST-BAD",{expectedTotal:999})
 assert.equal(intake.inspect(ledger.empty(),[make("TEST-BAD",{lines:[{quantity:1,unitPrice:2,vat:21}]})])[0].status,"REVIEW");
 assert.throws(()=>intake.inspect(db,new Array(201).fill(null)),/200/);
 console.log("ITE 4.0.53 intake: classification, duplicate detection, manual approval, TD04 reconciliation PASS");
+
+const planDb=ledger.empty();
+const planRows=[make("TEST-PLAN-01",{number:"F-01",issuer:"I.T.E. DI MERKAJ ALBAN"}),make("TEST-PLAN-02",{number:"PR-02"}),make("TEST-PLAN-03",{issuer:"",number:"F-03"})];
+const plan=intake.plan(planDb,planRows,[0,1]);
+assert.equal(plan.totals.count,2);
+assert.equal(plan.totals.taxable,100);
+assert.equal(plan.totals.vat,10);
+assert.equal(plan.totals.total,110*2);
+assert.equal(plan.reviewCount,1);
+assert.throws(()=>intake.plan(planDb,planRows,[2]),/non selezionabile/);
+assert.throws(()=>intake.plan(planDb,planRows,[0,0]),/duplicata/);
+assert.throws(()=>intake.plan(planDb,planRows,[99]),/non selezionabile/);
+assert.throws(()=>intake.apply(planDb,planRows,[]),/Nessun documento/);
+const onlyOne=intake.apply(planDb,planRows,[1]);
+assert.equal(onlyOne.documents.length,1);
+assert.equal(onlyOne.documents[0].id,"TEST-PLAN-02");
+assert.equal(planDb.documents.length,0);
+console.log("ITE 4.0.54 batch selection and totals PASS");
