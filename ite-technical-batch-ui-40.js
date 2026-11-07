@@ -39,7 +39,7 @@ function mount(){
  form.addEventListener("submit",e=>{e.preventDefault();try{
   if(staged.length>=50)throw Error("Massimo 50 documenti");
   if(!/^TEST-[A-Z0-9-]{2,60}$/.test(ap.value))throw Error("Selezionare un appuntamento TEST");
-  const suffix=String(++seq).padStart(4,"0"),name=filename.value.trim();
+  const suffix=(Date.now().toString(36)+"-"+String(++seq).padStart(4,"0")).toUpperCase(),name=filename.value.trim();
   if(!/^[-a-zA-Z0-9_. ]{1,176}\.pdf$/i.test(name)||!name.toLowerCase().includes("test"))throw Error("Il nome PDF deve essere sintetico e contenere TEST");
   const item={id:"TEST-BATCH-DOC-"+suffix,appointmentId:ap.value,type:type.value,title:title.value.trim(),date:date.value,
    attachments:[{id:"TEST-BATCH-PDF-"+suffix,name,mime:"application/pdf",bytes:Number(size.value),sha256:hash.value.trim().toLowerCase()}]};
