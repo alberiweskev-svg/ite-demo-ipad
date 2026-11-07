@@ -1,29 +1,70 @@
-/* I.T.E. 4.0.53 — reviewed invoice batch TEST panel; no network or PDF uploads. */
+/* I.T.E. 4.0.54 — batch selection, stale-review guard, local pre-import backup. TEST ONLY. */
 (function(){
 "use strict";
 const ledger=globalThis.ITEInvoiceLedger40,intake=globalThis.ITEInvoiceIntake40;
-if(!ledger||!intake)return;
+if(!ledger||!intake||typeof document==="undefined")return;
 const KEY="ITE-4-INVOICES-TEST-1";
-const make=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);return e;};
+const make=(tag,value)=>{const el=document.createElement(tag);if(value!==undefined)el.textContent=String(value);return el;};
 const section=make("section");section.className="panel";section.id="ite-invoice-intake-test";
-section.append(make("h2","Revisione lotti fatture — TEST 4.0.53"),make("p","Inserire esclusivamente dati fittizi in formato JSON. La revisione non importa nulla senza approvazione esplicita. Nessun PDF viene caricato."));
+section.append(make("h2","Revisione lotti fatture — TEST 4.0.54"),make("p","Solo dati fittizi. Nessun invio a server. Selezionare singolarmente i documenti da importare; prima del salvataggio viene scaricata una copia di sicurezza dell'archivio TEST."));
 const sample=[{id:"TEST-LOTTO-001",number:"PR-001",party:"Fornitore TEST",issuer:"Fornitore TEST",date:"2026-11-07",lines:[{quantity:1,unitPrice:100,vat:10}],expectedTotal:110}];
-const textarea=make("textarea");textarea.rows=9;textarea.value=JSON.stringify(sample,null,2);textarea.setAttribute("aria-label","Lotto JSON fittizio");
-const actions=make("div");actions.className="actions";const reviewButton=make("button","Analizza lotto TEST"),applyButton=make("button","Approva e importa documenti pronti");
-reviewButton.type=applyButton.type="button";applyButton.disabled=true;actions.append(reviewButton,applyButton);
-const output=make("div"),status=make("p");status.setAttribute("role","status");section.append(textarea,actions,status,output);
-let proposed=null,accepted=[];
+const input=make("textarea");input.rows=9;input.value=JSON.stringify(sample,null,2);input.setAttribute("aria-label","Lotto JSON fittizio");
+const actions=make("div");actions.className="actions";
+const inspectButton=make("button","Analizza lotto"),importButton=make("button","Importa selezionati");
+inspectButton.type=importButton.type="button";importButton.disabled=true;actions.append(inspectButton,importButton);
+const status=make("p");status.setAttribute("role","status");
+const summary=make("p"),results=make("div");
+section.append(input,actions,status,summary,results);
+let review=null;
 function load(){const raw=localStorage.getItem(KEY);return raw?ledger.importJson(raw):ledger.empty();}
-reviewButton.addEventListener("click",()=>{output.replaceChildren();applyButton.disabled=true;proposed=null;accepted=[];try{
- const records=JSON.parse(textarea.value);const rows=intake.inspect(load(),records);
- proposed=records;accepted=rows.filter(r=>r.status==="READY").map(r=>r.index);
- for(const r of rows){const item=make("p",String(r.index+1)+". "+(r.number||"Senza numero")+" — "+r.status+" — "+r.type+" — "+(r.issues.join("; ")||"€ "+r.amounts.total.toFixed(2)));output.append(item);}
- status.textContent=accepted.length+" documenti pronti su "+rows.length+"; i documenti da verificare sono esclusi.";
- applyButton.disabled=accepted.length===0;
-}catch(e){status.textContent="Lotto non valido: "+e.message;}});
-applyButton.addEventListener("click",()=>{if(!proposed||!accepted.length)return;
- if(!confirm("Importare "+accepted.length+" documenti TEST pronti nell'archivio locale?"))return;
- try{const next=intake.apply(load(),proposed,accepted);localStorage.setItem(KEY,ledger.exportJson(next));const result=intake.reconcile(next);status.textContent="Importati "+accepted.length+" documenti TEST. Residui: vendite € "+result.openSales.toFixed(2)+", acquisti € "+result.openPurchases.toFixed(2)+", TD04 € "+result.creditsToRecover.toFixed(2)+". Ricaricare la pagina per aggiornare il pannello fatture.";applyButton.disabled=true;proposed=null;accepted=[];}catch(e){status.textContent="Importazione annullata: "+e.message;}
+function reset(){review=null;importButton.disabled=true;summary.textContent="";results.replaceChildren();}
+function selected(){return review?Array.from(review.checks.entries()).filter(([i,check])=>check.checked).map(([i])=>i):[];}
+function refresh(){
+ if(!review)return;
+ try{const p=intake.plan(review.db,review.records,selected());summary.textContent=p.totals.count+" selezionati · Imponibile € "+p.totals.taxable.toFixed(2)+" · IVA € "+p.totals.vat.toFixed(2)+" · Totale € "+p.totals.total.toFixed(2)+" · Da verificare: "+p.reviewCount;importButton.disabled=!p.totals.count;}
+ catch(e){status.textContent=e.message;importButton.disabled=true;}
+}
+input.addEventListener("input",()=>{reset();status.textContent="Lotto modificato: ripetere l'analisi prima di importare.";});
+inspectButton.addEventListener("click",()=>{
+ reset();
+ try{
+  const raw=localStorage.getItem(KEY),db=raw?ledger.importJson(raw):ledger.empty();
+  const records=JSON.parse(input.value),rows=intake.inspect(db,records);
+  const checks=new Map();
+  for(const row of rows){
+   const wrap=make("div");wrap.className="item";
+   if(row.status==="READY"){
+    const label=make("label"),check=make("input");check.type="checkbox";check.style.width="auto";check.checked=false;checks.set(row.index,check);
+    label.append(check,document.createTextNode(" Seleziona documento "+(row.index+1)));wrap.append(label);check.addEventListener("change",refresh);
+   }
+   wrap.append(make("p",(row.number||"Senza numero")+" · "+row.type+" · "+row.status+" · "+(row.issues.join("; ")||(row.amounts?"€ "+row.amounts.total.toFixed(2):""))));
+   results.append(wrap);
+  }
+  review={db,raw,records,checks};
+  status.textContent=rows.filter(r=>r.status==="READY").length+" documenti pronti su "+rows.length+". Selezionare solo quelli verificati.";
+  refresh();
+ }catch(e){status.textContent="Analisi non riuscita: "+e.message;}
+});
+function downloadBackup(json){
+ const blob=new Blob([json],{type:"application/json"});
+ const url=URL.createObjectURL(blob),a=make("a");a.href=url;a.download="ITE-4-backup-fatture-TEST-prima-importazione.json";
+ document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+importButton.addEventListener("click",()=>{
+ if(!review)return;
+ try{
+  if(input.value!==JSON.stringify(review.records,null,2)&&JSON.stringify(JSON.parse(input.value))!==JSON.stringify(review.records))throw Error("Lotto cambiato: ripetere analisi");
+  if(localStorage.getItem(KEY)!==review.raw)throw Error("Archivio cambiato: ripetere analisi");
+  const indices=selected(),plan=intake.plan(review.db,review.records,indices);
+  if(!indices.length)return;
+  if(!confirm("Importare "+indices.length+" documenti TEST per € "+plan.totals.total.toFixed(2)+"? Verrà scaricato un backup preventivo."))return;
+  const next=intake.apply(review.db,review.records,indices);
+  const oldJson=ledger.exportJson(review.db),nextJson=ledger.exportJson(next);
+  downloadBackup(oldJson);
+  localStorage.setItem(KEY,nextJson);
+  status.textContent="Importati "+indices.length+" documenti TEST. Backup richiesto al browser. Aggiornare il pannello fatture per visualizzare i nuovi dati.";
+  reset();
+ }catch(e){status.textContent="Importazione annullata: "+e.message;importButton.disabled=true;}
 });
 (document.querySelector("#ite-invoices-test")||document.querySelector("main .wrap")||document.body).append(section);
 })();
