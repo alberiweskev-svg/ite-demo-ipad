@@ -1,0 +1,17 @@
+name: ITE 4.0.77 Finance integrated TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  finance-integrated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-finance-bridge-ui-40.js
+      - run: node test-finance-bridge-40.js
+      - run: node test-finance-integrated-40.js
+      - run: node -e "const s=require('fs').readFileSync('index.html','utf8'); for(const f of ['ite-finance-reconcile-40.js','ite-finance-workspace-40.js','ite-finance-bridge-40.js','ite-finance-bridge-ui-40.js'])if(!s.includes(f))throw Error('Missing '+f)"
