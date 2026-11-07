@@ -1,0 +1,23 @@
+name: ITE 4.0 service workflow regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-service-registry-40.js'
+      - 'ite-service-workflow-40.js'
+      - 'test-service-registry-40.js'
+      - 'test-service-workflow-40.js'
+      - '.github/workflows/service-workflow-40.yml'
+  workflow_dispatch:
+jobs:
+  service:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test-service-registry-40.js
+      - run: node test-service-workflow-40.js
