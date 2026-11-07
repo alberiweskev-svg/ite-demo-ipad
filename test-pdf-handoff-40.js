@@ -1,0 +1,11 @@
+"use strict";const assert=require("node:assert/strict");const H=require("./ite-pdf-handoff-40.js");
+const review={kind:"DIRI",status:"approved",hasEof:true,encrypted:false,bytes:512,warnings:[]};
+const row={review,sha256:"a".repeat(64),bytes:512};
+const args=[[row],"TEST-APP-1","TEST-OP-1","2026-11-07","TEST-LOT-ABC"];
+const items=H.build(...args);assert.equal(items.length,1);assert.equal(items[0].type,"DIRI");assert.equal(items[0].attachments[0].name,"documento-test-001.pdf");
+assert.throws(()=>H.build([{...row,review:{...review,status:"pending"}}],...args.slice(1)),/revisione/i);
+assert.throws(()=>H.build([{...row,sha256:"invalid"}],...args.slice(1)),/Impronta/);
+assert.throws(()=>H.build([row,row],...args.slice(1)),/Duplicate/);
+assert.throws(()=>H.build([row],"APP-REAL",...args.slice(2)),/TEST/);
+assert.throws(()=>H.build([{...row,review:{...review,encrypted:true}}],...args.slice(1)),/approvabile/);
+console.log("PDF handoff: 7 checks OK");
