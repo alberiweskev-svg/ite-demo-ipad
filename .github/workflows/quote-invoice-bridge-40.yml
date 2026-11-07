@@ -1,0 +1,21 @@
+name: ITE 4.0 TEST integrazione preventivi fatture
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-quote-invoice-bridge-40.js'
+      - 'test-quote-invoice-bridge-40.js'
+      - 'ite-quotes-40.js'
+      - 'ite-invoice-ledger-40.js'
+      - '.github/workflows/quote-invoice-bridge-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-quote-invoice-bridge-40.js && node --check test-quote-invoice-bridge-40.js
+      - run: node test-quotes-40.js && node test-quote-invoice-bridge-40.js
