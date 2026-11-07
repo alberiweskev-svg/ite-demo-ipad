@@ -64,6 +64,7 @@ $("p",item,"Durata: "+(rep.minutes===null?"in corso":rep.minutes+" minuti")+" ·
 for(const e of job.audit)$("small",item,e.at+" · "+e.action+" · "+(e.details||""));
 }
 }
+}
 const history=group("Storico interventi per apparecchiatura");
 const equip=choice(history,"Apparecchiatura",db.equipment,x=>x.name+" — "+(x.model||""));
 const list=$("div",history);
