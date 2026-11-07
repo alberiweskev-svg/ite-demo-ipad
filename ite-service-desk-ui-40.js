@@ -17,7 +17,7 @@ const status=$("p",section);status.setAttribute("role","status");
 const tools=$("div",section);tools.className="actions";
 const body=$("div",section);
 function notify(t){status.textContent=t;}
-function save(next){R.check(next);localStorage.setItem(KEY,R.exportJSON(next));db=next;render();notify("Archivio TEST aggiornato.");}
+function save(next){R.check(next);localStorage.setItem(KEY,R.exportJSON(next));db=next;render();document.dispatchEvent(new CustomEvent("ite:service-registry-updated"));notify("Archivio TEST aggiornato.");}
 function button(parent,title,fn){const b=$("button",parent,title);b.type="button";b.addEventListener("click",()=>{try{fn();}catch(e){notify("Operazione non eseguita: "+e.message);}});return b;}
 function field(parent,title,type="text",value=""){const label=$("label",parent,title),e=$("input",label);e.type=type;e.value=value;e.required=true;return e;}
 function choice(parent,title,rows,label){const l=$("label",parent,title),s=$("select",l);for(const r of rows){const o=$("option",s,label(r));o.value=r.id;}return s;}
