@@ -1,0 +1,23 @@
+/* I.T.E. 4.0.67 — integrated dossier regression tests, synthetic TEST records only. */
+"use strict";
+const assert=require("node:assert/strict"),R=require("./ite-service-registry-40.js"),W=require("./ite-service-workflow-40.js"),B=require("./ite-service-contract-40.js"),Q=require("./ite-quotes-40.js"),I=require("./ite-invoice-ledger-40.js"),S=require("./ite-contract-settlement-40.js"),D=require("./ite-service-dossier-40.js");
+let s=R.blank();
+s=R.add(s,"clients",{id:"TEST-C1",name:"Cliente dimostrativo"});
+s=R.add(s,"sites",{id:"TEST-S1",clientId:"TEST-C1",name:"Sede TEST",address:"Via Fittizia 1"});
+s=R.add(s,"plants",{id:"TEST-P1",siteId:"TEST-S1",name:"Impianto TEST"});
+s=R.add(s,"equipment",{id:"TEST-E1",plantId:"TEST-P1",name:"Caldaia TEST",model:"Fittizio"});
+s=R.add(s,"operators",{id:"TEST-O1",name:"Operatore TEST"});
+s=R.appointment(s,{id:"TEST-A1",equipmentId:"TEST-E1",operatorId:"TEST-O1",start:"2026-11-07T09:00",end:"2026-11-07T10:00"});
+const q=Q.empty(),i=I.empty(),b=B.empty(),t=S.empty();
+const d=D.dossier(s,q,b,i,t,"TEST-A1");
+assert.equal(d.client.name,"Cliente dimostrativo");
+assert.equal(d.equipment.model,"Fittizio");
+assert.equal(d.operator.name,"Operatore TEST");
+assert.deepEqual(d.financial,[]);
+assert.ok(d.warnings.includes("NESSUN_PREVENTIVO_COLLEGATO"));
+assert.ok(D.csv(d).includes("TEST-A1"));
+assert.throws(()=>D.dossier(s,q,b,i,t,"TEST-MISSING"),/Appointment missing/);
+assert.throws(()=>D.csv({}),/Invalid dossier/);
+const injection=structuredClone(d);injection.client.name="=2+2";
+assert.ok(D.csv(injection).includes("'=2+2"));
+console.log("PASS 4.0.67 service dossier: hierarchy, empty finance, warnings, CSV, invalid ID and injection");
