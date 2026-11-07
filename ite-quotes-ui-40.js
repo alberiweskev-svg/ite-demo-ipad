@@ -18,7 +18,7 @@ const extra=el("input");extra.type="checkbox";extra.style.width="auto";const ext
 const addLine=el("button","Aggiungi voce"),status=el("p"),output=el("div");addLine.type="button";lines.append(addLine);status.setAttribute("role","status");
 section.append(form,picker,actions,lines,status,output);
 function load(){const raw=localStorage.getItem(KEY);return raw?api.importJson(raw):api.empty();}
-function save(db){localStorage.setItem(KEY,api.exportJson(db));render();}
+function save(db){localStorage.setItem(KEY,api.exportJson(db));render();document.dispatchEvent(new CustomEvent("ite:quotes-updated",{detail:{source:"quotes-workbench"}}));}
 function selected(){return picker.value;}
 function act(fn){try{const result=fn();if(result)save(result);else render();status.textContent="Operazione TEST completata.";}catch(e){status.textContent=e.message;}}
 function render(){const db=load(),old=picker.value;picker.replaceChildren();for(const q of db.quotes){const o=el("option",q.id+" · "+q.customer+" · "+q.status);o.value=q.id;picker.append(o);}if(db.quotes.some(q=>q.id===old))picker.value=old;output.replaceChildren();const q=db.quotes.find(x=>x.id===picker.value);if(!q)return;const s=api.summarize(db,q.id);output.append(el("h3",q.id+" · "+q.status),el("p","Base € "+s.base.total.toFixed(2)+" · Extra approvati € "+s.approvedExtras.total.toFixed(2)+" · Extra in attesa € "+s.pendingExtras.total.toFixed(2)+" · Totale contratto € "+s.contractTotal.toFixed(2)));for(const l of q.lines.concat(q.extras)){const item=el("div");item.className="item";item.append(el("p",l.kind+" · "+l.description+" · "+l.category+" · € "+l.total.toFixed(2)+(l.approval?" · "+l.approval:"")));if(l.approval==="PENDING"){for(const [decision,label] of [["APPROVED","Approva Extra"],["REJECTED","Rifiuta Extra"]]){const b=el("button",label);b.type="button";b.addEventListener("click",()=>act(()=>api.approveExtra(load(),q.id,l.id,decision)));item.append(b);}}output.append(item);}}
@@ -26,5 +26,6 @@ add.addEventListener("click",()=>act(()=>api.create(load(),{id:quoteId.value,cus
 picker.addEventListener("change",render);
 for(const [b,state] of [[send,"SENT"],[accept,"ACCEPTED"],[reject,"REJECTED"]])b.addEventListener("click",()=>act(()=>api.setStatus(load(),selected(),state)));
 addLine.addEventListener("click",()=>act(()=>api.addLine(load(),selected(),{id:lineId.value,description:description.value,kind:kind.value,quantity:Number(quantity.value),unitPrice:Number(price.value),vat:Number(vat.value)},extra.checked)));
+window.addEventListener("storage",e=>{if(e.key===KEY){try{render();document.dispatchEvent(new CustomEvent("ite:quotes-updated",{detail:{source:"other-tab"}}));}catch(err){status.textContent="Sincronizzazione preventivi bloccata: "+err.message;}}});
 (document.querySelector("#ite-invoices-test")||document.querySelector("main .wrap")||document.body).append(section);try{render();}catch(e){status.textContent="Archivio TEST da verificare: "+e.message;}
 })();
