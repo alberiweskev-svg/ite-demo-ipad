@@ -1,0 +1,18 @@
+"use strict";
+const assert=require("node:assert/strict");
+const F=require("./ite-finance-reconcile-40.js");
+const base={id:"TEST-INV-1",partyId:"TEST-CLIENT-1",direction:"VENDITA",td:"TD01",number:"10",net:100,tax:10,total:110,paid:40};
+assert.equal(F.classify({...base,td:"TD04"}),"NOTA_CREDITO");
+assert.equal(F.classify({...base,number:"PR-72"}),"PROFORMA");
+assert.equal(F.classify({...base,description:"Copia pro forma"}),"PROFORMA");
+assert.equal(F.validate(base).totalCents,11000);
+assert.throws(()=>F.validate({...base,total:111}),/riconciliati/);
+assert.throws(()=>F.validate({...base,id:"CLIENTE-VERO"}),/TEST/);
+assert.throws(()=>F.validate({...base,paid:111}),/superiore/);
+const docs=[base,{...base,id:"TEST-CREDIT-1",td:"TD04",net:20,tax:2,total:22,paid:0},{...base,id:"TEST-PR-1",number:"PR-72",net:30,tax:3,total:33,paid:0}];
+const links=docs.map(d=>({appointmentId:"TEST-APP-1",documentId:d.id}));
+const r=F.reconcile(docs,links).summaries[0];
+assert.deepEqual([r.salesCents,r.creditCents,r.proformaCents,r.balanceCents],[11000,2200,3300,4800]);
+assert.throws(()=>F.reconcile(docs,[...links,links[0]]),/duplicato/);
+assert.throws(()=>F.reconcile(docs,[{appointmentId:"TEST-APP-1",documentId:"TEST-MISSING"}]),/inesistente/);
+console.log("11 finance reconciliation assertions passed");
