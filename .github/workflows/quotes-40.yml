@@ -1,0 +1,19 @@
+name: ITE 4.0 TEST preventivi e Extra
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-quotes-40.js'
+      - 'ite-quotes-ui-40.js'
+      - 'test-quotes-40.js'
+      - '.github/workflows/quotes-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-quotes-40.js && node --check ite-quotes-ui-40.js && node test-quotes-40.js
