@@ -1,0 +1,16 @@
+const assert=require("node:assert/strict");const R=require("./ite-service-registry-40.js");let d=R.blank();
+const rows=[["clients",{id:"TEST-C1",name:"Cliente Demo"}],["sites",{id:"TEST-S1",clientId:"TEST-C1"}],["plants",{id:"TEST-P1",siteId:"TEST-S1"}],["equipment",{id:"TEST-E1",plantId:"TEST-P1"}],["operators",{id:"TEST-O1",name:"Tecnico Demo"}]];
+for(const [kind,row] of rows)d=R.add(d,kind,row);
+d=R.appointment(d,{id:"TEST-A1",equipmentId:"TEST-E1",operatorId:"TEST-O1",start:"2026-11-09T08:00:00",end:"2026-11-09T09:00:00"});
+assert.throws(()=>R.appointment(d,{id:"TEST-A2",equipmentId:"TEST-E1",operatorId:"TEST-O1",start:"2026-11-09T08:30:00",end:"2026-11-09T09:30:00"}),/conflict/);
+assert.equal(R.calendar(d,"2026-11-09T07:00:00","2026-11-09T10:00:00","TEST-O1").length,1);
+d=R.event(d,"TEST-A1","arrive","TEST-O1","2026-11-09T08:04:00");
+assert.throws(()=>R.event(d,"TEST-A1","close","TEST-O1","2026-11-09T08:00:00"),/before/);
+d=R.event(d,"TEST-A1","close","TEST-O1","2026-11-09T09:04:00");
+assert.equal(R.minutes(d.interventions[0]),60);
+d=R.event(d,"TEST-A1","revise","TEST-O1","2026-11-10T08:00:00","Correzione TEST");
+assert.equal(R.history(d,"TEST-E1")[0].interventions[0].audit.length,3);
+assert.deepEqual(R.importJSON(R.exportJSON(d)),d);
+assert.throws(()=>R.add(d,"sites",{id:"REAL-S2",clientId:"TEST-C1"}),/TEST/);
+assert.throws(()=>R.add(d,"plants",{id:"TEST-P2",siteId:"TEST-MISSING"}),/parent/);
+console.log("ITE 4.0.61 service registry: PASS");
