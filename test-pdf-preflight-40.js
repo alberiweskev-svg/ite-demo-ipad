@@ -1,0 +1,17 @@
+"use strict";
+const assert=require("node:assert/strict"),P=require("./ite-pdf-preflight-40.js");
+const pdf=new TextEncoder().encode("%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\n%%EOF\n");
+assert.equal(P.inspect("dico-elettrico-TEST.pdf",pdf).kind,"DICO_ELETTRICO");
+assert.equal(P.inspect("allegati-gas.pdf",pdf).kind,"ALLEGATI_GAS");
+assert.equal(P.inspect("di-ri.pdf",pdf).kind,"DIRI");
+assert.equal(P.inspect("pos.pdf",pdf).kind,"POS");
+assert.equal(P.inspect("planimetria.pdf",pdf).kind,"ITE_CAD");
+assert.equal(P.inspect("documento.pdf",pdf).kind,"DA_VERIFICARE");
+assert.equal(P.inspect("documento.pdf",pdf).hasEof,true);
+assert.equal(P.inspect("documento.pdf",new TextEncoder().encode("%PDF-1.7\n/Encrypt 4 0 R\n%%EOF")).encrypted,true);
+assert.throws(()=>P.inspect("x.pdf",new Uint8Array([1,2,3])),/Intestazione|Versione/);
+assert.throws(()=>P.inspect("x.txt",pdf),/PDF/);
+assert.throws(()=>P.inspect("x.pdf",new Uint8Array(P.MAX+1)),/25 MB/);
+assert.deepEqual(P.review([{ok:true,kind:"DIRI"},{ok:false}]).total,2);
+assert.throws(()=>P.review(Array(31).fill({ok:true})),/30/);
+console.log("PASS I.T.E. 4.0.71 local PDF preflight");
