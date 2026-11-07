@@ -1,0 +1,22 @@
+name: ITE 4.0 service contract TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-service-contract-40.js'
+      - 'test-service-contract-40.js'
+      - 'ite-service-registry-40.js'
+      - 'ite-service-workflow-40.js'
+      - 'ite-quotes-40.js'
+      - '.github/workflows/service-contract-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-service-contract-40.js
+      - run: node --test test-service-contract-40.js
