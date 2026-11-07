@@ -1,0 +1,36 @@
+name: ITE 4.0.70 integrated technical batch
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-batch-40.js'
+      - 'ite-technical-batch-ui-40.js'
+      - 'ite-service-technical-bridge-40.js'
+      - 'ite-technical-dossier-40.js'
+      - 'ite-service-registry-40.js'
+      - 'test-technical-batch-40.js'
+      - 'index.html'
+      - '.github/workflows/technical-batch-ui-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-technical-batch-ui-40.js
+      - run: node --check ite-technical-batch-40.js
+      - run: node test-technical-batch-40.js
+      - name: Verify integrated scripts and order
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const html=fs.readFileSync('index.html','utf8');
+          const files=['ite-service-registry-40.js','ite-technical-dossier-40.js','ite-service-technical-bridge-40.js','ite-technical-batch-40.js','ite-technical-batch-ui-40.js'];
+          for(const f of files){assert(fs.existsSync(f),f);assert(html.includes(f),f+' not linked');}
+          assert(html.indexOf('ite-service-technical-bridge-40.js')<html.indexOf('ite-technical-batch-40.js'));
+          assert(html.indexOf('ite-technical-batch-40.js')<html.indexOf('ite-technical-batch-ui-40.js'));
+          console.log('PASS I.T.E. 4.0.70 integrated script wiring');
+          NODE
