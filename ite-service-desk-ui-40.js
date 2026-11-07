@@ -70,7 +70,7 @@ const list=$("div",history);
 function showHistory(){list.replaceChildren();if(!equip.value)return;for(const h of R.history(db,equip.value)){const j=h.interventions[0];$("p",list,h.appointment.start+" · "+(j?.status||"programmato")+" · "+(j?R.minutes(j)??"in corso":"non iniziato")+" minuti");}}
 equip.addEventListener("change",showHistory);showHistory();
 
-}filter.addEventListener("change",refresh);mode.addEventListener("change",refresh);selected.addEventListener("change",refresh);refresh();
+filter.addEventListener("change",refresh);mode.addEventListener("change",refresh);selected.addEventListener("change",refresh);refresh();
 }
 button(tools,"Esporta backup JSON",()=>{const blob=new Blob([R.exportJSON(db)],{type:"application/json"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="ite-4-service-TEST-backup.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);});
 const importLabel=$("label",tools,"Importa archivio TEST JSON");const file=$("input",importLabel);file.type="file";file.accept=".json,application/json";file.addEventListener("change",async()=>{try{const f=file.files?.[0];if(!f||f.size>1000000)throw Error("File assente o troppo grande");const next=R.importJSON(await f.text());if(!confirm("Sostituire l'archivio TEST locale? Esportare prima un backup."))return;save(next);}catch(e){notify("Importazione bloccata: "+e.message);}file.value="";});
