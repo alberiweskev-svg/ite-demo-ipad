@@ -1,0 +1,28 @@
+name: ITE 4.0.68 technical-service bridge
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-service-technical-bridge-40.js'
+      - 'ite-service-technical-bridge-ui-40.js'
+      - 'ite-service-registry-40.js'
+      - 'ite-technical-dossier-40.js'
+      - 'test-service-technical-bridge-40.js'
+      - 'index.html'
+      - '.github/workflows/service-technical-bridge-40.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-service-technical-bridge-40.js
+          node --check ite-service-technical-bridge-ui-40.js
+          node --check test-service-technical-bridge-40.js
+      - name: Synthetic technical dossier regression
+        run: node test-service-technical-bridge-40.js
