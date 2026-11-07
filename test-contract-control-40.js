@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict'),Q=require('./ite-quotes-40.js'),I=require('./ite-invoice-ledger-40.js'),S=require('./ite-contract-settlement-40.js'),C=require('./ite-contract-control-40.js');
+let q=Q.create(Q.empty(),{id:'TEST-Q60',customer:'Cliente TEST',date:'2026-11-07'});
+q=Q.addLine(q,'TEST-Q60',{id:'TEST-L60',description:'Fornitura TEST',kind:'SUPPLY',category:'IDRICO',quantity:1,unitPrice:100,vat:10,discount:0});
+q=Q.addLine(q,'TEST-Q60',{id:'TEST-P60',description:'Posa TEST',kind:'INSTALLATION',category:'IDRICO',quantity:1,unitPrice:50,vat:10,discount:0});
+q=Q.setStatus(Q.setStatus(q,'TEST-Q60','SENT'),'TEST-Q60','ACCEPTED');
+q=Q.addLine(q,'TEST-Q60',{id:'TEST-E60',description:'Extra TEST',kind:'OTHER',category:'ALTRO',quantity:1,unitPrice:30,vat:10,discount:0},true);
+let i=I.add(I.empty(),{id:'TEST-I60',type:'SALE',number:'TEST-60',party:'Cliente TEST',date:'2026-11-07',lines:[{quantity:1,unitPrice:50,vat:10}]});
+i=I.payment(i,'TEST-I60',20,'2026-11-07');let s=S.link(S.empty(),q,i,'TEST-Q60','TEST-I60','ADVANCE').archive;
+let r=C.overview(q,i,s);assert.equal(r.contracts.length,1);assert.equal(r.totals.contractTotal,165);assert.equal(r.totals.billed,55);assert.equal(r.totals.paid,20);assert.equal(r.totals.unpaid,35);assert.equal(r.totals.remainingToInvoice,110);assert.deepEqual(r.contracts[0].issues,['EXTRA_DA_APPROVARE']);
+q=Q.approveExtra(q,'TEST-Q60','TEST-E60','APPROVED');r=C.overview(q,i,s);assert.equal(r.totals.contractTotal,198);assert.equal(r.warnings,0);
+i=I.add(i,{id:'TEST-I61',type:'SALE',number:'TEST-61',party:'Cliente TEST',date:'2026-11-07',lines:[{quantity:1,unitPrice:20,vat:10}]});r=C.overview(q,i,s);assert.equal(r.unlinkedSales.length,1);
+assert.match(C.csv(r),/Da fatturare EUR/);assert.throws(()=>C.overview(q,i,{schema:'ITE-CONTRACT-SETTLEMENT-TEST-1',links:[{quoteId:'TEST-Q60',invoiceId:'TEST-I60',kind:'ADVANCE',date:'2026-11-06'}]}),/Data fattura/);
+assert.throws(()=>C.csv({}),/non valido/);console.log('PASS 4.0.60 contract control');
