@@ -1,0 +1,23 @@
+name: ITE 4.0.71 local PDF preflight
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-pdf-preflight-40.js'
+      - 'ite-pdf-preflight-ui-40.js'
+      - 'test-pdf-preflight-40.js'
+      - 'index.html'
+      - '.github/workflows/pdf-preflight-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-pdf-preflight-40.js
+      - run: node --check ite-pdf-preflight-ui-40.js
+      - run: node test-pdf-preflight-40.js
+      - run: node -e "const h=require('fs').readFileSync('index.html','utf8');const a=h.indexOf('src=\"ite-pdf-preflight-40.js\"'),b=h.indexOf('src=\"ite-pdf-preflight-ui-40.js\"');if(a<0||b<a)process.exit(1)"
