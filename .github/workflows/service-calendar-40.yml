@@ -1,0 +1,21 @@
+name: ITE 4.0 service calendar regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-service-registry-40.js'
+      - 'ite-service-workflow-40.js'
+      - 'ite-service-desk-ui-40.js'
+      - 'test-service-calendar-40.js'
+      - '.github/workflows/service-calendar-40.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-service-desk-ui-40.js
+      - run: node test-service-calendar-40.js
