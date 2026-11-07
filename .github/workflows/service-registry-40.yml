@@ -1,0 +1,20 @@
+name: ITE 4.0.61 service registry TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-service-registry-40.js'
+      - 'test-service-registry-40.js'
+      - '.github/workflows/service-registry-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-service-registry-40.js
+      - run: node --check test-service-registry-40.js
+      - run: node test-service-registry-40.js
