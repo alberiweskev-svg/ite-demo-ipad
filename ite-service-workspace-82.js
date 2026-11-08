@@ -66,3 +66,13 @@ function mount(){
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mount,{once:true});else mount();
 root.ITEServiceWorkspace82=Object.freeze({fixture,mount});
 })(typeof globalThis!=="undefined"?globalThis:this);
+
+/* 4.0.83: load the integrated TEST dossier after the existing service workspace. */
+(function(){
+ if(typeof document==="undefined"||document.querySelector('script[data-ite-dossier-83]'))return;
+ const script=document.createElement("script");
+ script.src="./ite-integrated-dossier-83.js?v=4.0.83";
+ script.defer=true;
+ script.setAttribute("data-ite-dossier-83","true");
+ document.head.appendChild(script);
+})();
