@@ -26,7 +26,7 @@ populated=S.add(populated,"clients",{id:"TEST-CLIENT-01",name:"Cliente fittizio"
 populated=S.add(populated,"sites",{id:"TEST-SITE-01",clientId:"TEST-CLIENT-01",name:"Sede fittizia"});
 const linked=L.link(links,manifest,populated,"TEST-DOC-001",{clientId:"TEST-CLIENT-01"},"Tecnico TEST","2026-11-08T12:00:00Z");
 const linkedReport=G.evaluate(manifest,linked,populated,reviews);
-assert.equal(linkedReport.summary.metadataReady,1,"Di.Co. classificata e collegata: solo metadati");
+assert.equal(linkedReport.summary.metadataReady,0,"Di.Co. senza revisione bloccata");
 const reviewed={schema:R.SCHEMA,events:[{documentId:"TEST-DOC-001",action:"REVIEWED",type:"DICO_ELETTRICO",operator:"Tecnico TEST",reason:"Verifica classificazione",at:"2026-11-08T12:01:00Z"}]};
 const ready=G.evaluate(manifest,linked,populated,reviewed);
 assert.equal(ready.summary.metadataReady,1,"Metadati collegati e revisionati");
