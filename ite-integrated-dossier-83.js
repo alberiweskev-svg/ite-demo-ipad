@@ -99,3 +99,13 @@ function mount(doc){
 if(typeof document!=="undefined"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>mount(document),{once:true});else mount(document);}
 return Object.freeze({check,report,addEstimate,decide,importEstimates,exportEstimates,mount,keys:{SERVICE_KEY,FINANCE_KEY,ESTIMATE_KEY}});
 });
+
+/* 4.0.88: load shared-register audit after the integrated dossier is initialized. */
+(function(){
+ if(typeof document==="undefined"||document.querySelector('script[data-ite-shared-audit-88]'))return;
+ const script=document.createElement("script");
+ script.src="./ite-shared-audit-88.js?v=4.0.88";
+ script.defer=true;
+ script.setAttribute("data-ite-shared-audit-88","true");
+ document.head.appendChild(script);
+})();
