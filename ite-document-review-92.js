@@ -1,0 +1,17 @@
+/* I.T.E. 4.0.92 - Revisione documentale TEST, metadati soltanto. */
+(function(root,factory){const api=factory(root);if(typeof module==="object"&&module.exports)module.exports=api;root.ITEDocumentReview92=api;})(typeof globalThis!=="undefined"?globalThis:this,function(root){
+"use strict";
+const KEY="ite-document-review-92-test",SCHEMA="ITE-DOCUMENT-REVIEW-TEST-1",MAX=1000000;
+const types=["DICO_ELETTRICO","DICO_IDRICO","DIRI","ALLEGATI_GAS","POS","CAD","FATTURA_VENDITA","FATTURA_ACQUISTO","PROFORMA","NOTA_CREDITO_TD04","LISTINO","DA_VERIFICARE"];
+const validId=x=>typeof x==="string"&&/^TEST-[A-Z0-9-]{2,60}$/.test(x);
+function validate(db){if(!db||db.schema!==SCHEMA||!Array.isArray(db.events)||db.events.length>4000)throw Error("Registro revisione non valido");for(const e of db.events){if(!validId(e.documentId)||!types.includes(e.type)||!["REVIEWED","REOPENED"].includes(e.action)||typeof e.at!=="string"||!/^\d{4}-\d\d-\d\dT/.test(e.at)||typeof e.reason!=="string"||e.reason.length>300||typeof e.operator!=="string"||e.operator.length>80)throw Error("Evento revisione non valido");}return true;}
+function empty(){return {schema:SCHEMA,events:[]};}
+function load(store){const raw=store.getItem(KEY);if(!raw)return empty();if(raw.length>MAX)throw Error("Registro oltre limite");const db=JSON.parse(raw);validate(db);return db;}
+function save(store,db){validate(db);const raw=JSON.stringify(db);if(raw.length>MAX)throw Error("Registro oltre limite");store.setItem(KEY,raw);return db;}
+function status(db,id){validate(db);if(!validId(id))throw Error("ID documento non valido");let last=null;for(const e of db.events)if(e.documentId===id)last=e;return last;}
+function transition(store,manifest,id,action,type,operator,reason,at){const intake=root.ITEDocumentIntake90;if(!intake)throw Error("Motore documenti assente");intake.validateManifest(manifest);const doc=manifest.records.find(x=>x.id===id);if(!doc)throw Error("Documento non trovato");if(!["REVIEWED","REOPENED"].includes(action))throw Error("Azione non valida");if(!types.includes(type))throw Error("Tipologia non valida");if(action==="REVIEWED"&&type==="DA_VERIFICARE")throw Error("Selezionare una tipologia");operator=String(operator||"").trim();reason=String(reason||"").trim();if(!operator||operator.length>80||!reason||reason.length>300)throw Error("Operatore e motivazione obbligatori");const db=load(store),prev=status(db,id);if(action==="REOPENED"&&(!prev||prev.action!=="REVIEWED"))throw Error("Documento non revisionato");if(action==="REVIEWED"&&prev&&prev.action==="REVIEWED")throw Error("Riaprire prima di modificare");const event={documentId:id,action,type,operator,reason,at:at||new Date().toISOString()};const next={schema:SCHEMA,events:[...db.events,event]};save(store,next);return event;}
+function report(manifest,db){const intake=root.ITEDocumentIntake90;intake.validateManifest(manifest);validate(db);return manifest.records.map(doc=>{const last=status(db,doc.id);return {id:doc.id,name:doc.name,type:last&&last.action==="REVIEWED"?last.type:doc.type,status:last&&last.action==="REVIEWED"?"REVISIONATO":"DA_VERIFICARE",events:db.events.filter(e=>e.documentId===doc.id).length,clientId:doc.clientId,appointmentId:doc.appointmentId};});}
+function exportJSON(db){validate(db);return JSON.stringify(db,null,2);}
+function importJSON(raw){if(typeof raw!=="string"||raw.length>MAX)throw Error("File troppo grande");const db=JSON.parse(raw);validate(db);return db;}
+return Object.freeze({KEY,SCHEMA,types,empty,validate,load,save,status,transition,report,exportJSON,importJSON});
+});
