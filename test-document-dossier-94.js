@@ -1,0 +1,21 @@
+/* Test isolati con dati fittizi: nessun cliente reale. */
+"use strict";const assert=require("node:assert/strict");
+globalThis.ITEDocumentIntake90=require("./ite-document-intake-90.js");
+globalThis.ITEDocumentReview92=require("./ite-document-review-92.js");
+globalThis.ITEServiceLedger40=require("./ite-service-ledger-40.js");
+globalThis.ITEDocumentLinks93=require("./ite-document-links-93.js");
+const D=require("./ite-document-dossier-94.js"),I=globalThis.ITEDocumentIntake90,L=globalThis.ITEDocumentLinks93,S=globalThis.ITEServiceLedger40;
+const ledger=S.empty(),manifest=I.empty(),links=L.empty();
+const report=D.build(manifest,links,ledger,null);
+assert.deepEqual(report.summary,{documents:0,linked:0,needsAttention:0,orphanLinks:0});
+assert.equal(D.select(report).length,0);
+assert.match(D.csv(report),/Appuntamento/);
+const rec=I.createRecord({id:"TEST-DOC-001",name:"dico-test.pdf",size:128,mime:"application/pdf"});
+const m=I.append(manifest,rec),r=D.build(m,links,ledger,null);
+assert.equal(r.summary.documents,1);assert.equal(r.summary.linked,0);assert.equal(r.summary.needsAttention,1);
+assert.deepEqual(D.select(r,{onlyIssues:true}).map(x=>x.id),["TEST-DOC-001"]);
+assert.equal(D.select(r,{clientId:"TEST-CLIENT-001"}).length,0);
+const csv=D.csv({documents:[{id:"TEST-001",name:"=HYPERLINK(1)",type:"DIRI",issues:[]} ]});
+assert.ok(csv.includes("'=HYPERLINK(1)"),"CSV formula injection protection");
+assert.equal(manifest.records.length,0,"original manifest unchanged");
+console.log("4.0.94 dossier tests OK");
