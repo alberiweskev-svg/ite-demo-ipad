@@ -1,0 +1,21 @@
+name: Document gate TEST 4.0.95
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-gate-95.js'
+      - 'ite-document-gate-ui-95.js'
+      - 'test-document-gate-95.js'
+      - 'index.html'
+      - '.github/workflows/document-gate-95.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-document-gate-95.js && node --check ite-document-gate-ui-95.js && node --check test-document-gate-95.js
+      - run: node test-document-gate-95.js
