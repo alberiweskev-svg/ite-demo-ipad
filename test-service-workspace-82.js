@@ -1,0 +1,24 @@
+/* node test-service-workspace-82.js */
+"use strict";
+const assert=require("node:assert/strict");
+const ledger=require("./ite-service-ledger-40.js");
+const ui=require("./ite-service-workspace-82.js");
+const s=ui.fixture();
+assert.equal(ledger.validate(s),true);
+assert.equal(s.clients.length,1);
+assert.equal(s.appointments.length,1);
+const a=s.appointments[0].id,op=s.operators[0].id;
+let n=ledger.event(s,a,"arrived",op,"2026-11-12T09:00:00","Arrivo");
+n=ledger.event(n,a,"amended",op,"2026-11-12T09:10:00","Controllo");
+n=ledger.event(n,a,"closed",op,"2026-11-12T10:00:00","Fine");
+n=ledger.event(n,a,"reopened",op,"2026-11-13T09:00:00","Revisione");
+n=ledger.event(n,a,"closed",op,"2026-11-13T09:30:00","Chiusura");
+assert.equal(ledger.report(n)[0].workedMinutes,90);
+assert.equal(ledger.report(n)[0].revisionCount,1);
+assert.equal(ledger.report(n)[0].status,"closed");
+assert.deepEqual(ledger.importJSON(ledger.exportJSON(n)),n);
+assert.throws(()=>ledger.event(n,a,"closed",op,"2026-11-13T10:00:00","doppia chiusura"));
+assert.throws(()=>ledger.add(s,"appointments",{...s.appointments[0]}));
+assert.throws(()=>ledger.importJSON('{"schema":"INVALID"}'));
+assert.equal(s.jobs.length,0,"fixture immutable through event calls");
+console.log("PASS 4.0.82: fixture, hierarchy, event transitions, revision time, JSON roundtrip, duplicate rejection");
