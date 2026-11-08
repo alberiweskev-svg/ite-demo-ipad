@@ -1,0 +1,21 @@
+name: ITE document links 4.0.93
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-links-93.js'
+      - 'ite-document-links-ui-93.js'
+      - 'test-document-links-93.js'
+      - '.github/workflows/document-links-93.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-document-links-93.js && node --check ite-document-links-ui-93.js && node --check test-document-links-93.js
+      - run: node test-document-links-93.js
+      - run: grep -q 'ite-document-links-ui-93.js' index.html
