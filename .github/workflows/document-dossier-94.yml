@@ -1,0 +1,23 @@
+name: ITE 4.0.94 document dossier TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  dossier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and regression
+        run: |
+          node --check ite-document-dossier-94.js
+          node --check ite-document-dossier-ui-94.js
+          node --check test-document-dossier-94.js
+          node test-document-dossier-94.js
+      - name: Integrated HTML references
+        run: |
+          grep -q 'ite-document-dossier-94.js' index.html
+          grep -q 'ite-document-dossier-ui-94.js' index.html
