@@ -1,0 +1,20 @@
+name: ITE 4.0.98 PDF review handoff TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-pdf-handoff-98.js'
+      - 'test-pdf-handoff-98.js'
+      - '.github/workflows/pdf-handoff-98.yml'
+  workflow_dispatch:
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-pdf-handoff-98.js
+      - run: node --check test-pdf-handoff-98.js
+      - run: node test-pdf-handoff-98.js
