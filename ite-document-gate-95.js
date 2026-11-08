@@ -14,9 +14,9 @@ function evaluate(manifest,links,ledger,reviews){
   const type=finding.type;
   if(!VALID.has(type)&&!issues.includes("REVISIONE_RICHIESTA"))issues.push("TIPO_NON_CONFERMATO");
   if(["PROFORMA","NOTA_CREDITO_TD04"].includes(type)&&!reviewed)issues.push("CONTROLLO_AMMINISTRATIVO_RICHIESTO");
-  if(["DICO_ELETTRICO","DICO_IDRICO","DIRI","ALLEGATI_GAS","POS","CAD"].includes(type))issues.push("VERIFICA_TECNICA_PDF_NON_ESEGUITA");
+  if(["DICO_ELETTRICO","DICO_IDRICO","DIRI","ALLEGATI_GAS","POS","CAD"].includes(type)){issues.push("VERIFICA_TECNICA_PDF_NON_ESEGUITA");if(!reviewed)issues.push("REVISIONE_TECNICA_RICHIESTA");}
   if(!issues.includes("CONTENUTO_PDF_NON_VERIFICATO"))issues.push("CONTENUTO_PDF_NON_VERIFICATO");
-  return {id:doc.id,name:doc.name,type,clientId:finding.clientId,appointmentId:finding.appointmentId,reviewed,issues,readyForMetadataArchive:!issues.some(x=>["SENZA_COLLEGAMENTO","COLLEGAMENTO_NON_VALIDO","CLIENTE_MANIFEST_DIFFERENTE","APPUNTAMENTO_MANIFEST_DIFFERENTE","REVISIONE_RICHIESTA","TIPO_NON_CONFERMATO","CONTROLLO_AMMINISTRATIVO_RICHIESTO"].includes(x)),readyForOfficialIssue:false};
+  return {id:doc.id,name:doc.name,type,clientId:finding.clientId,appointmentId:finding.appointmentId,reviewed,issues,readyForMetadataArchive:!issues.some(x=>["SENZA_COLLEGAMENTO","COLLEGAMENTO_NON_VALIDO","CLIENTE_MANIFEST_DIFFERENTE","APPUNTAMENTO_MANIFEST_DIFFERENTE","REVISIONE_RICHIESTA","TIPO_NON_CONFERMATO","CONTROLLO_AMMINISTRATIVO_RICHIESTO","REVISIONE_TECNICA_RICHIESTA"].includes(x)),readyForOfficialIssue:false};
  });
  const orphans=audit.filter(x=>x.issues.includes("DOCUMENTO_MANCANTE"));
  return {schema:"ITE-DOCUMENT-GATE-TEST-95",rows,orphans,summary:{total:rows.length,metadataReady:rows.filter(x=>x.readyForMetadataArchive).length,officialReady:0,blocked:rows.filter(x=>!x.readyForMetadataArchive).length,orphanLinks:orphans.length},limitations:["Nessun contenuto PDF verificato","Nessuna validazione normativa o firma digitale","Nessuna emissione ufficiale consentita"]};
