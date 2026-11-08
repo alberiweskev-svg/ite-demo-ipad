@@ -1,0 +1,27 @@
+name: ITE 4.0.80 Preventivi Extra UI TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-estimate-*.js'
+      - 'ite-finance-workspace-40.js'
+      - 'ite-finance-reconcile-40.js'
+      - 'index.html'
+      - '.github/workflows/estimate-workflow-ui-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check ite-estimate-finance-40.js
+          node --check ite-estimate-workflow-40.js
+          node --check ite-estimate-workflow-ui-40.js
+          node test-estimate-finance-40.js
+          node test-estimate-workflow-40.js
+          node test-estimate-workflow-ui-40.js
+          node -e "const s=require('fs').readFileSync('index.html','utf8');for(const n of ['ite-estimate-finance-40.js','ite-estimate-workflow-40.js','ite-estimate-workflow-ui-40.js'])if(!s.includes(n))throw Error(n+' non collegato')"
