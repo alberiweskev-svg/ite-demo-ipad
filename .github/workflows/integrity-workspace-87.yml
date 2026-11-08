@@ -1,0 +1,23 @@
+name: ITE 4.0.87 audit workspace
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-integrity-86.js'
+      - 'ite-integrity-workspace-87.js'
+      - 'test-integrity-86.js'
+      - 'test-integrity-workspace-87.js'
+      - 'index.html'
+      - '.github/workflows/integrity-workspace-87.yml'
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-integrity-86.js && node --check ite-integrity-workspace-87.js
+      - run: node test-integrity-86.js
+      - run: node test-integrity-workspace-87.js
