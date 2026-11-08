@@ -8,7 +8,7 @@ const G=require("./ite-document-gate-95.js"),I=globalThis.ITEDocumentIntake90,L=
 const ledger=S.empty(),links=L.empty(),reviews=R.empty(),empty=I.empty();
 const baseline=G.evaluate(empty,links,ledger,reviews);
 assert.deepEqual(baseline.summary,{total:0,metadataReady:0,officialReady:0,blocked:0,orphanLinks:0});
-const d=I.createRecord({id:"TEST-DOC-001",name:"DICO-elettrico-test.pdf",size:100,mime:"application/pdf"});
+const d=I.createRecord({id:"TEST-DOC-001",name:"DICHIARAZIONE DI CONFORMITA ELETTRICO.pdf",size:100,mime:"application/pdf"});
 const manifest=I.append(empty,d),before=JSON.stringify(manifest);
 const report=G.evaluate(manifest,links,ledger,reviews);
 assert.equal(report.summary.blocked,1);
