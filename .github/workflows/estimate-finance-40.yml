@@ -1,0 +1,21 @@
+name: ITE 4.0 estimate finance TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-estimate-finance-40.js'
+      - 'test-estimate-finance-40.js'
+      - 'ite-finance-workspace-40.js'
+      - 'ite-finance-reconcile-40.js'
+      - '.github/workflows/estimate-finance-40.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-estimate-finance-40.js && node --check test-estimate-finance-40.js
+      - run: node test-estimate-finance-40.js
