@@ -1,0 +1,11 @@
+const assert=require("node:assert/strict");const P=require("./ite-pdf-fields-96.js"),R=require("./ite-pdf-review-97.js");
+const e=P.extract("FATTURA N. 254\\nDATA: 02/10/2026\\nTOTALE FATTURA € 497,76",{issuerIsITE:true});
+const data={documentId:"TEST-PDF-001",operator:"Tecnico TEST",reason:"Controllo TEST",type:"FATTURA_VENDITA",fields:{number:"254",date:"02/10/2026",amount:"497,76"}};
+const r=R.prepare(e,data);assert.equal(r.officialReady,false);assert.equal(r.accounted,false);assert.equal(R.completeness(r).complete,true);assert.deepEqual(R.importJSON(R.exportJSON(r)),r);
+assert.throws(()=>R.prepare(e,{...data,fields:{...data.fields,date:"31/02/2026"}}),/Data non valida/);
+assert.throws(()=>R.prepare(e,{...data,operator:""}),/Operatore/);
+assert.throws(()=>R.prepare(e,{...data,fields:{...data.fields,vat:"123"}}),/Partita IVA/);
+assert.throws(()=>R.importJSON(JSON.stringify({...r,officialReady:true})),/vietata/);
+assert.throws(()=>R.prepare(e,{...data,documentId:"REAL-001"}),/TEST/);
+assert.equal(R.completeness(R.prepare(e,{...data,fields:{number:"254"}})).complete,false);
+console.log("PDF review 97: OK");
