@@ -1,0 +1,20 @@
+name: ITE 4.0.100 workflow TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workflow-100.js'
+      - 'test-workflow-100.js'
+      - '.github/workflows/workflow-100.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-workflow-100.js
+      - run: node --check test-workflow-100.js
+      - run: node test-workflow-100.js
