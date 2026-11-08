@@ -1,0 +1,28 @@
+name: Calendar booking 4.0.85
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-calendar-booking-85.js'
+      - 'test-calendar-booking-85.js'
+      - 'ite-service-ledger-40.js'
+      - 'ite-calendar-84.js'
+      - 'index.html'
+      - '.github/workflows/calendar-booking-85.yml'
+  workflow_dispatch:
+jobs:
+  calendar-booking:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-calendar-booking-85.js
+          node --check test-calendar-booking-85.js
+      - name: Booking regression
+        run: node test-calendar-booking-85.js
+      - name: Single demo wiring
+        run: node -e "const s=require('fs').readFileSync('index.html','utf8');if(!s.includes('ite-calendar-booking-85.js?v=4.0.85'))process.exit(1)"
