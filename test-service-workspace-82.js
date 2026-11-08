@@ -2,7 +2,8 @@
 "use strict";
 const assert=require("node:assert/strict");
 const ledger=require("./ite-service-ledger-40.js");
-const ui=require("./ite-service-workspace-82.js");
+require("./ite-service-workspace-82.js");
+const ui=globalThis.ITEServiceWorkspace82;
 const s=ui.fixture();
 assert.equal(ledger.validate(s),true);
 assert.equal(s.clients.length,1);
