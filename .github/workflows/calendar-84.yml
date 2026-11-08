@@ -1,0 +1,28 @@
+name: ITE 4.0.84 Calendar regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-calendar-84.js'
+      - 'test-calendar-84.js'
+      - 'ite-service-ledger-40.js'
+      - 'index.html'
+      - '.github/workflows/calendar-84.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          node --check ite-calendar-84.js
+          node --check test-calendar-84.js
+          node --check ite-service-ledger-40.js
+      - name: Regression
+        run: node test-calendar-84.js
+      - name: Integrated script reference
+        run: grep -q 'ite-calendar-84.js' index.html
