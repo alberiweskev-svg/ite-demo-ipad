@@ -1,0 +1,20 @@
+/* Regressione milestone 4.0.80, solo dati sintetici. */
+const assert=require("node:assert/strict");
+const W=require("./ite-estimate-workflow-40.js");
+global.ITEEstimateWorkflow40=W;
+const UI=require("./ite-estimate-workflow-ui-40.js");
+const s=UI.sample();
+assert.equal(W.validate(s),true);
+assert.equal(W.report(s).rows[0].proposedCents,25000);
+assert.equal(W.report(s).rows[0].approvedCents,0);
+let a=W.decide(s,"TEST-PREV-01",[{lineId:"TEST-RIGA-01",status:"ACCETTATA"},{lineId:"TEST-RIGA-02",status:"ACCETTATA"}]);
+assert.equal(W.report(a).rows[0].approvedCents,20000);
+a=W.decide(a,"TEST-PREV-01",[{lineId:"TEST-RIGA-03",status:"ACCETTATA"},{lineId:"TEST-RIGA-04",status:"ACCETTATA"}]);
+assert.equal(W.report(a).rows[0].extraApprovedCents,5000);
+assert.equal(W.report(a).rows[0].unbilledCents,25000);
+assert.equal(W.report(s).rows[0].approvedCents,0,"originale immutato");
+assert.deepEqual(W.importJSON(W.exportJSON(a)),a);
+assert.throws(()=>W.importJSON('{"schema":"WRONG"}'));
+assert.throws(()=>W.decide(a,"TEST-PREV-01",[{lineId:"TEST-UNKNOWN",status:"ACCETTATA"}]));
+assert.equal(UI.mount(null),false);
+console.log("OK: 10 verifiche TEST workflow preventivi/Extra");
