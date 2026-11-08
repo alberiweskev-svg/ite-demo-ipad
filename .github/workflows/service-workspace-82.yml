@@ -1,0 +1,27 @@
+name: ITE 4.0.82 service workspace
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-service-ledger-40.js'
+      - 'ite-service-workspace-82.js'
+      - 'test-service-workspace-82.js'
+      - 'index.html'
+      - '.github/workflows/service-workspace-82.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax and service workflow
+        run: |
+          node --check ite-service-ledger-40.js
+          node --check ite-service-workspace-82.js
+          node --check test-service-workspace-82.js
+          node test-service-workspace-82.js
+          grep -q 'ite-service-workspace-82.js' index.html
+          grep -q 'ite-service-ledger-40.js' index.html
