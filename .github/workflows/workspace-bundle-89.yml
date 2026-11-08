@@ -1,0 +1,20 @@
+name: ITE 4.0.89 workspace backup TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workspace-bundle-89.js'
+      - 'ite-workspace-bundle-ui-89.js'
+      - 'test-workspace-bundle-89.js'
+      - '.github/workflows/workspace-bundle-89.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-workspace-bundle-89.js && node --check ite-workspace-bundle-ui-89.js && node --check test-workspace-bundle-89.js
+      - run: node test-workspace-bundle-89.js
