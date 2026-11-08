@@ -1,0 +1,21 @@
+name: ITE 4.0.88 Shared audit TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-shared-audit-88.js'
+      - 'test-shared-audit-88.js'
+      - 'ite-integrity-workspace-87.js'
+      - '.github/workflows/shared-audit-88.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-shared-audit-88.js
+      - run: node --check ite-integrity-workspace-87.js
+      - run: node test-shared-audit-88.js
