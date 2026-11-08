@@ -5,7 +5,7 @@ function load(store){
  const I=root.ITEDocumentIntake90,L=root.ITEDocumentLinks93,S=root.ITEServiceLedger40,R=root.ITEDocumentReview92,W=root.ITEDocumentWorkspace91;
  if(!I||!L||!S||!R||!W||!root.ITEDocumentGate95)throw Error("Moduli TEST non caricati");
  const manifest=W.load(store),links=L.load(store);
- const ledger=S.load(store);
+ const raw=store.getItem('ite-40-service-workspace-test-v1');const ledger=raw?S.importJSON(raw):S.empty();
  let reviews;
  if(typeof R.load==="function")reviews=R.load(store);
  return root.ITEDocumentGate95.evaluate(manifest,links,ledger,reviews);
