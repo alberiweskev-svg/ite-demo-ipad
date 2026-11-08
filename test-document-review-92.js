@@ -1,0 +1,18 @@
+const assert=require("node:assert/strict");
+const intake=require("./ite-document-intake-90.js");globalThis.ITEDocumentIntake90=intake;
+const review=require("./ite-document-review-92.js");
+const data=new Map(),store={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)};
+const doc=intake.createRecord({id:"TEST-DOC-100",name:"dico-idrico-test.pdf",size:400,mime:"application/pdf"});
+const manifest=intake.append(intake.empty(),doc);
+assert.equal(review.report(manifest,review.empty())[0].status,"DA_VERIFICARE");
+assert.throws(()=>review.transition(store,manifest,doc.id,"REVIEWED","DA_VERIFICARE","Tecnico","verificato"));
+review.transition(store,manifest,doc.id,"REVIEWED","DICO_IDRICO","Operatore TEST","Controllo metadati");
+assert.equal(review.report(manifest,review.load(store))[0].status,"REVISIONATO");
+assert.throws(()=>review.transition(store,manifest,doc.id,"REVIEWED","DIRI","Operatore TEST","Modifica"));
+review.transition(store,manifest,doc.id,"REOPENED","DICO_IDRICO","Operatore TEST","Nuova verifica");
+assert.equal(review.report(manifest,review.load(store))[0].status,"DA_VERIFICARE");
+review.transition(store,manifest,doc.id,"REVIEWED","DIRI","Operatore TEST","Correzione tipologia");
+assert.equal(review.report(manifest,review.load(store))[0].type,"DIRI");
+assert.equal(review.importJSON(review.exportJSON(review.load(store))).events.length,3);
+assert.equal(manifest.records[0].type,doc.type);
+console.log("Document review 4.0.92 OK");
