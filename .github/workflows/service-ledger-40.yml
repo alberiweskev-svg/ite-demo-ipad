@@ -1,0 +1,17 @@
+name: ITE 4.0 service ledger TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-service-ledger-40.js', 'test-service-ledger-40.js', '.github/workflows/service-ledger-40.yml']
+  workflow_dispatch:
+jobs:
+  service-ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-service-ledger-40.js
+      - run: node --check test-service-ledger-40.js
+      - run: node test-service-ledger-40.js
