@@ -1,0 +1,22 @@
+name: ITE 4.0.86 integrity TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-integrity-86.js'
+      - 'test-integrity-86.js'
+      - 'ite-service-ledger-40.js'
+      - 'ite-estimate-workflow-40.js'
+      - 'ite-calendar-84.js'
+      - '.github/workflows/integrity-86.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-integrity-86.js
+      - run: node test-integrity-86.js
