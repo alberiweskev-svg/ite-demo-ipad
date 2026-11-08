@@ -1,0 +1,23 @@
+name: ITE PDF review 4.0.97
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-pdf-fields-96.js'
+      - 'ite-pdf-review-97.js'
+      - 'ite-pdf-review-ui-97.js'
+      - 'test-pdf-review-97.js'
+      - 'index.html'
+      - '.github/workflows/pdf-review-97.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-pdf-review-97.js && node --check ite-pdf-review-ui-97.js && node --check ite-pdf-fields-96.js
+      - run: node test-pdf-fields-96.js && node test-pdf-review-97.js
+      - run: grep -q 'ite-pdf-review-ui-97.js' index.html
