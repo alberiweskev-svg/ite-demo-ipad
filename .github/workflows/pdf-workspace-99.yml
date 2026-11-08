@@ -1,0 +1,15 @@
+name: ITE 4.0.99 TEST staging
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-pdf-workspace-99.js && node --check ite-pdf-workspace-ui-99.js
+      - run: node --test test-pdf-workspace-99.js
