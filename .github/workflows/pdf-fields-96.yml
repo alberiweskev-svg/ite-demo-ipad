@@ -1,0 +1,16 @@
+name: ITE PDF fields TEST 4.0.96
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-pdf-fields-96.js','test-pdf-fields-96.js','.github/workflows/pdf-fields-96.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-pdf-fields-96.js
+      - run: node test-pdf-fields-96.js
