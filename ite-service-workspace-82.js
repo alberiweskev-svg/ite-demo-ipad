@@ -61,7 +61,7 @@ function mount(){
  if(document.getElementById("ite-service-workspace-82"))return;
  const main=document.querySelector("#main-content")||document.querySelector("main");if(!main)return;
  const section=el("section",{id:"ite-service-workspace-82",className:"panel"},main);
- safeLoad();render();
+ safeLoad();if(localStorage.getItem(KEY)===null)persist();render();
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mount,{once:true});else mount();
 root.ITEServiceWorkspace82=Object.freeze({fixture,mount});
