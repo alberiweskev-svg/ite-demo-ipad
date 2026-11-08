@@ -1,0 +1,31 @@
+name: ITE integrated dossier 4.0.83
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-integrated-dossier-83.js'
+      - 'test-integrated-dossier-83.js'
+      - 'ite-service-workspace-82.js'
+      - '.github/workflows/integrated-dossier-83.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and integrated regression
+        run: |
+          node --check ite-integrated-dossier-83.js
+          node --check ite-service-workspace-82.js
+          node --check test-integrated-dossier-83.js
+          node test-service-ledger-40.js
+          node test-estimate-finance-40.js
+          node test-estimate-workflow-40.js
+          node test-integrated-dossier-83.js
+      - name: Verify integrated Safari loader
+        run: |
+          grep -q 'ite-service-workspace-82.js' index.html
+          grep -q 'ite-integrated-dossier-83.js' ite-service-workspace-82.js
