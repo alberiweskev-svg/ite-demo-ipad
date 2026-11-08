@@ -1,0 +1,17 @@
+const assert=require("node:assert/strict");
+const intake=require("./ite-document-intake-90.js"),service=require("./ite-service-ledger-40.js"),review=require("./ite-document-review-92.js"),links=require("./ite-document-links-93.js");
+let s=service.empty();for(const [key,item] of [["clients",{id:"TEST-C1"}],["sites",{id:"TEST-S1",clientId:"TEST-C1"}],["plants",{id:"TEST-P1",siteId:"TEST-S1"}],["equipment",{id:"TEST-E1",plantId:"TEST-P1"}],["operators",{id:"TEST-O1"}],["appointments",{id:"TEST-A1",clientId:"TEST-C1",siteId:"TEST-S1",plantId:"TEST-P1",equipmentId:"TEST-E1",operatorId:"TEST-O1",scheduledAt:"2026-11-08T09:00:00"}]])s=service.add(s,key,item);
+const m=intake.append(intake.empty(),intake.createRecord({id:"TEST-DOC1",name:"dico_idrico.pdf",size:123,mime:"application/pdf",clientId:"TEST-C1",appointmentId:"TEST-A1"}));
+const l=links.link(links.empty(),m,s,"TEST-DOC1",{appointmentId:"TEST-A1"},"Operatore TEST","2026-11-08T10:00:00Z");
+assert.equal(l.links[0].equipmentId,"TEST-E1");assert.equal(l.links[0].clientId,"TEST-C1");
+assert.equal(links.audit(l,m,s)[0].issues.length,0);
+assert.throws(()=>links.link(l,m,s,"TEST-DOC1",{clientId:"TEST-C1",siteId:"TEST-NO"},"Operatore TEST"),/inesistente/);
+assert.throws(()=>links.link(l,m,s,"TEST-DOC1",{clientId:"TEST-C2"},"Operatore TEST"),/inesistente/);
+assert.throws(()=>links.link(l,m,s,"TEST-DOC1",{appointmentId:"TEST-A1",plantId:"TEST-NO"},"Operatore TEST"),/inesistente/);
+assert.equal(links.link(l,m,s,"TEST-DOC1",{clientId:"TEST-C1"},"Operatore TEST").links.length,1);
+assert.equal(links.importJSON(links.exportJSON(l)).links[0].appointmentId,"TEST-A1");
+assert.equal(links.audit(links.empty(),m,s)[0].issues[0],"SENZA_COLLEGAMENTO");
+assert.equal(links.audit(l,intake.empty(),s)[0].issues[0],"DOCUMENTO_MANCANTE");
+const broken=JSON.parse(JSON.stringify(l));broken.links[0].siteId="TEST-NO";assert(links.audit(broken,m,s)[0].issues.includes("COLLEGAMENTO_NON_VALIDO"));
+const v=review.empty();assert.equal(links.audit(l,m,s,v).length,1);
+console.log("Document links 4.0.93: tests OK");
