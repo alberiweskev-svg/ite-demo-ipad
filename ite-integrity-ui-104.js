@@ -1,0 +1,11 @@
+/* I.T.E. 4.0.104 — integrated integrity dashboard, TEST only. */
+(function(){"use strict";
+const base=window.ITEWorkflow100,engine=window.ITEIntegrity104,key="ITE-WORKFLOW-TEST-101";
+if(!base||!engine||!document.body)return;
+const host=document.createElement("section");host.className="panel";host.id="ite-integrity-104";host.innerHTML='<h2>Controllo integrità 4.0.104 — TEST</h2><p class="hint">Controllo in sola lettura di anagrafiche, appuntamenti, interventi, Extra e documenti. Nessuna modifica automatica.</p><div class="actions"><button type="button" id="integrity-run">Verifica archivio TEST</button><button type="button" class="secondary" id="integrity-export">Esporta rapporto JSON</button></div><p id="integrity-status" role="status" aria-live="polite"></p><div id="integrity-results"></div>';
+(document.querySelector(".wrap")||document.body).appendChild(host);
+const $=id=>host.querySelector("#"+id),esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let last=null;
+$("integrity-run").onclick=()=>{try{const raw=localStorage.getItem(key),state=raw?base.importJSON(raw):base.fresh();last=engine.audit(state);$("integrity-status").textContent="Revisione "+last.revision+" — "+last.issues.length+" anomalie — "+last.collisions.length+" conflitti agenda";$("integrity-results").innerHTML=last.issues.length?'<div class="item">'+last.issues.map(x=>'<p><strong>'+esc(x.code)+'</strong> '+esc(x.kind)+' / '+esc(x.id)+' — '+esc(x.detail)+'</p>').join("")+'</div>':"<p>Nessuna anomalia rilevata nei controlli disponibili. Non equivale a collaudo ufficiale.</p>";}catch(e){last=null;$("integrity-status").textContent="Verifica non completata: "+e.message;$("integrity-results").textContent="";}};
+$("integrity-export").onclick=()=>{if(!last){$("integrity-status").textContent="Eseguire prima la verifica";return;}const url=URL.createObjectURL(new Blob([JSON.stringify(last,null,2)],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download="ite-integrity-test-104.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+})();
