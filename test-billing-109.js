@@ -24,5 +24,5 @@ assert.equal(billing.audit(s,"TEST-CLIENT-109").issues.length,0);
 const corrupt=JSON.parse(JSON.stringify(s));corrupt.records.invoices.find(x=>x.id==="TEST-SALE-109").totalCents=1;
 assert(billing.audit(corrupt,"TEST-CLIENT-109").issues.some(x=>x.code==="TOTAL_MISMATCH"));
 assert.equal(billing.dossier(s,"TEST-JOB-109").reconciliation.netSalesCents,20000);
-assert.equal(before+3,s.revision-1);
+assert.equal(before+3,s.revision);
 console.log("4.0.109 billing regression OK");
