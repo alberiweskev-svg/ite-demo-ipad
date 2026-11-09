@@ -1,0 +1,10 @@
+const assert=require("node:assert/strict");const a=require("./ite-document-intake-114.js");
+const cases=[["nota di credito TD04","TD04"],["Fattura proforma n. PR-12","PROFORMA"],["Dichiarazione di conformità","DICO"],["Dichiarazione di rispondenza","DIRI"],["Piano operativo di sicurezza","POS"],["Allegato H/40 GAS","GAS"],["Listino prezzi","LISTINO"],["Fattura n. 7","FATTURA"]];
+for(const [s,t] of cases)assert.equal(a.classify(s,"test.pdf"),t);
+const m=a.extract("Fattura n. 123 del 09/11/2026\nImponibile € 100,00\nTotale IVA € 22,00\nTotale documento € 122,00","fake.pdf");
+assert.equal(m.total,122);assert.equal(m.taxable,100);assert.equal(m.vat,22);
+assert.equal(a.validate({type:"TD04",total:10},{clientId:"C1"}).ok,false);
+assert.equal(a.validate({type:"DICO"},{clientId:"C1",siteId:"S1",plantId:"I1"}).ok,true);
+const d=a.draft("Fattura n. 1","fake.pdf",{clientId:"C1"});assert.equal(d.pdfStored,false);assert.equal(d.status,"DA_VERIFICARE");
+assert.equal(a.classify("random","unknown.pdf"),"DA_VERIFICARE");
+console.log("document intake 114: 15 assertions passed");
