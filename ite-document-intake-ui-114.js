@@ -65,3 +65,12 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  core.onload=function(){const ui=document.createElement("script");ui.src="./ite-field-workspace-ui-121.js?v=4.0.121";document.head.appendChild(ui);};
  document.head.appendChild(core);
 })();
+
+/* 4.0.122: TEST commercial workflow integrated into field workspace. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-commercial-loader-122"))return;
+ const load=()=>{if(!window.ITE_FieldWorkspace121){setTimeout(load,100);return;}
+ const core=document.createElement("script");core.id="ite-commercial-loader-122";core.src="./ite-commercial-122.js?v=4.0.122";
+ core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-commercial-ui-122.js?v=4.0.122";document.head.appendChild(ui);};document.head.appendChild(core);};
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
