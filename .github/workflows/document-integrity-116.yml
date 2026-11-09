@@ -1,0 +1,29 @@
+name: ITE 4.0.116 document integrity
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-integrity-116.js'
+      - 'ite-document-integrity-ui-116.js'
+      - 'ite-document-intake-ui-114.js'
+      - 'test-document-integrity-116.js'
+      - '.github/workflows/document-integrity-116.yml'
+  workflow_dispatch:
+jobs:
+  document-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-document-integrity-116.js
+          node --check ite-document-integrity-ui-116.js
+          node --check ite-document-intake-ui-114.js
+      - name: Document regressions
+        run: |
+          node test-document-intake-114.js
+          node test-document-workflow-115.js
+          node test-document-integrity-116.js
