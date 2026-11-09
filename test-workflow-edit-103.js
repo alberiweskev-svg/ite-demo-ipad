@@ -1,0 +1,16 @@
+"use strict";
+const assert=require("node:assert/strict"),b=require("./ite-workflow-100.js"),m=require("./ite-workflow-edit-103.js");
+let s=b.fresh();const add=(k,row)=>s=b.transact(s,k,row,"TEST",s.revision);
+add("clients",{id:"TEST-CLIENT-001",name:"Cliente fittizio"});add("sites",{id:"TEST-SITE-001",clientId:"TEST-CLIENT-001",name:"Sede TEST"});add("plants",{id:"TEST-PLANT-001",clientId:"TEST-CLIENT-001",siteId:"TEST-SITE-001",name:"Impianto TEST"});add("devices",{id:"TEST-DEVICE-001",clientId:"TEST-CLIENT-001",plantId:"TEST-PLANT-001",name:"Generatore TEST"});add("operators",{id:"TEST-OP-001",name:"Tecnico TEST"});add("appointments",{id:"TEST-APT-001",clientId:"TEST-CLIENT-001",siteId:"TEST-SITE-001",plantId:"TEST-PLANT-001",deviceId:"TEST-DEVICE-001",operatorId:"TEST-OP-001",startsAt:"2026-11-10T08:00:00Z"});add("interventions",{id:"TEST-INT-001",appointmentId:"TEST-APT-001",clientId:"TEST-CLIENT-001",siteId:"TEST-SITE-001",plantId:"TEST-PLANT-001",deviceId:"TEST-DEVICE-001",operatorId:"TEST-OP-001"});add("documents",{id:"TEST-DOC-001",clientId:"TEST-CLIENT-001",name:"Di.Co. TEST",officialReady:false,accounted:false});
+const original=JSON.stringify(s),rev=s.revision;
+let n=m.update(s,"appointments","TEST-APT-001",{startsAt:"2026-11-10T09:00:00Z",endsAt:"2026-11-10T10:00:00Z"},"Tecnico TEST",rev,"Cambio orario concordato");
+assert.equal(n.records.appointments[0].startsAt,"2026-11-10T09:00:00Z");assert.equal(JSON.stringify(s),original);assert.equal(n.audit.at(-1).action,"EDIT");
+assert.throws(()=>m.update(s,"appointments","TEST-APT-001",{startsAt:"2026-11-10T09:00:00Z"},"TEST",rev-1,"Cambio orario"),/Conflitto/);
+assert.throws(()=>m.update(s,"appointments","TEST-APT-001",{endsAt:"2026-11-10T07:00:00Z"},"TEST",rev,"Cambio orario"),/Intervallo/);
+n=m.update(n,"interventions","TEST-INT-001",{arrivedAt:"2026-11-10T09:02:00Z",leftAt:"2026-11-10T10:20:00Z"},"Tecnico TEST",n.revision,"Rettifica orari");
+assert.throws(()=>m.update(n,"interventions","TEST-INT-001",{leftAt:"2026-11-10T08:00:00Z"},"TEST",n.revision,"Rettifica orari"),/Orari/);
+n=m.update(n,"documents","TEST-DOC-001",{appointmentId:"TEST-APT-001",plantId:"TEST-PLANT-001",deviceId:"TEST-DEVICE-001"},"Tecnico TEST",n.revision,"Collegamento fascicolo");
+const d=m.dossier(n,"TEST-APT-001");assert.equal(d.documents.length,1);assert.equal(d.interventions.length,1);assert.equal(d.officialReady,false);
+assert.throws(()=>m.update(n,"documents","TEST-DOC-001",{plantId:"TEST-PLANT-NOT-FOUND"},"TEST",n.revision,"Cambio impianto"),/coerente/);
+assert.throws(()=>m.update(n,"documents","TEST-DOC-001",{officialReady:true},"TEST",n.revision,"Forzatura"),/modificabile/);
+console.log("Workflow edit 103: PASS");
