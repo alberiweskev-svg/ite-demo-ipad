@@ -90,3 +90,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.124: additive read-only integrity audit, TEST snapshots and printable agenda. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-audit-loader-124"))return;
+ let tries=0;
+ const load=()=>{
+  if(!window.ITE_Operations123){if(++tries<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-audit-loader-124";core.src="./ite-audit-124.js?v=4.0.124";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-audit-ui-124.js?v=4.0.124";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
