@@ -50,7 +50,7 @@ function prepareUnique(s,interventionId,id,operator,expected,type="PROFORMA"){
   const used=new Map();
   for(const inv of s.records.invoices.filter(x=>x.type==="VENDITA"&&x.clientId===job.clientId))
    for(const row of inv.sourceRows||[]){const key=row.source+":"+row.id;used.set(key,(used.get(key)||0)+row.quantity);}
-  for(const row of created.sourceRows){const key=row.source+":"+row.id,original=find(s,row.source,row.id);const allowed=row.source==="extras"?original?.approvedQuantity:original?.quantity;if(!original||used.get(key)+row.quantity>allowed && (used.get(key)||0)+row.quantity>allowed)throw Error("Voce già fatturata o quantità eccedente: "+key);}
+  for(const row of created.sourceRows){const key=row.source+":"+row.id,original=find(s,row.source,row.id);const allowed=row.source==="extras"?original?.approvedQuantity:original?.quantity;if(!original||(used.get(key)||0)+row.quantity>allowed)throw Error("Voce già fatturata o quantità eccedente: "+key);}
  }
  return draft;
 }
