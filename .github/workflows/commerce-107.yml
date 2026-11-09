@@ -1,0 +1,23 @@
+name: Commerce TEST 4.0.107
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-commerce-107.js'
+      - 'ite-commerce-ui-107.js'
+      - 'test-commerce-107.js'
+      - 'ite-workflow-100.js'
+      - 'index.html'
+      - '.github/workflows/commerce-107.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-commerce-107.js && node --check ite-commerce-ui-107.js && node --check test-commerce-107.js
+      - run: node test-commerce-107.js
+      - run: node -e "const fs=require('fs');const h=fs.readFileSync('index.html','utf8');for(const f of ['ite-commerce-107.js','ite-commerce-ui-107.js'])if(!h.includes(f))throw Error('Missing '+f);if(h.indexOf('ite-commerce-107.js')>h.indexOf('ite-commerce-ui-107.js'))throw Error('Wrong order')"
