@@ -1,0 +1,26 @@
+name: Document intake 4.0.114
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-intake-114.js'
+      - 'ite-document-intake-ui-114.js'
+      - 'test-document-intake-114.js'
+      - 'index.html'
+      - '.github/workflows/document-intake-114.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-document-intake-114.js
+      - run: node --check ite-document-intake-ui-114.js
+      - run: node test-document-intake-114.js
+      - name: Verify demo integration
+        run: |
+          grep -q 'ite-document-intake-114.js' index.html
+          grep -q 'ite-document-intake-ui-114.js' index.html
