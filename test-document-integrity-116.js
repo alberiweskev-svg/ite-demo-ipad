@@ -1,0 +1,14 @@
+const assert=require("node:assert/strict"),a=require("./ite-document-integrity-116.js");
+const r={clients:[{id:"C1"},{id:"C2"}],sites:[{id:"S1",clientId:"C1"},{id:"S2",clientId:"C2"}],plants:[{id:"P1",siteId:"S1"}],equipment:[{id:"E1",plantId:"P1"}],invoices:[{id:"F1",clientId:"C1"}]};
+const d=a.prepare({text:"Dichiarazione di conformità",filename:"dico-test.pdf"},{clientId:"C1",siteId:"S1",plantId:"P1",equipmentId:"E1"},r);
+assert.equal(d.validation.ok,true);assert.equal(a.confirm(d,"Tecnico TEST",r).status,"CONFERMATO_TEST");
+assert.equal(a.dossier([a.confirm(d,"Tecnico TEST",r)],"C1").count,1);
+assert.equal(a.prepare({text:"Dichiarazione di conformità"},{clientId:"INVENTATO",siteId:"S1",plantId:"P1"},r).validation.ok,false);
+assert.equal(a.prepare({text:"Dichiarazione di conformità"},{clientId:"C1",siteId:"S2",plantId:"P1"},r).validation.ok,false);
+assert.equal(a.prepare({text:"Dichiarazione di conformità"},{clientId:"C1",siteId:"S1",plantId:"P1",equipmentId:"MISSING"},r).validation.ok,false);
+const td=a.prepare({text:"Nota di credito TD04 totale documento 50,00"},{clientId:"C1",originalInvoiceId:"F1"},r);assert.equal(td.validation.ok,true);
+assert.equal(a.prepare({text:"Nota di credito TD04 totale documento 50,00"},{clientId:"C2",originalInvoiceId:"F1"},r).validation.ok,false);
+assert.throws(()=>a.confirm(d,"Tecnico TEST",{...r,sites:[]}));
+assert.throws(()=>a.normalizeRegistry({...r,clients:[{id:"X"},{id:"X"}]}));
+assert.equal(d.pdfStored,false);
+console.log("Document integrity 116: OK");
