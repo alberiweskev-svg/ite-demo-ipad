@@ -41,3 +41,19 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  document.head.appendChild(script);};
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.118: connect existing local PDF reader to batch review, in the same document workspace. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-pdf-bridge-loader-118"))return;
+ const load=()=>{
+  if(!window.ITE_DocumentBatch117||!window.ITE_DocumentIntegrity116){setTimeout(load,100);return;}
+  const reader=document.createElement("script");reader.id="ite-pdf-bridge-loader-118";reader.src="./ite-pdf-local-reader.js?v=4.0.118";
+  reader.onload=()=>{
+   const core=document.createElement("script");core.src="./ite-document-pdf-bridge-118.js?v=4.0.118";
+   core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-document-pdf-bridge-ui-118.js?v=4.0.118";document.head.appendChild(ui);};
+   document.head.appendChild(core);
+  };
+  document.head.appendChild(reader);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
