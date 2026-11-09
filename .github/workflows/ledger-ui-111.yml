@@ -1,0 +1,30 @@
+name: ITE 4.0.111 ledger integrated regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-ledger-110.js'
+      - 'ite-ledger-ui-111.js'
+      - 'test-ledger-110.js'
+      - 'test-ledger-ui-111.js'
+      - 'ite-workflow-100.js'
+      - 'index.html'
+      - '.github/workflows/ledger-ui-111.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-ledger-110.js
+          node --check ite-ledger-ui-111.js
+          node --check test-ledger-ui-111.js
+      - name: Ledger regressions
+        run: |
+          node test-ledger-110.js
+          node test-ledger-ui-111.js
