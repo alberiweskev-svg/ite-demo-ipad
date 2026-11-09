@@ -1,0 +1,25 @@
+name: ITE 4.0.124 audit regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-audit-124.js'
+      - 'ite-audit-ui-124.js'
+      - 'ite-operations-123.js'
+      - 'ite-field-workspace-121.js'
+      - 'ite-commercial-122.js'
+      - 'test-audit-124.js'
+      - 'test-operations-123.js'
+      - '.github/workflows/audit-124.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-audit-124.js && node --check ite-audit-ui-124.js
+      - run: node test-operations-123.js
+      - run: node test-audit-124.js
