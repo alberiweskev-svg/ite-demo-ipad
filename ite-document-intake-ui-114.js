@@ -50,7 +50,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   const reader=document.createElement("script");reader.id="ite-pdf-bridge-loader-118";reader.src="./ite-pdf-local-reader.js?v=4.0.118";
   reader.onload=()=>{
    const core=document.createElement("script");core.src="./ite-document-pdf-bridge-118.js?v=4.0.118";
-   core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-document-pdf-bridge-ui-118.js?v=4.0.118";document.head.appendChild(ui);};
+   core.onload=()=>{const review=document.createElement("script");review.src="./ite-document-review-119.js?v=4.0.119";review.onload=()=>{const ui=document.createElement("script");ui.src="./ite-document-review-ui-119.js?v=4.0.119";document.head.appendChild(ui);};document.head.appendChild(review);};
    document.head.appendChild(core);
   };
   document.head.appendChild(reader);
