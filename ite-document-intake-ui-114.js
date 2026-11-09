@@ -57,3 +57,11 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.121: integrated field TEST workspace, no operational data access. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-field-loader-121"))return;
+ const core=document.createElement("script");core.id="ite-field-loader-121";core.src="./ite-field-workspace-121.js?v=4.0.121";
+ core.onload=function(){const ui=document.createElement("script");ui.src="./ite-field-workspace-ui-121.js?v=4.0.121";document.head.appendChild(ui);};
+ document.head.appendChild(core);
+})();
