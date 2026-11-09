@@ -15,3 +15,11 @@ function mount(){
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mount);else mount();
 })();
+
+/* 4.0.115: load the integrated review modules from the existing demo entry point. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-workflow-loader-115"))return;
+ const script=document.createElement("script");script.id="ite-workflow-loader-115";script.src="./ite-document-workflow-115.js";
+ script.onload=function(){const ui=document.createElement("script");ui.src="./ite-document-workflow-ui-115.js";document.head.appendChild(ui)};
+ document.head.appendChild(script);
+})();
