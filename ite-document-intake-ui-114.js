@@ -103,3 +103,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.125: calendar TEST in the existing unified demo. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-calendar-loader-125"))return;
+ let attempts=0;
+ const load=()=>{
+  if(!window.ITE_Audit124){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-calendar-loader-125";core.src="./ite-calendar-125.js?v=4.0.125";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-calendar-ui-125.js?v=4.0.125";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
