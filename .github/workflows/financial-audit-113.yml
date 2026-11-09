@@ -1,0 +1,24 @@
+name: ITE 4.0.113 financial audit regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-financial-audit-112.js'
+      - 'test-financial-audit-112.js'
+      - 'test-financial-audit-113.js'
+      - '.github/workflows/financial-audit-113.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-financial-audit-112.js
+      - run: node --check test-financial-audit-113.js
+      - run: node test-financial-audit-112.js
+      - run: node test-financial-audit-113.js
