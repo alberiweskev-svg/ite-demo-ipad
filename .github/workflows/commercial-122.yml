@@ -1,0 +1,22 @@
+name: ITE commercial TEST 4.0.122
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-commercial-122.js'
+      - 'test-commercial-122.js'
+      - 'ite-field-workspace-121.js'
+      - '.github/workflows/commercial-122.yml'
+  workflow_dispatch:
+jobs:
+  commercial:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-commercial-122.js
+      - run: node --check ite-commercial-ui-122.js
+      - run: node test-commercial-122.js
+      - run: node test-field-workspace-121.js
