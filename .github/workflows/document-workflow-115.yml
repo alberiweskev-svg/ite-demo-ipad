@@ -1,0 +1,21 @@
+name: ITE 4.0.115 document workflow TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-workflow-115.js'
+      - 'ite-document-workflow-ui-115.js'
+      - 'ite-document-intake-ui-114.js'
+      - 'test-document-workflow-115.js'
+      - '.github/workflows/document-workflow-115.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-document-workflow-115.js && node --check ite-document-workflow-ui-115.js && node --check ite-document-intake-ui-114.js
+      - run: node test-document-intake-114.js && node test-document-workflow-115.js
