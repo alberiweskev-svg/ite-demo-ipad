@@ -1,0 +1,25 @@
+/* Node regression: node test-calendar-125.js */
+const assert=require("node:assert/strict");
+globalThis.ITE_FieldWorkspace121=require("./ite-field-workspace-121.js");
+globalThis.ITE_Commercial122=require("./ite-commercial-122.js");
+globalThis.ITE_Operations123=require("./ite-operations-123.js");
+globalThis.ITE_Audit124=require("./ite-audit-124.js");
+const C=require("./ite-calendar-125.js"),O=globalThis.ITE_Operations123;
+let s=O.empty();const act=(type,record)=>s=O.apply(s,{type,record},"TEST");
+act("ADD_CLIENT",{id:"c1",name:"Cliente fittizio"});
+act("ADD_SITE",{id:"s1",clientId:"c1",address:"Via TEST 1"});
+act("ADD_SYSTEM",{id:"sys1",siteId:"s1"});
+act("ADD_EQUIPMENT",{id:"eq1",systemId:"sys1",model:"Modello TEST"});
+act("ADD_OPERATOR",{id:"op1",name:"Tecnico TEST",color:"#008844"});
+act("SCHEDULE",{id:"a1",clientId:"c1",siteId:"s1",systemId:"sys1",equipmentId:"eq1",operatorId:"op1",startAt:"2026-11-10T09:00:00",endAt:"2026-11-10T10:00:00"});
+assert.equal(C.calendar(s,{date:"2026-11-10",view:"day"}).entries.length,1);
+assert.equal(C.calendar(s,{date:"2026-11-11",view:"day"}).entries.length,0);
+assert.equal(C.calendar(s,{date:"2026-11-10",view:"week",operatorId:"op1"}).days.length,7);
+assert.equal(C.calendar(s,{date:"2026-11-10",view:"month"}).days.length,30);
+assert.equal(C.calendar(s,{date:"2026-11-10",view:"day",status:"CHIUSO"}).entries.length,0);
+assert.deepEqual(C.conflicts(s,{id:"a2",operatorId:"op1",startAt:"2026-11-10T09:30:00",endAt:"2026-11-10T10:30:00"}),["a1"]);
+assert.deepEqual(C.conflicts(s,{id:"a2",operatorId:"op1",startAt:"2026-11-10T10:00:00",endAt:"2026-11-10T11:00:00"}),[]);
+assert.throws(()=>C.calendar(s,{date:"2026-02-30"}),/DATA_NON_VALIDA/);
+assert.throws(()=>C.calendar(s,{date:"2026-11-10",view:"year"}),/VISTA_NON_VALIDA/);
+assert.throws(()=>C.conflicts(s,{operatorId:"op1",startAt:"bad",endAt:"bad"}),/ORARIO_NON_VALIDO/);
+console.log("Calendar 4.0.125: 10 checks OK");
