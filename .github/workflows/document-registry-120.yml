@@ -1,0 +1,28 @@
+name: ITE 4.0.120 Document Registry Bridge
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-registry-bridge-120.js'
+      - 'ite-document-review-ui-119.js'
+      - 'ite-document-intake-ui-114.js'
+      - 'test-document-registry-bridge-120.js'
+      - '.github/workflows/document-registry-120.yml'
+  workflow_dispatch:
+jobs:
+  document-registry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and regression
+        run: |
+          node --check ite-document-registry-bridge-120.js
+          node --check ite-document-review-ui-119.js
+          node --check ite-document-intake-ui-114.js
+          node test-document-registry-bridge-120.js
+          node test-document-review-119.js
+          node test-document-pdf-bridge-118.js
+          node test-document-integrity-116.js
