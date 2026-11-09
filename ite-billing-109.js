@@ -15,7 +15,7 @@ function audit(s,clientId){
     const key=row.source+":"+row.id;
     if(local.has(key))issues.push({code:"DUPLICATE_ROW",id:inv.id,source:key});
     local.add(key);
-    const original=find(s,row.source,row.id);
+    const original=["quotes","extras"].includes(row.source)?find(s,row.source,row.id):null;
     if(!["quotes","extras"].includes(row.source)||!original||original.clientId!==clientId){issues.push({code:"INVALID_SOURCE",id:inv.id,source:key});continue;}
     if(row.source==="quotes"&&original.status!=="ACCETTATO"||row.source==="extras"&&!["APPROVATO","PARZIALE"].includes(original.status))issues.push({code:"SOURCE_NOT_APPROVED",id:inv.id,source:key});
     if(!Number.isSafeInteger(row.quantity)||row.quantity<1||!Number.isSafeInteger(row.unitCents)||row.unitCents<0){issues.push({code:"INVALID_AMOUNT",id:inv.id,source:key});continue;}
