@@ -10,6 +10,8 @@ function mount(){
  function field(name,element){const label=document.createElement("label");label.textContent=name;label.appendChild(element);section.appendChild(label);return element;}
  const files=field("PDF TEST (massimo 20)",document.createElement("input"));files.type="file";files.accept=".pdf,application/pdf";files.multiple=true;
  const registry=field("Archivio anagrafico TEST JSON",document.createElement("textarea"));registry.rows=4;registry.value=JSON.stringify({clients:[{id:"C-TEST"}],sites:[{id:"S-TEST",clientId:"C-TEST"}],plants:[{id:"P-TEST",siteId:"S-TEST"}],equipment:[],invoices:[]});
+ const workspace=field("Workspace anagrafico TEST JSON (catalog con clients, sites, systems, equipment)",document.createElement("textarea"));workspace.rows=3;workspace.placeholder="Incollare solo dati fittizi; nessun caricamento automatico dall'archivio operativo";
+ const invoices=field("Fatture TEST JSON (opzionale)",document.createElement("textarea"));invoices.rows=2;invoices.value="[]";
  const defaults=field("Collegamenti iniziali JSON",document.createElement("textarea"));defaults.rows=2;defaults.value=JSON.stringify({clientId:"C-TEST",siteId:"S-TEST",plantId:"P-TEST"});
  const operator=field("Operatore TEST",document.createElement("input"));operator.value="Tecnico TEST";
  const controls=document.createElement("div");controls.className="actions";section.appendChild(controls);
@@ -35,6 +37,19 @@ function mount(){
    card.appendChild(save);items.appendChild(card);
   }
  }
+ button("Collega anagrafiche TEST al controllo documenti",()=>{
+  const bridge=window.ITE_DocumentRegistryBridge120;if(!bridge)throw Error("Adattatore anagrafiche non disponibile");
+  if(!workspace.value.trim())throw Error("Inserire il workspace TEST");
+  const mapped=bridge.addInvoices(bridge.convert(JSON.parse(workspace.value)),JSON.parse(invoices.value));
+  registry.value=JSON.stringify(mapped,null,2);
+  if(state){const result=bridge.audit(state,mapped);output.textContent=JSON.stringify(result,null,2);}
+  else output.textContent="Anagrafiche TEST collegate: "+mapped.clients.length+" clienti, "+mapped.sites.length+" sedi, "+mapped.plants.length+" impianti, "+mapped.equipment.length+" apparecchiature.";
+ });
+ button("Rivaluta documenti confermati rispetto all'archivio TEST",()=>{
+  if(!state)throw Error("Prima preparare una revisione");
+  const bridge=window.ITE_DocumentRegistryBridge120;if(!bridge)throw Error("Adattatore non disponibile");
+  output.textContent=JSON.stringify(bridge.audit(state,readRegistry()),null,2);
+ });
  button("Estrai PDF e prepara revisione",async()=>{const preview=await pdf.preview(files.files,readRegistry(),JSON.parse(defaults.value));state=api.review(preview,readRegistry());files.value="";render();output.textContent=JSON.stringify(pdf.summary(preview),null,2);});
  button("Conferma documenti selezionati",()=>{if(!state)throw Error("Prima analizzare i PDF");const keys=Array.from(items.querySelectorAll("input[type=checkbox]:checked")).map(x=>x.dataset.key);const result=api.confirm(state,keys,operator.value,readRegistry());state=result.state;render();output.textContent=JSON.stringify({approved:result.approved,errors:result.errors},null,2);});
  button("Visualizza metadati TEST",()=>{if(!state)throw Error("Nessuna revisione");output.textContent=JSON.stringify(api.exportMetadata(state),null,2);});
