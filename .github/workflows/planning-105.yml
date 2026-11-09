@@ -1,0 +1,21 @@
+name: ITE 4.0.105 planning regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-planning-105.js'
+      - 'test-planning-105.js'
+      - 'ite-workflow-100.js'
+      - '.github/workflows/planning-105.yml'
+  workflow_dispatch:
+jobs:
+  planning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-planning-105.js
+      - run: node --check test-planning-105.js
+      - run: node test-planning-105.js
