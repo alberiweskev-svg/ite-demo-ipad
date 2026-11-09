@@ -1,0 +1,30 @@
+name: ITE 4.0.117 document batch
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-batch-117.js'
+      - 'ite-document-batch-ui-117.js'
+      - 'ite-document-intake-ui-114.js'
+      - 'test-document-batch-117.js'
+      - '.github/workflows/document-batch-117.yml'
+  workflow_dispatch:
+jobs:
+  document-batch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-document-batch-117.js
+          node --check ite-document-batch-ui-117.js
+          node --check ite-document-intake-ui-114.js
+      - name: Document regressions
+        run: |
+          node test-document-intake-114.js
+          node test-document-workflow-115.js
+          node test-document-integrity-116.js
+          node test-document-batch-117.js
