@@ -31,3 +31,13 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  script.onload=function(){const ui=document.createElement("script");ui.src="./ite-document-integrity-ui-116.js";document.head.appendChild(ui)};
  document.head.appendChild(script);
 })();
+
+/* 4.0.117: one integrated TEST workspace; dependencies loaded after existing 4.0.116. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-batch-loader-117"))return;
+ const load=()=>{if(!window.ITE_DocumentIntegrity116){setTimeout(load,100);return;}
+ const script=document.createElement("script");script.id="ite-batch-loader-117";script.src="./ite-document-batch-117.js";
+ script.onload=function(){const ui=document.createElement("script");ui.src="./ite-document-batch-ui-117.js";document.head.appendChild(ui);};
+ document.head.appendChild(script);};
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
