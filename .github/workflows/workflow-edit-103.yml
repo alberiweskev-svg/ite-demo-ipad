@@ -1,0 +1,24 @@
+name: Workflow 4.0.103 TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workflow-edit-103.js'
+      - 'ite-workflow-edit-ui-103.js'
+      - 'test-workflow-edit-103.js'
+      - 'index.html'
+      - '.github/workflows/workflow-edit-103.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-workflow-edit-103.js
+      - run: node --check ite-workflow-edit-ui-103.js
+      - run: node --check test-workflow-edit-103.js
+      - run: node test-workflow-edit-103.js
+      - run: node -e "const fs=require('fs'); const s=fs.readFileSync('index.html','utf8'); for(const f of ['ite-workflow-edit-103.js','ite-workflow-edit-ui-103.js'])if(!s.includes(f))throw Error('Missing script '+f);"
