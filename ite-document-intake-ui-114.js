@@ -23,3 +23,11 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  script.onload=function(){const ui=document.createElement("script");ui.src="./ite-document-workflow-ui-115.js";document.head.appendChild(ui)};
  document.head.appendChild(script);
 })();
+
+/* 4.0.116: additive integrity workspace. Prior 4.0.115 kept unchanged for regression. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-integrity-loader-116"))return;
+ const script=document.createElement("script");script.id="ite-integrity-loader-116";script.src="./ite-document-integrity-116.js";
+ script.onload=function(){const ui=document.createElement("script");ui.src="./ite-document-integrity-ui-116.js";document.head.appendChild(ui)};
+ document.head.appendChild(script);
+})();
