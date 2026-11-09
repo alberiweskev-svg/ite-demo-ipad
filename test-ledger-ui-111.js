@@ -1,0 +1,18 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs"),base=require("./ite-workflow-100.js"),ledger=require("./ite-ledger-110.js");
+let s=base.fresh();const add=(k,r)=>s=base.transact(s,k,r,"Tecnico TEST",s.revision);
+add("clients",{id:"TEST-CLIENT-111",name:"Cliente fittizio"});
+add("quotes",{id:"TEST-QUOTE-111",clientId:"TEST-CLIENT-111",category:"FORNITURA",quantity:3,unitCents:2000,status:"ACCETTATO"});
+add("extras",{id:"TEST-EXTRA-111",clientId:"TEST-CLIENT-111",quoteId:"TEST-QUOTE-111",category:"POSA",quantity:2,approvedQuantity:1,unitCents:1500,status:"PARZIALE"});
+add("invoices",{id:"TEST-SALE-111",clientId:"TEST-CLIENT-111",type:"VENDITA",sourceRows:[{source:"quotes",id:"TEST-QUOTE-111",quantity:2,unitCents:2000},{source:"extras",id:"TEST-EXTRA-111",quantity:1,unitCents:1500}],totalCents:5500});
+add("invoices",{id:"TEST-PROFORMA-111",clientId:"TEST-CLIENT-111",type:"PROFORMA",sourceRows:[{source:"quotes",id:"TEST-QUOTE-111",quantity:1,unitCents:2000}],totalCents:2000});
+add("invoices",{id:"TEST-TD04-111",clientId:"TEST-CLIENT-111",type:"TD04",originalInvoiceId:"TEST-SALE-111",totalCents:500});
+add("invoices",{id:"TEST-PURCHASE-111",clientId:"TEST-CLIENT-111",type:"ACQUISTO",totalCents:1200});
+const before=JSON.stringify(s),r=ledger.inspect(s,"TEST-CLIENT-111");
+assert.equal(r.valid,true);assert.deepEqual([r.clients[0].salesCents,r.clients[0].creditsCents,r.clients[0].netSalesCents,r.clients[0].proformaCents,r.clients[0].purchasesCents],[5500,500,5000,2000,1200]);
+assert.equal(JSON.stringify(s),before);
+const duplicate=JSON.parse(before);duplicate.records.invoices.push({id:"TEST-SALE-112",clientId:"TEST-CLIENT-111",type:"VENDITA",sourceRows:[{source:"extras",id:"TEST-EXTRA-111",quantity:1,unitCents:1500}],totalCents:1500});
+assert(ledger.inspect(duplicate).issues.some(x=>x.code==="OVERBILLED"));
+const html=fs.readFileSync("index.html","utf8");assert(html.includes("ite-ledger-110.js"));assert(html.includes("ite-ledger-ui-111.js"));assert(html.indexOf("ite-ledger-110.js")<html.indexOf("ite-ledger-ui-111.js"));
+const source=fs.readFileSync("ite-ledger-ui-111.js","utf8");assert(source.includes("textContent"));assert(!source.includes("innerHTML=issue"));assert(source.includes("ITE-WORKFLOW-TEST-101"));
+console.log("4.0.111 ledger integration OK");
