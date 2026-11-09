@@ -1,0 +1,29 @@
+name: ITE 4.0.108 service-commerce TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-service-commerce-108.js'
+      - 'ite-service-commerce-ui-108.js'
+      - 'test-service-commerce-108.js'
+      - 'ite-commerce-107.js'
+      - 'ite-workflow-100.js'
+      - 'index.html'
+      - '.github/workflows/service-commerce-108.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-service-commerce-108.js
+      - run: node --check ite-service-commerce-ui-108.js
+      - run: node --check test-service-commerce-108.js
+      - run: node test-service-commerce-108.js
+      - name: Verify single-demo script integration
+        run: node -e "const fs=require('fs');const h=fs.readFileSync('index.html','utf8');for(const f of ['ite-workflow-100.js','ite-commerce-107.js','ite-service-commerce-108.js','ite-service-commerce-ui-108.js'])if(!h.includes(f))throw Error('Missing '+f);"
