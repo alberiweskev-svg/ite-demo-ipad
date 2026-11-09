@@ -1,0 +1,35 @@
+/* node test-operations-123.js */
+const assert=require("node:assert/strict");
+globalThis.ITE_FieldWorkspace121=require("./ite-field-workspace-121.js");
+globalThis.ITE_Commercial122=require("./ite-commercial-122.js");
+const O=require("./ite-operations-123.js");
+let s=O.empty();
+function run(type,record,rest={}){s=O.apply(s,{type,record,...rest},"Tecnico TEST");}
+run("ADD_CLIENT",{id:"C1",name:"Cliente fittizio"});
+run("ADD_SITE",{id:"S1",clientId:"C1"});
+run("ADD_SYSTEM",{id:"P1",siteId:"S1"});
+run("ADD_EQUIPMENT",{id:"E1",systemId:"P1"});
+run("ADD_OPERATOR",{id:"T1"});
+run("SCHEDULE",{id:"A1",clientId:"C1",siteId:"S1",systemId:"P1",equipmentId:"E1",operatorId:"T1",startAt:"2026-11-12T08:30:00",endAt:"2026-11-12T10:00:00"});
+assert.throws(()=>O.apply(s,{type:"SCHEDULE",record:{id:"A2",clientId:"C1",siteId:"S1",systemId:"P1",operatorId:"T1",startAt:"2026-11-12T09:00:00",endAt:"2026-11-12T10:30:00"}},"TEST"),/SOVRAPPOSIZIONE/);
+run("ARRIVE",undefined,{id:"A1",at:"2026-11-12T08:35:00"});
+run("CLOSE",undefined,{id:"A1",at:"2026-11-12T09:45:00",additionalWork:"Controllo TEST"});
+run("REVISE",undefined,{id:"A1",reason:"Verifica TEST"});
+const line=(id,type)=>({id,description:"Riga fittizia",type,quantity:1,unitPrice:100,vat:10});
+run("ESTIMATE",{id:"Q1",clientId:"C1",siteId:"S1",lines:[line("F1","FORNITURA"),line("L1","POSA")]});
+run("ACCEPT_ESTIMATE",undefined,{id:"Q1"});
+run("EXTRA",{id:"X1",clientId:"C1",siteId:"S1",appointmentId:"A1",lines:[line("EX1","POSA")]});
+run("APPROVE_EXTRA",undefined,{id:"X1",approved:{EX1:0.5}});
+run("INVOICE",{id:"I1",clientId:"C1",siteId:"S1",type:"VENDITA",lines:[line("I1L","POSA")]});
+run("INVOICE",{id:"NC1",clientId:"C1",siteId:"S1",type:"TD04",originalId:"I1",lines:[{...line("N1","POSA"),unitPrice:50}]});
+assert.throws(()=>O.apply(s,{type:"INVOICE",record:{id:"NC2",clientId:"C1",siteId:"S1",type:"TD04",originalId:"I1",lines:[line("N2","POSA")]}},"TEST"),/CREDITO_ECCESSIVO/);
+const d=O.dossier(s,"C1");
+assert.equal(d.appointments.length,1);assert.equal(d.interventions.length,1);
+assert.equal(d.estimates[0].totals.gross,220);
+assert.equal(d.extras[0].approvedTotals.gross,55);
+assert.equal(d.invoices.length,2);
+assert.equal(O.agenda(s,"2026-11-12","T1").length,1);
+assert.deepEqual(O.restore(JSON.stringify(s)),s);
+assert.throws(()=>O.apply(s,{type:"ADD_SITE",record:{id:"BAD",clientId:"MISSING"}},"TEST"),/RIF:/);
+assert.equal(s.revision,15);
+console.log("4.0.123 integrated operations tests OK");
