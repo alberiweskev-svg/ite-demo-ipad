@@ -1,0 +1,24 @@
+name: ITE 4.0.112 financial audit TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-financial-audit-112.js'
+      - 'ite-financial-audit-ui-112.js'
+      - 'test-financial-audit-112.js'
+      - 'index.html'
+      - '.github/workflows/financial-audit-112.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-financial-audit-112.js
+      - run: node --check ite-financial-audit-ui-112.js
+      - run: node test-financial-audit-112.js
+      - run: node test-ledger-110.js
+      - run: node test-ledger-ui-111.js
