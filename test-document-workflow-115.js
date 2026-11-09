@@ -1,0 +1,16 @@
+const assert=require("node:assert/strict"),a=require("./ite-document-workflow-115.js");
+const registry={clients:[{id:"C1"},{id:"C2"}],sites:[{id:"S1",clientId:"C1"},{id:"S2",clientId:"C2"}],plants:[{id:"P1",siteId:"S1"}],equipment:[{id:"E1",plantId:"P1"}],invoices:[{id:"F1",clientId:"C1"}]};
+const docs=a.classifyBatch([{text:"Dichiarazione di conformità",filename:"dico-test.pdf"},{text:"Nota di credito TD04 totale documento 50,00",filename:"td04-test.pdf"}]);
+assert.equal(docs.length,2);assert.equal(docs[0].pdfStored,false);assert.equal(docs[0].status,"DA_VERIFICARE");
+assert.throws(()=>a.classifyBatch(Array(201).fill({text:"x"})));
+const good=a.review(docs[0],{links:{clientId:"C1",siteId:"S1",plantId:"P1",equipmentId:"E1"},operator:"Tecnico TEST"},registry);
+assert.equal(good.status,"PRONTO_PER_CONFERMA");assert.equal(good.validation.ok,true);
+const wrong=a.review(docs[0],{links:{clientId:"C1",siteId:"S2",plantId:"P1"}},registry);
+assert.equal(wrong.status,"DA_VERIFICARE");assert.ok(wrong.validation.issues.some(x=>x.includes("altro cliente")));
+assert.throws(()=>a.approve(wrong,"Tecnico TEST"));
+const confirmed=a.approve(good,"Tecnico TEST");assert.equal(confirmed.status,"CONFERMATO_TEST");assert.equal(docs[0].status,"DA_VERIFICARE");
+assert.equal(a.dossier([confirmed], "C1").count,1);assert.equal(a.dossier([confirmed],"C2").count,0);
+const td=a.review(docs[1],{links:{clientId:"C1",originalInvoiceId:"F1"}},registry);assert.equal(td.validation.ok,true);
+const tdBad=a.review(docs[1],{links:{clientId:"C2",originalInvoiceId:"F1"}},registry);assert.equal(tdBad.validation.ok,false);
+assert.throws(()=>a.review(docs[0],{total:-1},registry));
+console.log("Document workflow 115: OK");
