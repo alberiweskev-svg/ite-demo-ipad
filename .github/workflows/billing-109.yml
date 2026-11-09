@@ -1,0 +1,33 @@
+name: ITE 4.0.109 billing regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-billing-109.js'
+      - 'ite-billing-ui-109.js'
+      - 'test-billing-109.js'
+      - 'ite-service-commerce-108.js'
+      - 'ite-commerce-107.js'
+      - 'ite-workflow-100.js'
+      - 'index.html'
+      - '.github/workflows/billing-109.yml'
+  workflow_dispatch:
+jobs:
+  billing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-billing-109.js
+          node --check ite-billing-ui-109.js
+          node --check test-billing-109.js
+      - name: Synthetic regression
+        run: node test-billing-109.js
+      - name: Demo integration
+        run: |
+          grep -q 'ite-billing-109.js?v=4.0.109' index.html
+          grep -q 'ite-billing-ui-109.js?v=4.0.109' index.html
