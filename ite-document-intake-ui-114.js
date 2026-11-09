@@ -74,3 +74,19 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-commercial-ui-122.js?v=4.0.122";document.head.appendChild(ui);};document.head.appendChild(core);};
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.123: single TEST operations workspace built on 4.0.121 and 4.0.122. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-operations-loader-123"))return;
+ let tries=0;
+ const load=()=>{
+  if(!window.ITE_FieldWorkspace121||!window.ITE_Commercial122){
+   if(++tries<100)setTimeout(load,100);
+   return;
+  }
+  const core=document.createElement("script");core.id="ite-operations-loader-123";core.src="./ite-operations-123.js?v=4.0.123";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-operations-ui-123.js?v=4.0.123";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
