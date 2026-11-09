@@ -1,0 +1,30 @@
+name: ITE document review 4.0.119
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-review-119.js'
+      - 'ite-document-review-ui-119.js'
+      - 'ite-document-intake-ui-114.js'
+      - 'test-document-review-119.js'
+      - '.github/workflows/document-review-119.yml'
+  workflow_dispatch:
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and regressions
+        run: |
+          node --check ite-document-review-119.js
+          node --check ite-document-review-ui-119.js
+          node --check ite-document-intake-ui-114.js
+          node test-document-intake-114.js
+          node test-document-workflow-115.js
+          node test-document-integrity-116.js
+          node test-document-batch-117.js
+          node test-document-pdf-bridge-118.js
+          node test-document-review-119.js
