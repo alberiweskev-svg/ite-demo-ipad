@@ -1,0 +1,23 @@
+name: ITE 4.0.125 Calendar TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-calendar-125.js'
+      - 'ite-calendar-ui-125.js'
+      - 'test-calendar-125.js'
+      - 'ite-document-intake-ui-114.js'
+      - '.github/workflows/calendar-125.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-calendar-125.js && node --check ite-calendar-ui-125.js && node --check ite-document-intake-ui-114.js
+      - run: node test-calendar-125.js
+      - run: node test-audit-124.js
+      - run: node test-operations-123.js
