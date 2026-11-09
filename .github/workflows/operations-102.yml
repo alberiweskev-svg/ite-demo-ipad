@@ -1,0 +1,31 @@
+name: ITE 4.0.102 operations regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-102.js'
+      - 'ite-operations-ui-102.js'
+      - 'ite-workflow-100.js'
+      - 'test-operations-102.js'
+      - 'index.html'
+      - '.github/workflows/operations-102.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-workflow-100.js
+          node --check ite-operations-102.js
+          node --check ite-operations-ui-102.js
+      - name: Lifecycle regression
+        run: node test-operations-102.js
+      - name: Integration check
+        run: |
+          grep -q 'ite-operations-102.js' index.html
+          grep -q 'ite-operations-ui-102.js' index.html
