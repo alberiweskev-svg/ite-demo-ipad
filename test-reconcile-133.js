@@ -1,0 +1,16 @@
+const assert=require("node:assert/strict");
+require("./ite-field-workspace-121.js");require("./ite-commercial-122.js");require("./ite-operations-123.js");require("./ite-audit-124.js");require("./ite-workorders-132.js");
+const O=globalThis.ITE_Operations123,R=require("./ite-reconcile-133.js");
+let s=O.empty();assert.equal(R.reconcile(s).count,0);assert.deepEqual(R.checkLinks(s),[]);
+const add=(type,record)=>s=O.apply(s,{type,record},"TEST");
+add("ADD_CLIENT",{id:"C1",name:"Cliente fittizio"});
+add("ADD_SITE",{id:"S1",clientId:"C1",address:"Via Esempio 1"});
+add("ADD_SYSTEM",{id:"SYS1",siteId:"S1",description:"Impianto TEST"});
+add("ADD_OPERATOR",{id:"OP1",name:"Tecnico TEST"});
+add("SCHEDULE",{id:"A1",clientId:"C1",siteId:"S1",systemId:"SYS1",operatorId:"OP1",startAt:"2026-11-11T09:00",endAt:"2026-11-11T10:00",kind:"MANUTENZIONE"});
+add("ESTIMATE",{id:"P1",clientId:"C1",siteId:"S1",lines:[{id:"L1",type:"POSA",description:"Posa TEST",quantity:1,unitPrice:100,vat:10}]});
+let report=R.reconcile(s);assert.equal(report.count,1);assert.deepEqual(report.jobs[0].reconciliation.siteUnassigned.estimates,["P1"]);assert.equal(report.jobs[0].reconciliation.totals.estimate.gross,0);
+s.commercial.estimates[0].appointmentId="A1";report=R.reconcile(s);assert.equal(report.jobs[0].reconciliation.totals.estimate.gross,110);
+assert.deepEqual(R.checkLinks(s),[]);s.commercial.estimates[0].appointmentId="MISSING";assert.equal(R.checkLinks(s).length,1);
+assert.throws(()=>R.reconcile({...s,revision:-1}),/AUDIT_NON_SUPERATO/);
+console.log("PASS reconciliation 4.0.133");
