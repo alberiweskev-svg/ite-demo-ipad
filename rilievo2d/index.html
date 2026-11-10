@@ -159,7 +159,7 @@ $('bgInput').onchange=e=>{if(e.target.files?.[0])imageImport(e.target.files[0]);
  if(navigator.xr&&secure){try{lines.push('Sessione AR immersiva supportata: '+(await navigator.xr.isSessionSupported('immersive-ar')?'SI (hit-test da verificare)':'NO'))}catch(e){lines.push('Verifica supporto AR: '+e.name)}}else{lines.push('Sessione AR: non verificabile in questo contesto')}
  lines.push('Permessi fotocamera: NON richiesti dal test; usare Scatta foto per prova pratica.');
  lines.push('Quote AR: sempre stimate, verificare con laser.');
- const report=lines.join('\\n');$('deviceReport').textContent=report;return report;
+ const report=lines.join('\n');$('deviceReport').textContent=report;return report;
 }
 $('checkDevice').onclick=()=>deviceDiagnostics();
 $('exportDeviceReport').onclick=async()=>download('ite-rilievo2d-diagnostica.txt',await deviceDiagnostics(),'text/plain;charset=utf-8');
