@@ -309,3 +309,15 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.141: integrated TEST scheduling, free slots and intervention lifecycle. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-calendar-actions-loader-141"))return;
+ let attempts=0;const load=()=>{
+  if(!window.ITE_UnifiedSession129||!window.ITE_Booking126||!window.ITE_Calendar140){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-calendar-actions-loader-141";core.src="./ite-calendar-actions-141.js?v=4.0.141";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-calendar-actions-ui-141.js?v=4.0.141";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
