@@ -1,0 +1,23 @@
+name: Technical reports 4.0.143
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  technical-reports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-technical-reports-143.js
+          node --check ite-technical-reports-ui-143.js
+          node --check ite-document-intake-ui-114.js
+      - name: Tests
+        run: |
+          node test-technical-reports-143.js
+          node test-technical-142.js
+          node test-calendar-actions-141.js
