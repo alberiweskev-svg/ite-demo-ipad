@@ -1,0 +1,21 @@
+name: ITE 4.0.142 technical dossier TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-142.js'
+      - 'ite-technical-ui-142.js'
+      - 'test-technical-142.js'
+      - '.github/workflows/technical-142.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-technical-142.js && node --check ite-technical-ui-142.js
+      - run: node test-technical-142.js
+      - run: node test-calendar-actions-141.js
