@@ -181,3 +181,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.131: synchronized dashboard, read-only on the existing 4.0.129 TEST session. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-dashboard-loader-131"))return;
+ let attempts=0;
+ const load=()=>{
+  if(!window.ITE_UnifiedSession129||!window.ITE_Commercial122){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-dashboard-loader-131";core.src="./ite-dashboard-131.js?v=4.0.131";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-dashboard-ui-131.js?v=4.0.131";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
