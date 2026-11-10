@@ -1,0 +1,27 @@
+name: ITE 4.0.138 CSV hierarchy TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-csv-import-138.js'
+      - 'ite-csv-import-ui-138.js'
+      - 'test-csv-import-138.js'
+      - 'ite-document-intake-ui-114.js'
+      - '.github/workflows/csv-import-138.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: CSV/TSV regression
+        run: |
+          node --check ite-csv-import-138.js
+          node --check ite-csv-import-ui-138.js
+          node --check ite-document-intake-ui-114.js
+          node test-csv-import-138.js
+          node test-table-import-137.js
+          node test-batch-136.js
