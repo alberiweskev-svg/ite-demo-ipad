@@ -1,0 +1,18 @@
+name: Unified TEST 4.0.129
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-unified-129.js && node --check ite-unified-ui-129.js && node --check ite-document-intake-ui-114.js
+      - run: node test-unified-129.js
+      - run: node test-operations-123.js
+      - run: node test-audit-124.js
+      - run: node test-booking-126.js
