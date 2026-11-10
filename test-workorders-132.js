@@ -1,0 +1,11 @@
+const assert=require("node:assert/strict");
+require("./ite-field-workspace-121.js");require("./ite-commercial-122.js");require("./ite-operations-123.js");require("./ite-audit-124.js");
+const W=require("./ite-workorders-132.js"),O=globalThis.ITE_Operations123;
+const empty=O.empty(),v=W.build(empty);
+assert.equal(v.count,0);assert.equal(v.summary.withExtras,0);
+assert.throws(()=>W.build({...empty,revision:7}),/AUDIT_NON_SUPERATO/);
+let s=O.apply(empty,{type:"ADD_CLIENT",record:{id:"C1",name:"Cliente fittizio"}},"TEST");
+s=O.apply(s,{type:"ADD_SITE",record:{id:"S1",clientId:"C1",address:"Via Test 1"}},"TEST");
+assert.equal(W.build(s,{clientId:"C1"}).count,0);
+const snapshot=W.build(s);snapshot.revision=99;assert.notEqual(s.revision,99);
+console.log("PASS workorders 4.0.132");
