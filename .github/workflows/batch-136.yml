@@ -1,0 +1,22 @@
+name: ITE 4.0.136 batch TEST regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check ite-batch-136.js
+          node --check ite-batch-ui-136.js
+          node --check ite-document-intake-ui-114.js
+      - name: Atomic batch and previous commercial review
+        run: |
+          node test-batch-136.js
+          node test-commercial-review-135.js
