@@ -1,0 +1,23 @@
+name: ITE 4.0.139 CSV export TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-csv-roundtrip-139.js'
+      - 'ite-csv-roundtrip-ui-139.js'
+      - 'ite-csv-import-138.js'
+      - 'test-csv-roundtrip-139.js'
+      - '.github/workflows/csv-roundtrip-139.yml'
+  workflow_dispatch:
+jobs:
+  csv-roundtrip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-csv-roundtrip-139.js
+      - run: node --check ite-csv-roundtrip-ui-139.js
+      - run: node test-csv-roundtrip-139.js
+      - run: node test-csv-import-138.js
