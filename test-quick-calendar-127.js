@@ -1,0 +1,18 @@
+const assert=require("node:assert/strict");
+globalThis.ITE_FieldWorkspace121=require("./ite-field-workspace-121.js");
+globalThis.ITE_Commercial122=require("./ite-commercial-122.js");
+globalThis.ITE_Operations123=require("./ite-operations-123.js");
+globalThis.ITE_Audit124=require("./ite-audit-124.js");
+globalThis.ITE_Calendar125=require("./ite-calendar-125.js");
+globalThis.ITE_Booking126=require("./ite-booking-126.js");
+const Q=require("./ite-quick-calendar-127.js"),O=globalThis.ITE_Operations123;
+let s=O.empty();const add=(type,record)=>s=O.apply(s,{type,record},"TEST");
+add("ADD_CLIENT",{id:"c1",name:"Cliente fittizio"});add("ADD_SITE",{id:"s1",clientId:"c1",address:"Via Test 1"});add("ADD_SYSTEM",{id:"sys1",siteId:"s1"});add("ADD_EQUIPMENT",{id:"eq1",systemId:"sys1"});add("ADD_OPERATOR",{id:"op1",name:"Tecnico Test"});
+assert.throws(()=>Q.slots(s,{date:"2026-02-30",operatorId:"op1"}),/DATA_NON_VALIDA/);
+assert.throws(()=>Q.slots(s,{date:"2026-11-10",operatorId:"missing"}),/OPERATORE_NON_VALIDO/);
+let rows=Q.slots(s,{date:"2026-11-10",operatorId:"op1",startHour:9,endHour:11,step:30,duration:60});assert.equal(rows.length,3);assert(rows.every(x=>x.available));
+s=Q.bookSlot(s,{slot:rows[0],id:"a1",clientId:"c1",siteId:"s1",systemId:"sys1",equipmentId:"eq1",operatorId:"op1",kind:"MANUTENZIONE_CALDAIA"},"TEST");
+rows=Q.slots(s,{date:"2026-11-10",operatorId:"op1",startHour:9,endHour:11,step:30,duration:60});assert.deepEqual(rows.map(x=>x.available),[false,false,true]);assert.deepEqual(rows[0].conflicts,["a1"]);
+assert.throws(()=>Q.bookSlot(s,{slot:rows[0],id:"a2"},"TEST"),/FASCIA_OCCUPATA/);
+assert.equal(s.field.catalog.appointments.length,1);
+console.log("Quick calendar 4.0.127: checks OK");
