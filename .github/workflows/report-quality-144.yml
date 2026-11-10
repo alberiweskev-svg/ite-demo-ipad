@@ -1,0 +1,31 @@
+name: ITE 4.0.144 technical quality
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-report-quality-144.js'
+      - 'ite-report-quality-ui-144.js'
+      - 'ite-technical-reports-143.js'
+      - 'ite-technical-reports-ui-143.js'
+      - 'test-report-quality-144.js'
+      - 'test-technical-reports-143.js'
+      - '.github/workflows/report-quality-144.yml'
+  workflow_dispatch:
+jobs:
+  technical-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-report-quality-144.js
+          node --check ite-report-quality-ui-144.js
+          node --check ite-technical-reports-143.js
+          node --check ite-technical-reports-ui-143.js
+      - name: Regression and quality checks
+        run: |
+          node test-technical-reports-143.js
+          node test-report-quality-144.js
