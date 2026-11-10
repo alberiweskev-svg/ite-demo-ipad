@@ -194,3 +194,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.132: read-only TEST work-order dossier in the existing shared demo. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-workorders-loader-132"))return;
+ let tries=0;
+ const load=()=>{
+  if(!window.ITE_UnifiedSession129||!window.ITE_Audit124||!window.ITE_Commercial122){if(++tries<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-workorders-loader-132";core.src="./ite-workorders-132.js?v=4.0.132";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-workorders-ui-132.js?v=4.0.132";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
