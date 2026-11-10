@@ -1,0 +1,23 @@
+name: ITE 4.0.131 dashboard TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and integrated TEST regressions
+        run: |
+          node --check ite-dashboard-131.js
+          node --check ite-dashboard-ui-131.js
+          node --check ite-document-intake-ui-114.js
+          node test-unified-129.js
+          node test-guided-130.js
+          node test-dashboard-131.js
