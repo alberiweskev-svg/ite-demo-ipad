@@ -116,3 +116,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.126: integrated booking and intervention lifecycle, TEST-only. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-booking-loader-126"))return;
+ let attempts=0;
+ const load=()=>{
+  if(!window.ITE_Calendar125||!window.ITE_Operations123||!window.ITE_Audit124){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-booking-loader-126";core.src="./ite-booking-126.js?v=4.0.126";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-booking-ui-126.js?v=4.0.126";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
