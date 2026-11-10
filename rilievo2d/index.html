@@ -37,7 +37,7 @@ const $=id=>document.getElementById(id);
 let project={version:VERSION,name:'Nuovo rilievo di prova',rooms:[],background:null,created:new Date().toISOString()};
 let mode='select',draft=[],calPoints=[],roomId=null,wallIndex=null,openingId=null,drag=null,undo=[],showGrid=true,scale=1,view={x:0,y:0,w:1120,h:810},arSession=null,arHit=null,arSpace=null,arLatest=null,arPoints=[],arOrigin=null,arGL=null,arHitSource=null,cameraStream=null;
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);const round=(n,places=1)=>Math.round(n*10**places)/10**places;const clone=o=>JSON.parse(JSON.stringify(o));const finite=n=>Number.isFinite(n);const hypot=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-function msg(s){$('status').textContent=s}function save(){project.version=VERSION;try{localStorage.setItem(KEY,JSON.stringify(project));$('saveStatus').textContent='Salvato'}catch(e){$('saveStatus').textContent='Memoria piena';msg('Memoria insufficiente: esporta il JSON e libera spazio.')}render()}
+function msg(s){$('status').textContent=s}function save(){project.version=VERSION;try{localStorage.setItem(KEY,JSON.stringify(project));$('saveStatus').textContent='Salvato'}catch(e){$('saveStatus').textContent='Backup necessario';msg('Salvataggio locale non disponibile in questo contesto: esporta il backup JSON.')}render()}
 function checkpoint(){undo.push(clone(project));if(undo.length>30)undo.shift()}
 const aPoly=p=>Math.abs(p.reduce((sum,v,i)=>{let n=p[(i+1)%p.length];return sum+v.x*n.y-n.x*v.y},0))/2;
 const perim=p=>p.reduce((s,v,i)=>s+hypot(v,p[(i+1)%p.length]),0);
