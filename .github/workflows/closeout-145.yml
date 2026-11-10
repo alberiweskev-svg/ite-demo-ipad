@@ -1,0 +1,30 @@
+name: ITE 4.0.145 closeout regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-closeout-145.js'
+      - 'ite-closeout-ui-145.js'
+      - 'test-closeout-145.js'
+      - 'ite-technical-reports-143.js'
+      - 'ite-report-quality-144.js'
+      - 'index.html'
+      - '.github/workflows/closeout-145.yml'
+  workflow_dispatch:
+jobs:
+  closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and integration
+        run: |
+          node --check ite-closeout-145.js
+          node --check ite-closeout-ui-145.js
+          node --check ite-technical-reports-143.js
+          node test-closeout-145.js
+          node test-technical-reports-143.js
+          node test-report-quality-144.js
+          node test-calendar-actions-141.js
