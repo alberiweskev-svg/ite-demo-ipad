@@ -1,0 +1,13 @@
+const assert=require("node:assert/strict");
+const G=require("./ite-guided-130.js"),F=require("./ite-field-workspace-121.js"),C=require("./ite-commercial-122.js"),O=require("./ite-operations-123.js"),A=require("./ite-audit-124.js"),U=require("./ite-unified-129.js");
+globalThis.ITE_FieldWorkspace121=F;globalThis.ITE_Commercial122=C;
+const session=U.create({operations:O,audit:A,booking:{}});const act=(kind,v)=>session.execute(G.command(kind,v,session.get()),"Tecnico TEST");
+assert.throws(()=>G.command("client",{id:"x"},session.get()),/OBBLIGATORIO/);
+act("client",{id:"C1",name:"Cliente TEST"});act("site",{id:"S1",clientId:"C1",address:"Via Fittizia 1"});act("system",{id:"I1",siteId:"S1",description:"Impianto TEST"});act("equipment",{id:"E1",systemId:"I1",model:"Generatore TEST"});act("operator",{id:"O1",name:"Tecnico TEST"});
+assert.throws(()=>G.command("site",{id:"S2",clientId:"NO",address:"x"},session.get()),/COLLEGAMENTO/);
+assert.throws(()=>G.command("appointment",{id:"A0",clientId:"C1",siteId:"S1",systemId:"I1",operatorId:"O1",kind:"manutenzione",startAt:"2026-11-10T10:00",endAt:"2026-11-10T09:00"},session.get()),/FINE_NON_SUCCESSIVA/);
+act("appointment",{id:"A1",clientId:"C1",siteId:"S1",systemId:"I1",equipmentId:"E1",operatorId:"O1",kind:"manutenzione",startAt:"2026-11-10T09:00",endAt:"2026-11-10T10:00"});
+assert.equal(session.get().field.catalog.appointments.length,1);
+assert.throws(()=>act("appointment",{id:"A2",clientId:"C1",siteId:"S1",systemId:"I1",operatorId:"O1",kind:"manutenzione",startAt:"2026-11-10T09:30",endAt:"2026-11-10T10:30"}),/SOVRAPPOSIZIONE/);
+assert.equal(A.audit(session.get()).ok,true);
+console.log("Guided TEST hierarchy and appointments: OK");
