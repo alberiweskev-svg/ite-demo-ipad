@@ -243,3 +243,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.136: atomic TEST batch workflow in the same shared demo; legacy modules untouched. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-batch-loader-136"))return;
+ let attempts=0;
+ const load=()=>{
+  if(!window.ITE_UnifiedSession129||!window.ITE_Audit124||!window.ITE_Operations123){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-batch-loader-136";core.src="./ite-batch-136.js?v=4.0.136";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-batch-ui-136.js?v=4.0.136";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
