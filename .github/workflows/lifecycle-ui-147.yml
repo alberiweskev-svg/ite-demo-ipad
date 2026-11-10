@@ -1,0 +1,31 @@
+name: ITE 4.0.147 lifecycle integrated console
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-lifecycle-146.js'
+      - 'ite-lifecycle-ui-147.js'
+      - 'test-lifecycle-146.js'
+      - 'test-lifecycle-ui-147.js'
+      - 'index.html'
+      - '.github/workflows/lifecycle-ui-147.yml'
+  workflow_dispatch:
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-lifecycle-146.js
+          node --check ite-lifecycle-ui-147.js
+          node --check test-lifecycle-ui-147.js
+      - name: Regression with fictional data
+        run: |
+          node test-lifecycle-146.js
+          node test-lifecycle-ui-147.js
