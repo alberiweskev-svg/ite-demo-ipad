@@ -155,3 +155,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.129: consolidated TEST console; older panels retained for regression. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-unified-loader-129"))return;
+ let attempts=0;
+ const load=()=>{
+  if(!window.ITE_Operations123||!window.ITE_Audit124||!window.ITE_Booking126){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-unified-loader-129";core.src="./ite-unified-129.js?v=4.0.129";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-unified-ui-129.js?v=4.0.129";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
