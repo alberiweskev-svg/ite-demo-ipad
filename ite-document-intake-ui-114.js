@@ -297,3 +297,15 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.140: integrated read-only day/week/month TEST calendar. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-calendar-loader-140"))return;
+ let tries=0;const load=()=>{
+  if(!window.ITE_UnifiedSession129||!window.ITE_Operations123){if(++tries<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-calendar-loader-140";core.src="./ite-calendar-140.js?v=4.0.140";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-calendar-ui-140.js?v=4.0.140";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
