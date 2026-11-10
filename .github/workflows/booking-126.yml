@@ -1,0 +1,32 @@
+name: Booking 4.0.126 TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-booking-126.js'
+      - 'ite-booking-ui-126.js'
+      - 'test-booking-126.js'
+      - 'ite-document-intake-ui-114.js'
+      - '.github/workflows/booking-126.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-booking-126.js
+          node --check ite-booking-ui-126.js
+          node --check ite-document-intake-ui-114.js
+      - name: Integrated regressions
+        run: |
+          node test-field-workspace-121.js
+          node test-commercial-122.js
+          node test-operations-123.js
+          node test-audit-124.js
+          node test-calendar-125.js
+          node test-booking-126.js
