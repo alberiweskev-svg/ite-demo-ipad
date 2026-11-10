@@ -12,5 +12,5 @@ add("ESTIMATE",{id:"P1",clientId:"C1",siteId:"S1",lines:[{id:"L1",type:"POSA",de
 let report=R.reconcile(s);assert.equal(report.count,1);assert.deepEqual(report.jobs[0].reconciliation.siteUnassigned.estimates,["P1"]);assert.equal(report.jobs[0].reconciliation.totals.estimate.gross,0);
 s.commercial.estimates[0].appointmentId="A1";report=R.reconcile(s);assert.equal(report.jobs[0].reconciliation.totals.estimate.gross,110);
 assert.deepEqual(R.checkLinks(s),[]);s.commercial.estimates[0].appointmentId="MISSING";assert.equal(R.checkLinks(s).length,1);
-assert.throws(()=>R.reconcile({...s,revision:-1}),/AUDIT_NON_SUPERATO/);
+assert.throws(()=>R.reconcile({...s,field:{...s.field,catalog:{...s.field.catalog,clients:[]}}}),/AUDIT_NON_SUPERATO/);
 console.log("PASS reconciliation 4.0.133");
