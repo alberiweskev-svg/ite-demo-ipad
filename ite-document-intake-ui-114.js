@@ -321,3 +321,15 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.142: technical dossier, shared TEST session, read-only. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-technical-loader-142"))return;
+ let attempts=0;const load=()=>{
+  if(!window.ITE_UnifiedSession129){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-technical-loader-142";core.src="./ite-technical-142.js?v=4.0.142";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-technical-ui-142.js?v=4.0.142";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
