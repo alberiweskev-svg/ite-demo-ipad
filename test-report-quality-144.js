@@ -1,0 +1,11 @@
+"use strict";
+const assert=require("node:assert/strict"),Q=require("./ite-report-quality-144.js");
+const base={schema:"ITE_OPERATIONS_123",revision:3,field:{catalog:{clients:[{id:"C",name:"Cliente TEST"}],sites:[{id:"S",clientId:"C",address:"Via TEST 1"}],systems:[{id:"I",siteId:"S"}],equipment:[{id:"E",systemId:"I"}],operators:[{id:"O",name:"Operatore TEST"}],appointments:[{id:"A",clientId:"C",siteId:"S",systemId:"I",equipmentId:"E",operatorId:"O",startAt:"2026-11-10T09:00:00",status:"PROGRAMMATO"}]}},technicalReports:[]};
+let a=Q.audit(base);assert.equal(a.summary.ready,0);assert(a.rows[0].warnings.includes("RAPPORTO_ASSENTE"));
+base.technicalReports=[{id:"R",appointmentId:"A",clientId:"C",siteId:"S",systemId:"I",equipmentId:"E",status:"COMPLETATO",notes:"Esito TEST",checks:[{label:"Prova",done:true}],measurements:[{label:"Pressione",value:1.2,unit:"bar"}],attachments:[]}];
+a=Q.audit(base);assert.equal(a.summary.ready,1);assert.equal(a.rows[0].checksDone,1);
+assert.equal(Q.audit(base,{operatorId:"ALTRO"}).summary.total,0);
+base.technicalReports[0].attachments=[{name:"X",type:"FOTO",base64:"fake"}];assert.equal(Q.audit(base).summary.withErrors,1);
+base.technicalReports[0].attachments=[];base.technicalReports[0].notes="<script>alert(1)</script>";assert(!Q.printable(Q.audit(base)).includes("<script>"));
+base.technicalReports.push({id:"ORPHAN",appointmentId:"UNKNOWN"});assert.equal(Q.audit(base).summary.orphan,1);
+console.log("4.0.144 quality gate TEST OK");
