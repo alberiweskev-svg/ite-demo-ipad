@@ -222,3 +222,11 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.134 — document-to-intervention assignment in the shared TEST console. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-document-links-loader-134"))return;
+ const core=document.createElement("script");core.id="ite-document-links-loader-134";core.src="./ite-document-links-134.js";
+ core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-document-links-ui-134.js";document.head.appendChild(ui);};
+ document.head.appendChild(core);
+})();
