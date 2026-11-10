@@ -1,0 +1,20 @@
+name: Lifecycle 4.0.148 regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-lifecycle-146.js'
+      - 'test-lifecycle-148.js'
+      - '.github/workflows/lifecycle-148.yml'
+  workflow_dispatch:
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-lifecycle-146.js
+      - run: node --check test-lifecycle-148.js
+      - run: node test-lifecycle-148.js
