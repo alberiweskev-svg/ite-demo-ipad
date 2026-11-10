@@ -207,3 +207,18 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.133: additive TEST reconciliation in the existing shared demo. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-reconcile-loader-133"))return;
+ let tries=0;
+ const load=()=>{
+  if(!window.ITE_UnifiedSession129||!window.ITE_Audit124||!window.ITE_WorkOrders132||!window.ITE_Commercial122){
+   if(++tries<100)setTimeout(load,100);return;
+  }
+  const core=document.createElement("script");core.id="ite-reconcile-loader-133";core.src="./ite-reconcile-133.js?v=4.0.133";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-reconcile-ui-133.js?v=4.0.133";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
