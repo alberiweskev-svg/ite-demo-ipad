@@ -1,0 +1,18 @@
+"use strict";
+const assert=require("node:assert/strict"),m=require("./ite-commercial-149.js");
+const lines=[{id:"f",kind:"FORNITURA",description:"Rubinetto",quantity:2,unitPrice:50,vatRate:10},{id:"p",kind:"POSA",description:"Installazione",quantity:1,unitPrice:80,vatRate:10},{id:"s",kind:"SMALTIMENTO",description:"Rimozione",quantity:1,unitPrice:20,vatRate:22}];
+assert.deepEqual([m.totals(lines).net,m.totals(lines).vat,m.totals(lines).gross],[200,22.4,222.4]);
+assert.equal(m.totals(lines).byKind.FORNITURA,100);
+assert.throws(()=>m.totals([{...lines[0],vatRate:99}]),/IVA_NON_VALIDA/);
+assert.throws(()=>m.totals([{...lines[0],quantity:-1}]),/QUANTITA_NON_VALIDA/);
+assert.throws(()=>m.totals([lines[0],lines[0]]),/RIGA_NON_VALIDA/);
+assert.deepEqual(m.classifyInvoice({documentType:"TD04",issuerVat:"111",companyVat:"111"}),{direction:"VENDITA",kind:"NOTA_CREDITO",paymentStatus:"DA_RECUPERARE",signedAccountingMultiplier:-1});
+assert.equal(m.classifyInvoice({documentType:"TD01",number:"PR-72",issuerVat:"222",companyVat:"111"}).kind,"PROFORMA");
+assert.equal(m.classifyInvoice({documentType:"TD01",number:"239",issuerVat:"222",companyVat:"111"}).direction,"ACQUISTO");
+const state={schema:"ITE_OPERATIONS_123",revision:1,events:[],field:{catalog:{clients:[{id:"c"}],sites:[{id:"s",clientId:"c"}],appointments:[{id:"a",clientId:"c",siteId:"s"}]}},commercial:{estimates:[],extras:[]}};
+const next=m.saveEstimate(state,{id:"e",clientId:"c",siteId:"s",appointmentId:"a",lines}, "TEST",1);
+assert.equal(state.commercial.estimates.length,0);assert.equal(next.revision,2);assert.equal(next.commercial.estimates[0].totals.gross,222.4);
+assert.equal(m.audit(next).errors.length,0);
+assert.throws(()=>m.saveEstimate(next,{id:"e",clientId:"c",siteId:"s",lines},"TEST",1),/REVISIONE_OBSOLETA/);
+assert.throws(()=>m.saveEstimate(next,{id:"e2",clientId:"c",siteId:"other",lines},"TEST",2),/SEDE_NON_COHERENTE/);
+console.log("Commercial 4.0.149: 12 assertions passed");
