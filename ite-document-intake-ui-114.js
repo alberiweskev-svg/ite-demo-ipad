@@ -269,3 +269,17 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+
+/* 4.0.138 — CSV/TSV hierarchy import in the existing shared TEST session. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-csv-loader-138"))return;
+ let tries=0;
+ const load=()=>{
+  if(!window.ITE_UnifiedSession129||!window.ITE_Batch136||!window.ITE_Operations123||!window.ITE_Audit124){if(++tries<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-csv-loader-138";core.src="./ite-csv-import-138.js?v=4.0.138";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-csv-import-ui-138.js?v=4.0.138";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
