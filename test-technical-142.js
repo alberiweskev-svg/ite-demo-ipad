@@ -1,0 +1,11 @@
+"use strict";
+const assert=require("node:assert/strict"),T=require("./ite-technical-142.js");
+const c={clients:[{id:"C",name:"Cliente TEST"}],sites:[{id:"S",clientId:"C",address:"Via TEST"}],systems:[{id:"I",siteId:"S",description:"Impianto TEST"}],equipment:[{id:"E",systemId:"I",model:"Caldaia TEST"}],operators:[{id:"O",name:"Tecnico TEST"}],appointments:[{id:"A",clientId:"C",siteId:"S",systemId:"I",equipmentId:"E",operatorId:"O",kind:"MANUTENZIONE",status:"PROGRAMMATO",startAt:"2026-11-12T09:00",endAt:"2026-11-12T10:00"},{id:"B",clientId:"C",siteId:"S",systemId:"I",operatorId:"O",kind:"RIPARAZIONE",status:"PROGRAMMATO",startAt:"2026-11-12T09:30",endAt:"2026-11-12T10:30"}],interventions:[]};
+const state={schema:"ITE_OPERATIONS_123",revision:1,field:{catalog:c},commercial:{extras:[{id:"X",appointmentId:"A",approved:{L:1}}],invoices:[{id:"F",appointmentId:"A",type:"VENDITA"}]}};
+let r=T.build(state);assert.equal(r.summary.total,2);assert.equal(r.summary.overlaps,2);assert.deepEqual(r.items[0].conflicts,["B"]);assert.equal(r.items[0].checklist.length,5);assert.equal(r.items[0].extras[0].id,"X");assert.equal(r.items[0].invoices[0].id,"F");assert(r.items[0].warnings.includes("INTERVENTO_NON_AVVIATO"));
+assert.equal(T.build(state,{clientId:"OTHER"}).summary.total,0);
+c.appointments.pop();c.interventions.push({appointmentId:"A",status:"CHIUSO",arrivedAt:"2026-11-12T09:00",leftAt:"2026-11-12T09:45"});
+r=T.build(state);assert.equal(r.summary.ready,1);assert.equal(r.items[0].intervention.status,"CHIUSO");
+c.interventions[0].leftAt="2026-11-12T08:30";assert(T.build(state).items[0].warnings.includes("TEMPI_EFFETTIVI"));
+assert.throws(()=>T.build({}),/STATO_NON_VALIDO/);
+console.log("4.0.142 technical dossier TEST OK");
