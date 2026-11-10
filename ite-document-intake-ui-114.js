@@ -168,3 +168,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.130: guided hierarchy and booking on the existing 4.0.129 shared TEST session. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-guided-loader-130"))return;
+ let attempts=0;
+ const load=()=>{
+  if(!window.ITE_UnifiedSession129){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-guided-loader-130";core.src="./ite-guided-130.js?v=4.0.130";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-guided-ui-130.js?v=4.0.130";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
