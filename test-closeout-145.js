@@ -1,0 +1,15 @@
+"use strict";
+const assert=require("node:assert/strict");
+const C=require("./ite-closeout-145.js");
+const state={schema:"ITE_OPERATIONS_123",revision:4,field:{catalog:{appointments:[{id:"A",status:"IN_CORSO",operatorId:"O",clientId:"C",siteId:"S",systemId:"I",equipmentId:"E"}],interventions:[{appointmentId:"A",status:"APERTO",arrivedAt:"2026-11-10T08:00:00Z"}]}},technicalReports:[{id:"R",appointmentId:"A",status:"COMPLETATO",operatorId:"O",clientId:"C",siteId:"S",systemId:"I",equipmentId:"E",notes:"Esito TEST",checks:[{label:"Prova",done:true}]}]};
+assert.equal(C.inspect(state,"A").ready,true);
+assert.equal(C.audit(state).summary.ready,1);
+let applied=0;const deps={reports:{validate:()=>true},operations:{apply:(s,cmd)=>{applied++;s.revision++;s.field.catalog.appointments[0].status="CHIUSO";return s;}}};
+const n=C.close(state,{appointmentId:"A",departedAt:"2026-11-10T09:00:00Z"},"Operatore TEST",4,deps);
+assert.equal(n.field.catalog.appointments[0].status,"CHIUSO");assert.equal(state.field.catalog.appointments[0].status,"IN_CORSO");assert.equal(applied,1);
+assert.throws(()=>C.close(state,{appointmentId:"A",departedAt:"2026-11-10T09:00:00Z"},"Operatore TEST",3,deps),/REVISIONE_OBSOLETA/);
+assert.throws(()=>C.close(state,{appointmentId:"A",departedAt:"2026-11-10T07:00:00Z"},"Operatore TEST",4,deps),/ORARIO_USCITA/);
+state.technicalReports[0].checks[0].done=false;assert.equal(C.inspect(state,"A").ready,false);
+assert.throws(()=>C.close(state,{appointmentId:"A",departedAt:"2026-11-10T09:00:00Z"},"Operatore TEST",4,deps),/CHIUSURA_BLOCCATA/);
+assert.equal(applied,1);
+console.log("4.0.145 closeout TEST OK");
