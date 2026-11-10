@@ -333,3 +333,15 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.143: editable TEST technical reports on the unified session. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-technical-reports-loader-143"))return;
+ let attempts=0;const load=()=>{
+  if(!window.ITE_UnifiedSession129||!window.ITE_Technical142){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-technical-reports-loader-143";core.src="./ite-technical-reports-143.js?v=4.0.143";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-technical-reports-ui-143.js?v=4.0.143";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
