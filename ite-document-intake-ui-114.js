@@ -283,3 +283,17 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+
+/* 4.0.139: local TEST hierarchy CSV export and round-trip validation. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-csv-export-loader-139"))return;
+ let tries=0;
+ const load=()=>{
+  if(!window.ITE_UnifiedSession129||!window.ITE_CsvImport138){if(++tries<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-csv-export-loader-139";core.src="./ite-csv-roundtrip-139.js?v=4.0.139";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-csv-roundtrip-ui-139.js?v=4.0.139";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
