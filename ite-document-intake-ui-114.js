@@ -230,3 +230,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-document-links-ui-134.js";document.head.appendChild(ui);};
  document.head.appendChild(core);
 })();
+
+/* 4.0.135: commercial TEST review on the shared session; no operational changes. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-commercial-review-loader-135"))return;
+ let attempts=0;
+ const load=()=>{
+  if(!window.ITE_UnifiedSession129||!window.ITE_Audit124||!window.ITE_Commercial122){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-commercial-review-loader-135";core.src="./ite-commercial-review-135.js?v=4.0.135";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-commercial-review-ui-135.js?v=4.0.135";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
