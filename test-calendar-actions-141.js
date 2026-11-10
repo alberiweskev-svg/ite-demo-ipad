@@ -1,0 +1,15 @@
+"use strict";
+const assert=require("node:assert/strict"),A=require("./ite-calendar-actions-141.js");
+const state={schema:"ITE_OPERATIONS_123",field:{catalog:{clients:[{id:"C"}],sites:[{id:"S",clientId:"C"}],systems:[{id:"I",siteId:"S"}],equipment:[{id:"E",systemId:"I"}],operators:[{id:"T"}],appointments:[{id:"A",operatorId:"T",startAt:"2026-11-12T09:00",endAt:"2026-11-12T10:00",status:"PROGRAMMATO"}],interventions:[]}}};
+const r={id:"B",clientId:"C",siteId:"S",systemId:"I",equipmentId:"E",operatorId:"T",kind:"MANUTENZIONE",startAt:"2026-11-12T09:30",endAt:"2026-11-12T10:30"};
+assert.deepEqual(A.validate(state,r).conflicts,["A"]);
+assert.equal(A.validate(state,{...r,startAt:"2026-11-12T10:00",endAt:"2026-11-12T11:00"}).ok,true);
+assert.throws(()=>A.validate(state,{...r,siteId:"X"}),/SEDE_NON_COERENTE/);
+assert.throws(()=>A.validate(state,{...r,equipmentId:"X"}),/APPARECCHIATURA_NON_COERENTE/);
+assert.throws(()=>A.validate(state,{...r,id:"A"}),/ID_GIA_PRESENTE/);
+const free=A.available(state,"T","2026-11-12",9,11,30,30);
+assert.deepEqual(free.map(x=>x.startAt),["2026-11-12T10:00","2026-11-12T10:30"]);
+assert.deepEqual(A.intervention(state,"A").allowed,["ARRIVE"]);
+state.field.catalog.interventions.push({appointmentId:"A",status:"CHIUSO"});
+assert.deepEqual(A.intervention(state,"A").allowed,["REVISE"]);
+console.log("4.0.141 calendar actions TEST OK");
