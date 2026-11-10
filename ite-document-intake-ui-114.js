@@ -129,3 +129,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.127: touch booking from free calendar slots, TEST-only, same demo. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-quick-calendar-loader-127"))return;
+ let attempts=0;
+ const load=()=>{
+  if(!window.ITE_Booking126||!window.ITE_Calendar125||!window.ITE_Audit124){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-quick-calendar-loader-127";core.src="./ite-quick-calendar-127.js?v=4.0.127";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-quick-calendar-ui-127.js?v=4.0.127";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
