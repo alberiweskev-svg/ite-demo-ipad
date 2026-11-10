@@ -14,9 +14,11 @@ function build(state,clientId){
  for(const a of appointments){
   if(ids.has(a.id))issues.push({code:"APPUNTAMENTO_DUPLICATO",appointmentId:a.id});ids.add(a.id);
   const errors=[];
-  if(!siteIds.has(a.siteId))errors.push("SEDE_SCOLLEGATA");
+  if(!sites.some(x=>x.id===a.siteId&&x.clientId===a.clientId))errors.push("SEDE_SCOLLEGATA");
   if(!systemIds.has(a.systemId)||!systems.some(x=>x.id===a.systemId&&x.siteId===a.siteId))errors.push("IMPIANTO_SCOLLEGATO");
-  if(a.equipmentId&&!equipmentIds.has(a.equipmentId))errors.push("APPARECCHIATURA_SCOLLEGATA");
+  if(a.equipmentId&&!equipment.some(x=>x.id===a.equipmentId&&x.systemId===a.systemId))errors.push("APPARECCHIATURA_SCOLLEGATA");
+  if(!Number.isFinite(Date.parse(a.startAt))||!Number.isFinite(Date.parse(a.endAt))||Date.parse(a.endAt)<=Date.parse(a.startAt))errors.push("FASCIA_ORARIA_NON_VALIDA");
+  if(appointments.some(b=>b!==a&&b.operatorId===a.operatorId&&b.status!=="ANNULLATO"&&a.status!=="ANNULLATO"&&Date.parse(b.startAt)<Date.parse(a.endAt)&&Date.parse(a.startAt)<Date.parse(b.endAt)))errors.push("SOVRAPPOSIZIONE_OPERATORE");
   if(!c.operators.some(x=>x.id===a.operatorId))errors.push("OPERATORE_ASSENTE");
   const linked=interventions.filter(x=>x.appointmentId===a.id),linkedReports=reports.filter(x=>x.appointmentId===a.id);
   if(linked.length>1)errors.push("INTERVENTI_MULTIPLI");
@@ -25,7 +27,8 @@ function build(state,clientId){
   if(a.status==="CHIUSO"&&(!intervention||intervention.status!=="CHIUSO"||!intervention.departedAt))errors.push("CHIUSURA_INCOERENTE");
   if(a.status==="CHIUSO"&&(!report||report.status!=="COMPLETATO"))errors.push("RAPPORTO_NON_COMPLETATO");
   if(report&&(report.operatorId!==a.operatorId||report.clientId!==a.clientId||report.siteId!==a.siteId||report.systemId!==a.systemId||s(report.equipmentId)!==s(a.equipmentId)))errors.push("RAPPORTO_SCOLLEGATO");
-  if(intervention?.arrivedAt&&intervention?.departedAt&&Date.parse(intervention.departedAt)<Date.parse(intervention.arrivedAt))errors.push("ORARI_INVERTITI");
+  if(intervention?.arrivedAt&&intervention?.departedAt&&(!Number.isFinite(Date.parse(intervention.arrivedAt))||!Number.isFinite(Date.parse(intervention.departedAt))||Date.parse(intervention.departedAt)<Date.parse(intervention.arrivedAt)))errors.push("ORARI_INVERTITI");
+  if(intervention&&intervention.operatorId&&intervention.operatorId!==a.operatorId)errors.push("OPERATORE_INTERVENTO_DIVERSO");
   if(report?.status==="COMPLETATO"&&(!report.checks?.length||report.checks.some(x=>x.done!==true)))errors.push("CHECKLIST_INCOMPLETA");
   const extras=(state.commercial.extras||[]).filter(x=>x.appointmentId===a.id);
   for(const x of extras)if(x.clientId!==clientId||x.siteId!==a.siteId)errors.push("EXTRA_SCOLLEGATO");
