@@ -142,3 +142,16 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
 })();
+
+/* 4.0.128: TEST-only appointment reschedule/cancel in unified demo. */
+(function(){
+ if(typeof document==="undefined"||document.getElementById("ite-appointment-lifecycle-loader-128"))return;
+ let attempts=0;
+ const load=()=>{
+  if(!window.ITE_Booking126||!window.ITE_Calendar125||!window.ITE_Audit124){if(++attempts<100)setTimeout(load,100);return;}
+  const core=document.createElement("script");core.id="ite-appointment-lifecycle-loader-128";core.src="./ite-appointment-lifecycle-128.js?v=4.0.128";
+  core.onload=()=>{const ui=document.createElement("script");ui.src="./ite-appointment-lifecycle-ui-128.js?v=4.0.128";document.head.appendChild(ui);};
+  document.head.appendChild(core);
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load);else load();
+})();
