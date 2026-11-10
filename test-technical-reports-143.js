@@ -1,0 +1,11 @@
+"use strict";
+const assert=require("node:assert/strict"),R=require("./ite-technical-reports-143.js");
+const state={schema:"ITE_OPERATIONS_123",revision:0,events:[],field:{catalog:{clients:[{id:"C"}],sites:[{id:"S"}],systems:[{id:"I"}],equipment:[],operators:[{id:"O"}],appointments:[{id:"A",clientId:"C",siteId:"S",systemId:"I",equipmentId:"",operatorId:"O",kind:"MANUTENZIONE",status:"PROGRAMMATO"}]}}};
+const record={id:"TR-A",appointmentId:"A",operatorId:"O",kind:"MANUTENZIONE",status:"BOZZA",notes:"TEST",checks:[{label:"Prova",done:false}],measurements:[{label:"Pressione",value:1.5,unit:"bar"}],attachments:[{type:"FOTO",name:"test.jpg"}]};
+let next=R.save(state,record,"Tecnico TEST",0);assert.equal(state.revision,0);assert.equal(next.revision,1);assert.equal(next.technicalReports.length,1);assert.equal(next.events.length,1);assert.equal(next.technicalReports[0].history.length,1);
+assert.throws(()=>R.save(next,record,"Tecnico TEST",0),/REVISIONE_OBSOLETA/);
+assert.throws(()=>R.save(next,{...record,status:"COMPLETATO"},"Tecnico TEST",1),/COMPLETAMENTO_NON_VALIDO/);
+next=R.save(next,{...record,status:"COMPLETATO",checks:[{label:"Prova",done:true}]},"Tecnico TEST",1);assert.equal(next.revision,2);assert.equal(next.technicalReports[0].history.length,2);
+assert.throws(()=>R.save(next,{...record,attachments:[{type:"FOTO",name:"a",data:"base64"}]},"Tecnico TEST",2),/ALLEGATI_NON_VALIDI/);
+assert.throws(()=>R.save(next,{...record,appointmentId:"OTHER"},"Tecnico TEST",2),/APPUNTAMENTO_INESISTENTE/);
+assert(R.validate(next));console.log("4.0.143 technical reports TEST OK");
