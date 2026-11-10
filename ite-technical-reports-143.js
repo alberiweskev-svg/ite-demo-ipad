@@ -28,11 +28,13 @@ function save(state,record,actor,expectedRevision){
  const reports=n.technicalReports||(n.technicalReports=[]),old=reports.find(x=>x.appointmentId===a.id);
  if(old&&record.id!==old.id)throw Error("RAPPORTO_GIA_PRESENTE");
  if(!old&&reports.some(x=>x.id===record.id))throw Error("ID_GIA_PRESENTE");
+ if(old&&old.status==="COMPLETATO"&&record.status!=="COMPLETATO"&&!s(record.reopenReason))throw Error("MOTIVO_RIAPERTURA_OBBLIGATORIO");
  const checks=(record.checks||[]).map(x=>({label:s(x.label).slice(0,100),done:x.done===true}));
  const measurements=(record.measurements||[]).map(x=>({label:s(x.label).slice(0,100),value:Number(x.value),unit:s(x.unit).slice(0,24)}));
+ if((record.attachments||[]).some(x=>x.data!==undefined||x.content!==undefined||x.base64!==undefined||x.bytes!==undefined))throw Error("ALLEGATI_NON_VALIDI");
  const attachments=(record.attachments||[]).map(x=>({name:s(x.name).slice(0,120),type:s(x.type)}));
  const now=new Date().toISOString();
- const r={id:s(record.id),appointmentId:a.id,clientId:a.clientId,siteId:a.siteId,systemId:a.systemId,equipmentId:a.equipmentId||"",operatorId:s(record.operatorId||a.operatorId),kind:s(record.kind||a.kind).toUpperCase(),status:s(record.status||"BOZZA"),notes:s(record.notes).slice(0,5000),additionalWork:s(record.additionalWork).slice(0,2000),checks,measurements,attachments,history:[...(old?.history||[]),{at:now,actor:s(actor),action:old?"AGGIORNAMENTO":"CREAZIONE",previousStatus:old?.status||null}]};
+ const r={id:s(record.id),appointmentId:a.id,clientId:a.clientId,siteId:a.siteId,systemId:a.systemId,equipmentId:a.equipmentId||"",operatorId:s(record.operatorId||a.operatorId),kind:s(record.kind||a.kind).toUpperCase(),status:s(record.status||"BOZZA"),notes:s(record.notes).slice(0,5000),additionalWork:s(record.additionalWork).slice(0,2000),checks,measurements,attachments,history:[...(old?.history||[]),{at:now,actor:s(actor),action:old?"AGGIORNAMENTO":"CREAZIONE",previousStatus:old?.status||null,reopenReason:old?.status==="COMPLETATO"&&record.status!=="COMPLETATO"?s(record.reopenReason).slice(0,500):null}]};
  if(old)reports.splice(reports.indexOf(old),1,r);else reports.push(r);
  validate(n);n.revision++;n.events.push({revision:n.revision,type:old?"UPDATE_TECHNICAL_REPORT":"CREATE_TECHNICAL_REPORT",actor:s(actor),at:now});
  return n;
