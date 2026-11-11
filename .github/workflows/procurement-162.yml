@@ -1,0 +1,31 @@
+name: ITE 4.0.162 procurement regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-procurement-162.js'
+      - 'test-procurement-162.js'
+      - 'ite-inventory-154.js'
+      - 'ite-supplier-import-160.js'
+      - '.github/workflows/procurement-162.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-procurement-162.js
+          node --check test-procurement-162.js
+          node --check ite-inventory-154.js
+          node --check ite-supplier-import-160.js
+      - name: Procurement regression
+        run: node test-procurement-162.js
+      - name: Inventory and supplier regressions
+        run: |
+          node test-inventory-154.js
+          node test-supplier-import-160.js
