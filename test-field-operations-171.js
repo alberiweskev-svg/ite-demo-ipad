@@ -1,0 +1,25 @@
+const assert=require("node:assert/strict");
+const F=require("./ite-field-operations-171.js");
+let s=F.empty();
+function add(k,v){s=F.add(s,s.revision,"tester",k,v).state}
+add("clients",{id:"C1",name:"Cliente Fittizio"});
+add("sites",{id:"S1",clientId:"C1",name:"Sede prova"});
+add("systems",{id:"Y1",siteId:"S1",name:"Riscaldamento"});
+add("equipment",{id:"E1",systemId:"Y1",name:"Caldaia test"});
+add("operators",{id:"T1",name:"Tecnico Test"});
+add("appointments",{id:"A1",clientId:"C1",siteId:"S1",equipmentId:"E1",operatorId:"T1",start:"2026-12-01T08:00:00Z",end:"2026-12-01T09:00:00Z"});
+assert.equal(F.tree(s,"C1").sites[0].systems[0].equipment[0].name,"Caldaia test");
+const original=JSON.stringify(s);
+assert.throws(()=>F.add(s,s.revision,"tester","appointments",{id:"A2",clientId:"C1",siteId:"S1",equipmentId:"E1",operatorId:"T1",start:"2026-12-01T08:30:00Z",end:"2026-12-01T09:30:00Z"}),/TECNICO_OCCUPATO/);
+assert.equal(JSON.stringify(s),original);
+assert.throws(()=>F.add(s,s.revision-1,"tester","clients",{id:"C2",name:"Test"}),/REVISIONE_SCADUTA/);
+s=F.arrive(s,s.revision,"T1","A1","2026-12-01T08:05:00Z").state;
+assert.throws(()=>F.close(s,s.revision,"T1","INT-A1","2026-12-01T07:00:00Z"),/ORARIO_NON_VALIDO/);
+s=F.close(s,s.revision,"T1","INT-A1","2026-12-01T08:50:00Z",["Controllo aggiuntivo"]).state;
+assert.equal(s.interventions[0].durationMinutes,45);
+s=F.reopen(s,s.revision,"tester","INT-A1","Correzione rapporto").state;
+s=F.close(s,s.revision,"T1","INT-A1","2026-12-01T09:00:00Z").state;
+assert.equal(s.interventions[0].history.length,4);
+assert.equal(s.interventions.length,1);
+assert.equal(s.interventions[0].extraWorks.length,1);
+console.log("PASS 4.0.171 field operations: hierarchy, collision, revision, arrival, close, reopen, audit");
