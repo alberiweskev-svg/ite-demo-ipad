@@ -1,0 +1,18 @@
+"use strict";
+const assert=require("node:assert/strict"),R=require("./ite-reconciliation-152.js");
+const state={schema:"ITE_OPERATIONS_123",revision:1,events:[],commercial:{estimates:[{id:"Q",clientId:"C",siteId:"S",appointmentId:"A",status:"ACCETTATO",totals:{gross:220},lines:[{id:"X:L1"}]}],extras:[{id:"X",approvedLineIds:["L1","L2"]}],invoices:[{id:"I",kind:"FATTURA",direction:"VENDITA",clientId:"C",siteId:"S",appointmentId:"A",gross:110},{id:"N",kind:"NOTA_CREDITO",direction:"VENDITA",clientId:"C",siteId:"S",appointmentId:"A",gross:40},{id:"P",kind:"PROFORMA",direction:"VENDITA",clientId:"C",siteId:"S",gross:50}]}};
+const a=R.allocate(state,{id:"AL1",invoiceId:"I",estimateId:"Q",amount:100},"TECNICO TEST",1);
+assert.equal(state.commercial.allocations,undefined);
+assert.equal(a.revision,2);
+assert.equal(R.reconcile(a).estimates[0].remaining,120);
+assert.throws(()=>R.allocate(a,{id:"AL2",invoiceId:"I",estimateId:"Q",amount:11},"TEST",2),/FATTURA_SUPERATA/);
+assert.throws(()=>R.allocate(a,{id:"AL2",invoiceId:"P",estimateId:"Q",amount:10},"TEST",2),/PROFORMA_NON_CONTABILIZZABILE/);
+assert.throws(()=>R.allocate(a,{id:"AL2",invoiceId:"N",estimateId:"Q",amount:101},"TEST",2),/FATTURA_SUPERATA/);
+const b=R.allocate(a,{id:"AL2",invoiceId:"N",estimateId:"Q",amount:40},"TEST",2);
+assert.equal(R.reconcile(b).estimates[0].netInvoiced,60);
+assert.equal(R.extraCoverage(b).rows[0].unquoted[0],"L2");
+assert.throws(()=>R.allocate(b,{id:"AL2",invoiceId:"I",estimateId:"Q",amount:1},"TEST",3),/ALLOCAZIONE_DUPLICATA/);
+assert.throws(()=>R.allocate(b,{id:"AL3",invoiceId:"I",estimateId:"Q",amount:1},"TEST",2),/REVISIONE_OBSOLETA/);
+const corrupt=structuredClone(b);corrupt.commercial.allocations.push({...corrupt.commercial.allocations[0]});
+assert(R.reconcile(corrupt).errors.some(x=>x.code==="ALLOCAZIONE_DUPLICATA"));
+console.log("4.0.152 reconciliation regression passed");
