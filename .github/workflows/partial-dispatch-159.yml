@@ -1,0 +1,17 @@
+name: ITE 4.0.159 partial dispatch regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-partial-dispatch-159.js
+      - run: node test-inventory-154.js && node test-material-planning-156.js && node test-dispatch-158.js && node test-partial-dispatch-159.js
