@@ -1,0 +1,26 @@
+/* Regression 4.0.161: only synthetic records. Run: node test-supplier-import-161.js */
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs");
+const M=require("./ite-supplier-import-160.js"),I=require("./ite-inventory-154.js");
+const html=fs.readFileSync("index.html","utf8"),ui=fs.readFileSync("ite-supplier-import-ui-161.js","utf8");
+assert.match(html,/ite-supplier-import-160\.js/);assert.match(html,/ite-supplier-import-ui-161\.js/);
+assert.ok(html.indexOf("ite-inventory-ui-155.js")<html.indexOf("ite-supplier-import-160.js"));
+assert.ok(html.indexOf("ite-supplier-import-160.js")<html.indexOf("ite-supplier-import-ui-161.js"));
+assert.match(ui,/ITE_UnifiedSession129/);assert.match(ui,/S\.restore/);assert.match(ui,/M\.preview/);assert.match(ui,/M\.receiveDelivery/);assert.match(ui,/file\.size>2000000/);
+const csv='codice;descrizione;prezzo;iva;um\nA-1;"Valvola, prova";12,50;22;pz\nB-2;Tubo TEST;4,00;10;m\n';
+const p=M.preview(csv);assert.equal(p.valid,true);assert.equal(p.rows.length,2);assert.equal(p.rows[0].unitPrice,12.5);
+assert.equal(M.preview('codice;descrizione;prezzo\nX;Test;5\nX;Test;6').valid,false);
+assert.throws(()=>M.preview('codice;descrizione;prezzo\nX;"unclosed;5'));
+let s={schema:"ITE_OPERATIONS_123",revision:0,events:[],commercial:{estimates:[]},inventory:{items:[],movements:[],reservations:[]}};
+const initial=JSON.stringify(s);
+const imported=M.importCatalog(s,p,"Operatore TEST",0,"LIST-TEST-001");s=imported.state;
+assert.equal(JSON.stringify({schema:"ITE_OPERATIONS_123",revision:0,events:[],commercial:{estimates:[]},inventory:{items:[],movements:[],reservations:[]}}),initial);
+assert.equal(imported.created,2);assert.equal(I.overview(s).items.length,2);
+assert.throws(()=>M.importCatalog(s,p,"Operatore TEST",s.revision,"LIST-TEST-001"),/DUPLICATA/);
+assert.throws(()=>M.importCatalog(s,p,"Operatore TEST",0,"LIST-TEST-002"),/OBSOLETA/);
+const d={reference:"BOLLA-TEST-001",lines:[{itemId:s.inventory.items[0].id,quantity:3},{itemId:s.inventory.items[1].id,quantity:2}]};
+const before=JSON.stringify(s),next=M.receiveDelivery(s,d,"Operatore TEST",s.revision);
+assert.equal(JSON.stringify(s),before);assert.equal(I.overview(next).items[0].onHand,3);assert.equal(I.overview(next).items[1].onHand,2);
+assert.throws(()=>M.receiveDelivery(next,d,"Operatore TEST",next.revision),/DUPLICATO/);
+assert.throws(()=>M.receiveDelivery(s,{reference:"BAD",lines:[{itemId:"missing",quantity:1}]},"Operatore TEST",s.revision));
+console.log("PASS supplier import 4.0.161: integration, CSV, atomic import, delivery, duplicates, revisions");
