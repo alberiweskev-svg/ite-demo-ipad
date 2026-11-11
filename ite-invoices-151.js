@@ -21,13 +21,13 @@ function saveDocument(state,doc,actor,revision,companyVat){
  if(!s(actor))throw Error("OPERATORE_OBBLIGATORIO");
  const d=normalizeDocument(doc,companyVat);
  if(d.clientId)C.validateLinks(state,d.clientId,d.siteId,d.appointmentId);
- if(!Array.isArray(state.commercial?.invoices)||!Array.isArray(state.events))throw Error("ARCHIVIO_FATTURE_ASSENTE");
- const next=cp(state),arr=next.commercial.invoices,idx=arr.findIndex(x=>x.id===d.id);
+ if(!state.commercial||!Array.isArray(state.events))throw Error("ARCHIVIO_FATTURE_ASSENTE");
+ const next=cp(state);if(!Array.isArray(next.commercial.invoices))next.commercial.invoices=[];const arr=next.commercial.invoices,idx=arr.findIndex(x=>x.id===d.id);
  if(arr.some(x=>x.id!==d.id&&x.number===d.number&&x.issuerVat===d.issuerVat&&x.documentDate===d.documentDate&&x.kind===d.kind))throw Error("DOCUMENTO_DUPLICATO");
  const previous=idx<0?null:arr[idx];
  if(previous&&(previous.kind!==d.kind||previous.direction!==d.direction))throw Error("CLASSIFICAZIONE_IMMUTABILE");
  if(previous?.kind==="NOTA_CREDITO"&&previous.recoveryStatus==="RECUPERATA"&&d.recoveryStatus!=="RECUPERATA")throw Error("RECUPERO_FINALIZZATO");
- if(idx<0)arr.push(d);else arr[idx]=d;
+ if(previous?.kind==="NOTA_CREDITO"){d.recoveredAmount=previous.recoveredAmount||0;if(d.recoveredAmount>0&&d.recoveryStatus==="DA_RECUPERARE")throw Error("RECUPERO_INCOERENTE");}if(idx<0)arr.push(d);else arr[idx]=d;
  next.revision++;next.events.push({revision:next.revision,type:previous?"UPDATE_INVOICE":"CREATE_INVOICE",actor:s(actor),documentId:d.id,at:new Date().toISOString()});
  return next;
 }
