@@ -15,10 +15,24 @@
 #wizardNav{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:10px 13px;background:#e5eee9;border-bottom:1px solid var(--line)}
 #wizardNav .row button{min-height:38px}body.wizard-home .wrap,body.wizard-home #wizardNav{display:none!important}body:not(.wizard-home) #wizardHome{display:none!important}
 body.wizard-step .sidebar>section{display:none!important}body.wizard-step .sidebar>section.wizard-visible{display:block!important}
-body.wizard-setup .workspace,body.wizard-acquisition .workspace{display:none!important}
-body.wizard-setup .wrap,body.wizard-acquisition .wrap{display:block;max-width:750px;margin:auto;min-height:0}
-body.wizard-setup .sidebar,body.wizard-acquisition .sidebar{max-height:none}
+body.wizard-setup .workspace{display:none!important}
+body.wizard-setup .wrap{display:block;max-width:750px;margin:auto;min-height:0}
+body.wizard-setup .sidebar{max-height:none}
 @media(max-width:840px){#wizardHome{min-height:calc(100dvh - 55px)}#wizardHome .homeCard{padding:20px}#wizardNav{position:sticky;top:0;z-index:8}}
+
+/* Barra orizzontale: tutte le sezioni di lavoro chiuse quando si entra nel progetto */
+#workTabs{display:none;gap:7px;align-items:center;flex-wrap:wrap;padding:10px 12px;background:#fff;border-bottom:1px solid var(--line)}
+#workTabs button{flex:1 1 165px;min-height:46px;font-size:13px}
+#workTabs button.active{background:var(--green);color:#fff;border-color:var(--green)}
+#workTabs #toggleTools{flex:0 0 auto;min-width:115px}
+body.wizard-tools #workTabs{display:flex}
+body.wizard-tools .wrap{display:flex;flex-direction:column;gap:8px;max-width:1400px;margin:0 auto;min-height:0}
+body.wizard-tools .sidebar{width:100%;max-height:none;overflow:visible;padding:0}
+body.wizard-tools .sidebar>section{max-width:100%;margin:0}
+body.wizard-tools .workspace{width:100%}
+body.wizard-tools.tools-closed .sidebar{display:none}
+body.wizard-tools .canvas-wrap{min-height:460px}
+@media(max-width:840px){#workTabs{gap:5px;padding:7px}#workTabs button{flex:1 1 43%;min-height:44px;padding:8px;font-size:12px}#workTabs #toggleTools{flex:1 1 100%}body.wizard-tools .canvas-wrap{min-height:390px}}
 </style>
 </head>
 <body>
@@ -26,6 +40,7 @@ body.wizard-setup .sidebar,body.wizard-acquisition .sidebar{max-height:none}
 
 <section id="wizardHome" aria-label="Pagina iniziale Rilievo 2D"><div class="homeCard"><h1>I.T.E. · Rilievo 2D</h1><p class="muted">Scegli come iniziare. Gli strumenti si aprono soltanto nella fase in cui servono.</p><div class="homeActions"><button id="wizardNew" class="primary">+ Nuovo progetto</button><button id="wizardExisting">Progetti già avviati</button></div><div id="wizardSaved" class="hidden" style="margin-top:18px"><h2 style="font-size:17px">Progetti salvati su questo dispositivo</h2><div id="wizardSavedList"></div><p class="caption">I progetti sono conservati nel browser in uso. Per sicurezza esporta un backup JSON; non c'è sincronizzazione tra dispositivi.</p><label class="field"><span>Apri un backup JSON esterno</span><input id="wizardImport" type="file" accept=".json,application/json"></label></div></div></section>
 <nav id="wizardNav" aria-label="Navigazione rilievo"><div class="row"><button id="wizardBackHome">← Progetti</button><strong id="wizardStepTitle">Nuovo progetto</strong></div><div class="row"><button id="wizardPrev">← Indietro</button><button id="wizardNext" class="primary">Avanti →</button></div></nav>
+<nav id="workTabs" aria-label="Sezioni operative del rilievo"><button type="button" data-workstep="1">1 · Acquisizione</button><button type="button" data-workstep="2">2 · Disegna e controlla</button><button type="button" data-workstep="3">3 · Pareti e aperture</button><button type="button" data-workstep="4">4 · Salvataggio ed esportazione</button><button type="button" id="toggleTools" aria-expanded="false">▼ Mostra pannello</button></nav>
 <div class="wrap">
 <aside class="sidebar">
 <section class="panel"><h2>Cantiere</h2><label class="field"><span>Nome del rilievo</span><input id="projectName" placeholder="Es. Appartamento di prova"></label><div class="row"><button id="newProject">Nuovo rilievo</button><button id="demoProject">Esempio</button><span class="tag" id="saveStatus">Salvataggio locale</span></div><p class="caption">Le misure devono essere controllate prima di utilizzarle per progettazione, preventivi o documenti tecnici.</p></section>
@@ -270,19 +285,23 @@ try{let prev=JSON.parse(localStorage.getItem(KEY)||'null');if(validBackup(prev))
 window.ite2DTest={get:()=>clone(project),set:(p)=>{project=clone(p);save();fit()},newRoom,polygonValid,validBackup,area:aPoly,perimeter:perim,dxf,exportSVG,closePolygon,hit,polygonIntersects:segmentIntersection,screenPoint,version:VERSION};
 
 // Percorso guidato: non sostituisce gli strumenti di disegno preesistenti.
-const WIZARD_STEPS=[{name:'Dati progetto',className:'wizard-setup',sections:[0]},{name:'Acquisizione e rilievo',className:'wizard-acquisition',sections:[1,2,3]},{name:'Disegno e mano libera',className:'wizard-draw',sections:[4]},{name:'Pareti, porte e finestre',className:'wizard-walls',sections:[4,5]},{name:'Verifica ed esportazione',className:'wizard-export',sections:[6,7]}];
+const WIZARD_STEPS=[{name:'Dati progetto',className:'wizard-setup',sections:[0]},{name:'Acquisizione e rilievo',className:'wizard-acquisition',sections:[1,2,3]},{name:'Disegno e mano libera',className:'wizard-draw',sections:[4]},{name:'Pareti, porte e finestre',className:'wizard-walls',sections:[5]},{name:'Verifica ed esportazione',className:'wizard-export',sections:[6,7]}];
 let wizardStep=-1;
 const WIZARD_INDEX='ite-rilievo2d-project-index-v1',WIZARD_PREFIX='ite-rilievo2d-project-';
 function wizardIndex(){try{const x=JSON.parse(localStorage.getItem(WIZARD_INDEX)||'[]');return Array.isArray(x)?x.filter(v=>typeof v==='string').slice(0,80):[]}catch(e){return []}}
 function storeProjectCopy(){if(!project.id)project.id=uid();const ids=wizardIndex().filter(v=>v!==project.id);ids.unshift(project.id);localStorage.setItem(WIZARD_PREFIX+project.id,JSON.stringify(project));localStorage.setItem(WIZARD_INDEX,JSON.stringify(ids.slice(0,80)))}
-function wizardShow(step){wizardStep=step;document.body.classList.remove('wizard-home','wizard-step',...WIZARD_STEPS.map(x=>x.className));if(step<0){document.body.classList.add('wizard-home');wizardList();return;}document.body.classList.add('wizard-step',WIZARD_STEPS[step].className);document.querySelectorAll('.sidebar>section').forEach((el,i)=>el.classList.toggle('wizard-visible',WIZARD_STEPS[step].sections.includes(i)));$('wizardStepTitle').textContent=(step+1)+' / '+WIZARD_STEPS.length+' · '+WIZARD_STEPS[step].name;$('wizardPrev').disabled=step===0;$('wizardNext').textContent=step===WIZARD_STEPS.length-1?'Torna ai progetti':'Avanti →';if(step>=2){requestAnimationFrame(()=>{render();fit()})}window.scrollTo(0,0)}
-function wizardList(){const list=$('wizardSavedList');list.replaceChildren();const ids=wizardIndex();let count=0;for(const id of ids){let p;try{p=JSON.parse(localStorage.getItem(WIZARD_PREFIX+id)||'null')}catch(e){}if(!validBackup(p))continue;count++;const b=document.createElement('button');b.className='savedItem';const title=document.createElement('strong');title.textContent=p.name||'Progetto senza nome';const sm=document.createElement('small');sm.textContent=(p.rooms?.length||0)+' ambienti · '+(p.created?new Date(p.created).toLocaleDateString('it-IT'):'data non disponibile');b.append(title,sm);b.onclick=()=>{project=p;roomId=null;wallIndex=null;openingId=null;undo=[];draft=[];$('projectName').value=project.name;save();wizardShow(2);msg('Progetto ripreso dal salvataggio locale.')};list.append(b)}if(!count){const p=document.createElement('p');p.className='caption';p.textContent='Nessun progetto salvato in questo browser.';list.append(p)}}
+let toolsExpanded=false;
+function updateTools(){const on=wizardStep>0;document.body.classList.toggle('wizard-tools',on);document.body.classList.toggle('tools-closed',on&&!toolsExpanded);document.querySelectorAll('[data-workstep]').forEach(b=>{const selected=Number(b.dataset.workstep)===wizardStep;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected))});$('toggleTools').textContent=toolsExpanded?'▲ Nascondi pannello':'▼ Mostra pannello';$('toggleTools').setAttribute('aria-expanded',String(on&&toolsExpanded))}
+function wizardShow(step,openPanel=false){wizardStep=step;toolsExpanded=step===0||openPanel;document.body.classList.remove('wizard-home','wizard-step',...WIZARD_STEPS.map(x=>x.className));if(step<0){document.body.classList.add('wizard-home');updateTools();wizardList();return;}document.body.classList.add('wizard-step',WIZARD_STEPS[step].className);document.querySelectorAll('.sidebar>section').forEach((el,i)=>el.classList.toggle('wizard-visible',WIZARD_STEPS[step].sections.includes(i)));$('wizardStepTitle').textContent=(step+1)+' / '+WIZARD_STEPS.length+' · '+WIZARD_STEPS[step].name;$('wizardPrev').disabled=step===0;$('wizardNext').textContent=step===WIZARD_STEPS.length-1?'Torna ai progetti':'Avanti →';updateTools();if(step>=1){requestAnimationFrame(()=>{render();fit()})}window.scrollTo(0,0)}
+document.querySelectorAll('[data-workstep]').forEach(b=>b.onclick=()=>{const step=Number(b.dataset.workstep);if(step===wizardStep){toolsExpanded=!toolsExpanded;updateTools()}else wizardShow(step,true)});
+$('toggleTools').onclick=()=>{toolsExpanded=!toolsExpanded;updateTools()};
+function wizardList(){const list=$('wizardSavedList');list.replaceChildren();const ids=wizardIndex();let count=0;for(const id of ids){let p;try{p=JSON.parse(localStorage.getItem(WIZARD_PREFIX+id)||'null')}catch(e){}if(!validBackup(p))continue;count++;const b=document.createElement('button');b.className='savedItem';const title=document.createElement('strong');title.textContent=p.name||'Progetto senza nome';const sm=document.createElement('small');sm.textContent=(p.rooms?.length||0)+' ambienti · '+(p.created?new Date(p.created).toLocaleDateString('it-IT'):'data non disponibile');b.append(title,sm);b.onclick=()=>{project=p;roomId=null;wallIndex=null;openingId=null;undo=[];draft=[];$('projectName').value=project.name;save();wizardShow(1);msg('Progetto ripreso dal salvataggio locale.')};list.append(b)}if(!count){const p=document.createElement('p');p.className='caption';p.textContent='Nessun progetto salvato in questo browser.';list.append(p)}}
 $('wizardNew').onclick=()=>{const old=project;project={id:uid(),version:VERSION,name:'Nuovo progetto',rooms:[],background:null,created:new Date().toISOString()};roomId=null;wallIndex=null;openingId=null;undo=[];draft=[];$('projectName').value=project.name;if(!save()){project=old;return;}wizardShow(0);msg('Inserisci il nome del nuovo progetto.')};
 $('wizardExisting').onclick=()=>$('wizardSaved').classList.toggle('hidden');
 $('wizardBackHome').onclick=()=>wizardShow(-1);
 $('wizardPrev').onclick=()=>wizardShow(Math.max(0,wizardStep-1));
 $('wizardNext').onclick=()=>wizardShow(wizardStep>=WIZARD_STEPS.length-1?-1:wizardStep+1);
-$('wizardImport').onchange=e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>8*1024*1024){alert('Backup troppo grande: massimo 8 MB.');return;}const r=new FileReader();r.onload=()=>{try{const p=JSON.parse(r.result);if(!validBackup(p))throw Error('Formato non valido');project={...p,id:uid(),version:VERSION};roomId=null;wallIndex=null;openingId=null;undo=[];$('projectName').value=project.name;if(!save())throw Error('Salvataggio locale non riuscito');wizardShow(2)}catch(err){alert('Impossibile aprire il backup: '+err.message)}};r.readAsText(file);e.target.value=''};
+$('wizardImport').onchange=e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>8*1024*1024){alert('Backup troppo grande: massimo 8 MB.');return;}const r=new FileReader();r.onload=()=>{try{const p=JSON.parse(r.result);if(!validBackup(p))throw Error('Formato non valido');project={...p,id:uid(),version:VERSION};roomId=null;wallIndex=null;openingId=null;undo=[];$('projectName').value=project.name;if(!save())throw Error('Salvataggio locale non riuscito');wizardShow(1)}catch(err){alert('Impossibile aprire il backup: '+err.message)}};r.readAsText(file);e.target.value=''};
 // Preserva anche i rilievi creati con la versione precedente, senza cancellarli.
 if(!project.id)project.id=uid();try{storeProjectCopy()}catch(e){console.warn('Archivio progetti non disponibile:',e)}
 wizardShow(-1);
