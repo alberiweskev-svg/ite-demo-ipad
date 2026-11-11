@@ -1,0 +1,23 @@
+/* Milestone 4.0.162 — synthetic-only regression tests. Run: node test-procurement-162.js */
+"use strict";
+const assert=require("node:assert/strict");
+const I=require("./ite-inventory-154.js"),P=require("./ite-procurement-162.js");
+let s={schema:"ITE_OPERATIONS_123",revision:0,events:[],commercial:{estimates:[{id:"E-TEST",status:"ACCETTATO",siteId:"S-TEST",lines:[{id:"L1",kind:"FORNITURA",itemId:"A",quantity:8},{id:"L2",kind:"POSA",itemId:"A",quantity:99}]}]},inventory:{items:[],movements:[],reservations:[]}};
+const original=JSON.stringify(s);
+s=I.item(s,{id:"A",code:"A-TEST",description:"Tubo fittizio",unitPrice:3,vatRate:22},"TEST",s.revision);
+s=I.movement(s,{id:"IN-TEST",itemId:"A",direction:"IN",quantity:3},"TEST",s.revision);
+let p=P.requirements(s,["E-TEST"]);assert.equal(p.rows.length,1);assert.equal(p.rows[0].toOrder,5);assert.equal(p.rows[0].required,8);
+assert.equal(P.audit(s).ok,true);
+assert.throws(()=>P.receiveAgainstPlan(s,p,{reference:"B-TEST",lines:[{itemId:"A",quantity:6}]},"TEST",s.revision),/QUANTITA_SUPERA_FABBISOGNO/);
+assert.throws(()=>P.receiveAgainstPlan(s,p,{reference:"B-TEST",lines:[{itemId:"A",quantity:1}]},"TEST",s.revision+1),/REVISIONE_OBSOLETA/);
+assert.throws(()=>P.receiveAgainstPlan(s,p,{reference:"B-TEST",lines:[{itemId:"UNKNOWN",quantity:1}]},"TEST",s.revision),/ARTICOLO_FUORI_PIANO/);
+assert.throws(()=>P.requirements(s,["E-TEST","E-TEST"]),/PREVENTIVI_NON_VALIDI/);
+const before=JSON.stringify(s);
+const receipt=P.receiveAgainstPlan(s,p,{reference:"B-TEST",lines:[{itemId:"A",quantity:5}]},"TEST",s.revision);
+assert.equal(JSON.stringify(s),before,"Input state must not mutate");
+assert.equal(receipt.remaining.rows[0].toOrder,0);
+assert.equal(I.overview(receipt.state).items[0].onHand,8);
+assert(receipt.state.events.some(e=>e.type==="PROCUREMENT_RECEIPT_162"));
+assert.throws(()=>P.receiveAgainstPlan(receipt.state,p,{reference:"B-TEST",lines:[{itemId:"A",quantity:1}]},"TEST",receipt.state.revision),/REVISIONE_OBSOLETA/);
+assert.equal(JSON.parse(original).revision,0);
+console.log("Milestone 4.0.162 procurement tests passed");
