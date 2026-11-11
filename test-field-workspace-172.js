@@ -1,0 +1,16 @@
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const F=require("./ite-field-operations-171.js");
+const ui=fs.readFileSync("ite-field-workspace-ui-172.js","utf8");
+assert.match(ui,/ITE_FieldOperations171/);
+for(const x of ["clients","sites","systems","equipment","operators","appointments","arrive","close","reopen","textContent","addEventListener"])assert.ok(ui.includes(x),x);
+assert.ok(!/localStorage|sessionStorage|fetch\(|innerHTML|XMLHttpRequest/.test(ui),"No persistent or remote writes / HTML injection");
+let s=F.empty();const add=(k,v)=>s=F.add(s,s.revision,"TEST",k,v).state;
+add("clients",{id:"C",name:"Fittizio"});add("sites",{id:"S",name:"Sede",clientId:"C"});add("systems",{id:"Y",name:"Idrico",siteId:"S"});add("equipment",{id:"E",name:"Generatore",systemId:"Y"});add("operators",{id:"O",name:"Tecnico"});
+add("appointments",{id:"A",clientId:"C",siteId:"S",equipmentId:"E",operatorId:"O",start:"2026-12-03T08:00:00Z",end:"2026-12-03T09:00:00Z"});
+s=F.arrive(s,s.revision,"O","A","2026-12-03T08:10:00Z").state;
+s=F.close(s,s.revision,"O","INT-A","2026-12-03T09:00:00Z",["Extra prova"]).state;
+s=F.reopen(s,s.revision,"TEST","INT-A","Correzione").state;
+assert.equal(F.tree(s,"C").sites[0].systems[0].equipment[0].interventions.length,1);
+assert.equal(s.interventions[0].history.length,3);
+console.log("PASS 4.0.172: UI contract and field lifecycle");
