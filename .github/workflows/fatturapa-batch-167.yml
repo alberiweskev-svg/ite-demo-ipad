@@ -1,0 +1,23 @@
+name: ITE 4.0.167 XML batch smoke
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-fatturapa-batch-167.js'
+      - 'ite-fatturapa-batch-ui-167.js'
+      - 'test-fatturapa-batch-167.js'
+      - 'index.html'
+      - '.github/workflows/fatturapa-batch-167.yml'
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-fatturapa-batch-167.js && node --check ite-fatturapa-batch-ui-167.js
+      - run: node test-fatturapa-batch-167.js
+      - run: node test-fatturapa-166.js
+      - run: node test-document-batch-165.js
