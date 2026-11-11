@@ -1,0 +1,16 @@
+name: Field operations 4.0.171
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-field-operations-171.js', 'test-field-operations-171.js', '.github/workflows/field-operations-171.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-field-operations-171.js
+      - run: node test-field-operations-171.js
