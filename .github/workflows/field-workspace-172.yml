@@ -1,0 +1,23 @@
+name: ITE 4.0.172 field workspace regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-field-operations-171.js'
+      - 'ite-field-workspace-ui-172.js'
+      - 'test-field-operations-171.js'
+      - 'test-field-workspace-172.js'
+      - 'index.html'
+      - '.github/workflows/field-workspace-172.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-field-operations-171.js && node --check ite-field-workspace-ui-172.js
+      - run: node test-field-operations-171.js && node test-field-workspace-172.js
+      - run: node -e "const s=require('fs').readFileSync('index.html','utf8'); if(!s.includes('ite-field-workspace-ui-172.js')||!s.includes('ite-field-operations-171.js'))process.exit(1)"
