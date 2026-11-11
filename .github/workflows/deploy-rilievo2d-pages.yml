@@ -1,0 +1,46 @@
+name: Pubblica I.T.E. Rilievo 2D (collaudo)
+
+on:
+  push:
+    branches:
+      - collaudo-ite-rilievo-2d-0.3.0
+    paths:
+      - 'rilievo2d/**'
+      - '.github/workflows/deploy-rilievo2d-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-rilievo2d-collaudo
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/collaudo-ite-rilievo-2d-0.3.0'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Scarica il ramo di collaudo
+        uses: actions/checkout@v4
+      - name: Verifica e prepara solo il programma 2D
+        shell: bash
+        run: |
+          test -s rilievo2d/index.html
+          mkdir -p _site
+          cp rilievo2d/index.html _site/index.html
+          touch _site/.nojekyll
+      - name: Configura GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Carica il sito 2D
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Pubblica Rilievo 2D
+        id: deployment
+        uses: actions/deploy-pages@v4
