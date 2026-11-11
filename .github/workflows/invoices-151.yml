@@ -1,0 +1,22 @@
+name: ITE 4.0.151 invoice register regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-invoices-151.js'
+      - 'ite-invoices-ui-151.js'
+      - 'ite-commercial-149.js'
+      - 'test-invoices-151.js'
+      - 'index.html'
+      - '.github/workflows/invoices-151.yml'
+  workflow_dispatch:
+jobs:
+  invoice-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-commercial-149.js && node --check ite-invoices-151.js && node --check ite-invoices-ui-151.js && node --check test-invoices-151.js
+      - run: node test-commercial-149.js && node test-extra-150.js && node test-invoices-151.js
