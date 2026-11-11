@@ -180,6 +180,8 @@ function deleteSelectedWall(room,index){
  const before=clone(project),newPoints=room.points.filter((_,i)=>i!==end),newStatus=room.wallStatus.filter((_,i)=>i!==end);
  if(!polygonValid(newPoints))return msg('Eliminazione non valida: si creerebbe un perimetro irregolare.');
  room.points=newPoints;room.wallStatus=newStatus;
+ const updatedEdge=index===oldCount-1?newStatus.length-1:index;
+ room.wallStatus[updatedEdge]='da_verificare';
  room.openings=room.openings.map(o=>({...o,wall:o.wall>end?o.wall-1:o.wall}));
  if(!validBackup(project)){project=before;return msg('Eliminazione non valida per la geometria o le aperture.');}
  checkpointFromSnapshot(before);roomId=room.id;wallIndex=null;selectedKind='room';save();showQuickEditor();msg('Parete eliminata: verifica il nuovo perimetro.');
