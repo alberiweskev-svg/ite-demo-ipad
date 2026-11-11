@@ -1,0 +1,27 @@
+name: ITE 4.0.170 XML review security regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-xml-review-169.js'
+      - 'ite-xml-reconcile-168.js'
+      - 'ite-fatturapa-batch-167.js'
+      - 'test-xml-review-169.js'
+      - 'test-xml-review-170.js'
+      - '.github/workflows/xml-review-170.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  xml-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-xml-review-169.js
+      - run: node --check test-xml-review-170.js
+      - run: node test-xml-review-169.js
+      - run: node test-xml-review-170.js
