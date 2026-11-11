@@ -1,0 +1,16 @@
+const assert=require("node:assert/strict");
+const {reconcile}=require("./ite-xml-reconcile-168.js");
+const base={revision:7,commercial:{invoices:[{id:"a",issuerVat:"IT123",number:"F-1",documentDate:"2026-11-11",documentType:"FATTURA",net:100,vat:22,gross:122},{id:"b",issuerVat:"IT123",number:"NC-1",documentDate:"2026-11-11",documentType:"TD04",net:10,vat:2.2,gross:12.2}]}};
+const doc=(number,net=100,vat=22,type="FATTURA")=>({issuerVat:"IT123",number,date:"2026-11-11",type,net,vat,total:net+vat});
+const before=JSON.stringify(base);
+const a=reconcile(base,[doc("F-1"),doc("F-2"),doc("NC-1",10,2.2,"TD04")],"IT999");
+assert.deepEqual(a.results.map(x=>x.status),["GIA_PRESENTE","NUOVO","GIA_PRESENTE"]);
+assert.equal(a.counts.new,1);assert.equal(a.counts.present,2);assert.equal(a.counts.conflicts,0);
+assert.equal(a.results[0].direction,"ACQUISTO");assert.equal(reconcile(base,[doc("F-2")],"IT123").results[0].direction,"VENDITA");
+assert.equal(reconcile(base,[doc("F-1",101,22)],"IT999").results[0].status,"IMPORTI_DIFFERENTI");
+assert.equal(reconcile(base,[doc("NC-1",10,2.2,"FATTURA")],"IT999").results[0].status,"CONFLITTO_TIPO_O_DUPLICATO");
+assert.throws(()=>reconcile(base,[doc("F-2"),doc("F-2")],"IT999"),/DUPLICATO_NEL_LOTTO/);
+assert.throws(()=>reconcile(base,[doc("F-1",-1,22)],"IT999"),/IMPORTO_NON_VALIDO/);
+assert.throws(()=>reconcile({revision:1,commercial:{}},[],"IT999"),/STATO_NON_VALIDO/);
+assert.equal(JSON.stringify(base),before);
+console.log("168 reconciliation: 10 assertions/groups OK");
