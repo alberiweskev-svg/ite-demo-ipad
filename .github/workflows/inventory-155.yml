@@ -1,0 +1,29 @@
+name: Inventory 4.0.155
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-inventory-154.js'
+      - 'ite-inventory-ui-155.js'
+      - 'test-inventory-154.js'
+      - 'test-inventory-155.js'
+      - 'index.html'
+      - '.github/workflows/inventory-155.yml'
+  workflow_dispatch:
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-inventory-154.js
+          node --check ite-inventory-ui-155.js
+          node --check test-inventory-155.js
+      - name: Inventory regressions
+        run: |
+          node test-inventory-154.js
+          node test-inventory-155.js
