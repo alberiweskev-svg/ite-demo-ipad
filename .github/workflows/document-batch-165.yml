@@ -1,0 +1,31 @@
+name: Document batch 4.0.165
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-register-164.js'
+      - 'ite-document-batch-165.js'
+      - 'ite-document-batch-ui-165.js'
+      - 'test-document-batch-165.js'
+      - 'index.html'
+      - '.github/workflows/document-batch-165.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-document-register-164.js
+          node --check ite-document-batch-165.js
+          node --check ite-document-batch-ui-165.js
+          node --check test-document-batch-165.js
+      - name: Regression
+        run: |
+          node test-document-register-164.js
+          node test-document-batch-165.js
+          node test-invoices-151.js
