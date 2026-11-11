@@ -1,0 +1,27 @@
+name: ITE 4.0.153 commercial integration
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-reconciliation*.js'
+      - 'ite-invoices*.js'
+      - 'ite-commercial*.js'
+      - 'ite-extra*.js'
+      - 'test-reconciliation*.js'
+      - 'index.html'
+      - '.github/workflows/reconciliation-153.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-reconciliation-152.js && node --check ite-reconciliation-ui-153.js
+      - run: node test-commercial-149.js
+      - run: node test-extra-150.js
+      - run: node test-invoices-151.js
+      - run: node test-reconciliation-152.js
+      - run: node test-reconciliation-153.js
