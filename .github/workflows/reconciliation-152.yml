@@ -1,0 +1,23 @@
+name: ITE 4.0.152 commercial reconciliation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and commercial regression
+        run: |
+          node --check ite-reconciliation-152.js
+          node --check test-reconciliation-152.js
+          node test-commercial-149.js
+          node test-extra-150.js
+          node test-invoices-151.js
+          node test-reconciliation-152.js
