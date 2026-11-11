@@ -1,0 +1,15 @@
+name: XML review integration 4.0.169
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-xml-review-169.js', 'ite-xml-review-ui-169.js', 'ite-xml-reconcile-168.js', 'test-xml-review-169.js', 'index.html', '.github/workflows/xml-review-169.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-xml-review-169.js && node --check ite-xml-review-ui-169.js && node test-xml-reconcile-168.js && node test-xml-review-169.js
