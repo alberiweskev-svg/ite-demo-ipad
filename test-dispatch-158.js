@@ -1,0 +1,26 @@
+"use strict";
+/* 4.0.158 regression, synthetic data only */
+const assert=require("node:assert/strict"),fs=require("node:fs");
+const I=require("./ite-inventory-154.js"),D=require("./ite-dispatch-158.js");
+let s={schema:"ITE_OPERATIONS_123",revision:0,events:[],commercial:{estimates:[{id:"P-TEST",status:"ACCETTATO",siteId:"SEDE-FITTIZIA",lines:[{id:"L1",kind:"FORNITURA",quantity:3},{id:"L2",kind:"FORNITURA",quantity:2}]}]},inventory:{items:[],movements:[],reservations:[]}};
+s=I.item(s,{id:"A",code:"TEST-A",description:"Materiale fittizio",unitPrice:10,vatRate:10},"TEST",s.revision);
+s=I.movement(s,{id:"CARICO-TEST",itemId:"A",direction:"IN",quantity:5},"TEST",s.revision);
+s=I.reserve(s,{id:"R1",estimateId:"P-TEST",itemId:"A",quantity:3},"TEST",s.revision);
+s=I.reserve(s,{id:"R2",estimateId:"P-TEST",itemId:"A",quantity:2},"TEST",s.revision);
+s.inventory.reservations[0].lineId="L1";s.inventory.reservations[1].lineId="L2";
+assert.equal(D.inspect(s,"P-TEST",["R1","R2"]).rows.length,2);
+assert.throws(()=>D.inspect(s,"P-TEST",["R1","R1"]),/PRENOTAZIONE_DUPLICATA/);
+assert.throws(()=>D.dispatchAll(s,"P-TEST",["R1","R2"],"TEST",s.revision-1,"B1"),/REVISIONE_OBSOLETA/);
+assert.throws(()=>D.dispatchAll(s,"P-TEST",["R1","R2"],"TEST",s.revision,"bad:id"),/LOTTO_NON_VALIDO/);
+const original=JSON.stringify(s),out=D.dispatchAll(s,"P-TEST",["R1","R2"],"TEST",s.revision,"USCITA-TEST");
+assert.equal(JSON.stringify(s),original,"no mutation of original state");
+assert.equal(D.report(out,"P-TEST").dispatched.length,2);
+assert.equal(I.overview(out).items[0].onHand,0);
+assert.equal(out.inventory.movements.at(-1).siteId,"SEDE-FITTIZIA");
+assert.throws(()=>D.dispatchAll(out,"P-TEST",["R1"],"TEST",out.revision,"NEXT"),/PRENOTAZIONE_NON_ATTIVA/);
+const html=fs.readFileSync("./index.html","utf8"),ui=fs.readFileSync("./ite-dispatch-ui-158.js","utf8");
+for(const path of ["ite-dispatch-158.js","ite-dispatch-ui-158.js"])assert.ok(html.includes(path));
+assert.ok(html.indexOf("ite-inventory-154.js")<html.indexOf("ite-dispatch-158.js"));
+assert.ok(html.indexOf("ite-dispatch-158.js")<html.indexOf("ite-dispatch-ui-158.js"));
+assert.ok(ui.includes("D.dispatchAll")&&ui.includes("D.report")&&!ui.includes("innerHTML"));
+console.log("4.0.158 dispatch regression passed");
