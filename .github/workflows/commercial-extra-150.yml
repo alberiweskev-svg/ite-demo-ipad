@@ -1,0 +1,26 @@
+name: Commercial EXTRA 4.0.150
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-commercial-149.js'
+      - 'ite-extra-150.js'
+      - 'ite-commercial-ui-150.js'
+      - 'test-commercial-149.js'
+      - 'test-extra-150.js'
+      - 'index.html'
+      - '.github/workflows/commercial-extra-150.yml'
+  workflow_dispatch:
+jobs:
+  commercial:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-commercial-149.js && node --check ite-extra-150.js && node --check ite-commercial-ui-150.js
+      - run: node test-commercial-149.js && node test-extra-150.js
+      - name: Verify demo integration
+        run: |
+          node -e "const fs=require('fs');const h=fs.readFileSync('index.html','utf8');for(const f of ['ite-commercial-149.js','ite-extra-150.js','ite-commercial-ui-150.js'])if(!h.includes('src=\"./'+f))throw Error('Missing '+f)"
