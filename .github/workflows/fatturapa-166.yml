@@ -1,0 +1,16 @@
+name: ITE FatturaPA 4.0.166 smoke
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-fatturapa-166.js && node --check ite-fatturapa-ui-166.js && node --check test-fatturapa-166.js
+      - run: node test-fatturapa-166.js
+      - run: node test-document-batch-165.js
