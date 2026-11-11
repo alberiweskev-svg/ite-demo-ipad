@@ -1,0 +1,23 @@
+name: ITE 4.0.160 supplier catalog and delivery TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-supplier-import-160.js'
+      - 'test-supplier-import-160.js'
+      - 'ite-inventory-154.js'
+      - '.github/workflows/supplier-import-160.yml'
+  workflow_dispatch:
+jobs:
+  supplier-import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-supplier-import-160.js
+      - run: node --check test-supplier-import-160.js
+      - run: node test-inventory-154.js
+      - run: node test-partial-dispatch-159.js
+      - run: node test-supplier-import-160.js
