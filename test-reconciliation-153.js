@@ -1,0 +1,13 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs"),R=require("./ite-reconciliation-152.js");
+const html=fs.readFileSync("index.html","utf8"),ui=fs.readFileSync("ite-reconciliation-ui-153.js","utf8");
+assert.match(html,/ite-reconciliation-152\.js/);assert.match(html,/ite-reconciliation-ui-153\.js/);
+assert(html.indexOf("ite-reconciliation-152.js")<html.indexOf("ite-reconciliation-ui-153.js"));
+assert.match(ui,/ITE_UnifiedSession129/);assert.match(ui,/R\.allocate/);assert.match(ui,/R\.reconcile/);assert.match(ui,/R\.extraCoverage/);
+const base={schema:"ITE_OPERATIONS_123",revision:7,events:[],commercial:{estimates:[{id:"Q1",status:"ACCETTATO",clientId:"C1",siteId:"S1",totals:{gross:500},lines:[]}],extras:[],invoices:[{id:"F1",kind:"FATTURA",direction:"VENDITA",clientId:"C1",siteId:"S1",gross:300},{id:"N1",kind:"NOTA_CREDITO",direction:"VENDITA",clientId:"C1",siteId:"S1",gross:100},{id:"P1",kind:"PROFORMA",direction:"VENDITA",clientId:"C1",siteId:"S1",gross:50}]}};
+const a=R.allocate(base,{id:"A1",invoiceId:"F1",estimateId:"Q1",amount:200},"TEST",7);
+const b=R.allocate(a,{id:"A2",invoiceId:"N1",estimateId:"Q1",amount:50},"TEST",8);
+assert.equal(R.reconcile(b).estimates[0].netInvoiced,150);
+assert.equal(R.reconcile(b).estimates[0].remaining,350);
+assert.throws(()=>R.allocate(b,{id:"A3",invoiceId:"P1",estimateId:"Q1",amount:1},"TEST",9),/PROFORMA_NON_CONTABILIZZABILE/);
+assert.equal(base.revision,7);console.log("4.0.153 integration smoke passed");
