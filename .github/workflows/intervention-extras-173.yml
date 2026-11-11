@@ -1,0 +1,21 @@
+name: Intervention Extras 4.0.173
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-intervention-extras-173.js'
+      - 'test-intervention-extras-173.js'
+      - 'ite-field-operations-171.js'
+      - '.github/workflows/intervention-extras-173.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-intervention-extras-173.js
+      - run: node --check test-intervention-extras-173.js
+      - run: node test-intervention-extras-173.js
