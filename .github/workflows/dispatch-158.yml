@@ -1,0 +1,19 @@
+name: ITE 4.0.158 Dispatch regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-dispatch-158.js && node --check ite-dispatch-ui-158.js
+      - run: node test-inventory-154.js
+      - run: node test-material-planning-156.js
+      - run: node test-dispatch-158.js
