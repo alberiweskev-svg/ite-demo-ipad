@@ -1,0 +1,18 @@
+# Pubblicazione separata del solo I.T.E. Rilievo 2D.
+# Questa configurazione NON modifica né distribuisce il Gestionale I.T.E. 4.0.
+services:
+  - type: web
+    name: ite-rilievo-2d-collaudo
+    runtime: static
+    repo: https://github.com/alberiweskev-svg/ite-demo-ipad
+    branch: collaudo-ite-rilievo-2d-0.3.0
+    buildCommand: test -f rilievo2d/index.html
+    staticPublishPath: ./rilievo2d
+    autoDeployTrigger: commit
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache, must-revalidate
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(self), microphone=(), geolocation=()
