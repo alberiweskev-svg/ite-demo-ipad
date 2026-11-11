@@ -1,0 +1,16 @@
+const assert=require("node:assert/strict"),M=require("./ite-inventory-154.js");
+let s={schema:"ITE_OPERATIONS_123",revision:0,events:[],commercial:{estimates:[{id:"Q1",status:"ACCETTATO"}]}};
+const run=(fn,...args)=>{s=fn(s,...args,"Tecnico TEST",s.revision)};
+run(M.item,{id:"A",code:"TEST-001",description:"Tubo fittizio",unitPrice:12.5,vatRate:22});
+run(M.movement,{id:"IN1",itemId:"A",direction:"IN",quantity:10});
+run(M.reserve,{id:"R1",itemId:"A",estimateId:"Q1",quantity:6});
+assert.equal(M.overview(s).items[0].available,4);
+assert.throws(()=>M.movement(s,{id:"OUT",itemId:"A",direction:"OUT",quantity:5},"Tecnico TEST",s.revision),/GIACENZA/);
+assert.throws(()=>M.reserve(s,{id:"R2",itemId:"A",estimateId:"Q1",quantity:5},"Tecnico TEST",s.revision),/GIACENZA/);
+assert.throws(()=>M.dispatch(s,"R1","OUT1","Tecnico TEST",s.revision-1),/REVISIONE/);
+run(M.dispatch,"R1","OUT1");assert.equal(M.overview(s).items[0].onHand,4);
+assert.equal(M.overview(s).items[0].reserved,0);
+assert.throws(()=>M.dispatch(s,"R1","OUT2","Tecnico TEST",s.revision),/NON_ATTIVA/);
+run(M.reserve,{id:"R3",itemId:"A",estimateId:"Q1",quantity:2});
+run(M.cancel,"R3");assert.equal(M.overview(s).items[0].available,4);
+assert.equal(s.events.length,6);console.log("Inventory 154 TEST: OK");
