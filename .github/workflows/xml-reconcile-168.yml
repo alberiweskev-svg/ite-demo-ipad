@@ -1,0 +1,15 @@
+name: XML reconciliation 4.0.168
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-xml-reconcile-168.js', 'test-xml-reconcile-168.js', '.github/workflows/xml-reconcile-168.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-xml-reconcile-168.js && node test-xml-reconcile-168.js
