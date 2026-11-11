@@ -1,0 +1,23 @@
+name: ITE 4.0.157 material planning integrated
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  material-planning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-material-planning-156.js
+          node --check ite-material-planning-ui-157.js
+          node --check test-material-planning-157.js
+      - name: Functional and integration regressions
+        run: |
+          node test-inventory-154.js
+          node test-material-planning-156.js
+          node test-material-planning-157.js
