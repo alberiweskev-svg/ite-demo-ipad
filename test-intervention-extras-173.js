@@ -1,0 +1,15 @@
+const assert=require("node:assert/strict"),E=require("./ite-intervention-extras-173.js"),F=require("./ite-field-operations-171.js");
+let field=F.empty(),s=E.empty();const apply=(fn,...args)=>{const r=fn(s,s.revision,"tec",...args);s=r.state;return r.result};
+for(const [kind,id,parent] of [["clients","c",{}],["sites","s",{clientId:"c"}],["systems","p",{siteId:"s"}],["equipment","e",{systemId:"p"}],["operators","tec",{}]])field=F.add(field,field.revision,"tec",kind,{id,name:id,...parent}).state;
+field=F.add(field,field.revision,"tec","appointments",{id:"a",clientId:"c",siteId:"s",equipmentId:"e",operatorId:"tec",start:"2026-11-12T09:00:00Z",end:"2026-11-12T10:00:00Z"}).state;
+field=F.arrive(field,field.revision,"tec","a","2026-11-12T09:00:00Z").state;
+apply(E.addExtra,field,{id:"x1",interventionId:"INT-a",kind:"FORNITURA",description:"Valvola",quantity:2,unitPrice:25});
+apply(E.addExtra,field,{id:"x2",interventionId:"INT-a",kind:"POSA",description:"Installazione",quantity:1,unitPrice:58});
+assert.throws(()=>apply(E.makeQuote,field,{id:"q",interventionId:"INT-a",extraIds:["x1"]}),/EXTRA_NON_AMMISSIBILE/);
+apply(E.decide,"x1","ACCETTATO");apply(E.decide,"x2","ACCETTATO");
+const q=apply(E.makeQuote,field,{id:"q",interventionId:"INT-a",extraIds:["x1","x2"]});assert.equal(q.totalCents,10800);assert.equal(q.lines[0].kind,"FORNITURA");assert.equal(q.lines[1].kind,"POSA");
+assert.throws(()=>apply(E.makeQuote,field,{id:"q2",interventionId:"INT-a",extraIds:["x1"]}),/EXTRA_GIA_PREVENTIVATO/);
+assert.equal(apply(E.setQuoteStatus,"q","ACCETTATO").status,"ACCETTATO");
+assert.throws(()=>apply(E.setQuoteStatus,"q","NON_ACCETTATO"),/TRANSIZIONE_NON_VALIDA/);
+const before=JSON.stringify(s);assert.throws(()=>E.addExtra(s,s.revision-1,"tec",field,{id:"z",interventionId:"INT-a",kind:"POSA",description:"test",quantity:1,unitPrice:1}),/REVISIONE_SCADUTA/);assert.equal(JSON.stringify(s),before);
+assert.equal(E.summary(s,"INT-a").extras.length,2);console.log("OK: extras, separazione fornitura/posa, preventivi, stati, revisioni");
