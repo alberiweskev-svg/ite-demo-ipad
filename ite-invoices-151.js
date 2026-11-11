@@ -6,7 +6,7 @@ const cents=x=>{if(typeof x!=="number"||!Number.isFinite(x)||x<0||x>1e9)throw Er
 const euro=x=>x/100;
 function normalizeDocument(d,companyVat){
  if(!d||!s(d.id)||!s(d.number)||!s(d.issuerVat)||!s(d.documentDate))throw Error("DOCUMENTO_OBBLIGATORIO");
- if(!/^\d{4}-\d{2}-\d{2}$/.test(d.documentDate)||new Date(d.documentDate+"T00:00:00Z").toISOString().slice(0,10)!==d.documentDate)throw Error("DATA_NON_VALIDA");
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(d.documentDate)||!Number.isFinite(Date.parse(d.documentDate+"T00:00:00Z"))||new Date(d.documentDate+"T00:00:00Z").toISOString().slice(0,10)!==d.documentDate)throw Error("DATA_NON_VALIDA");
  const classification=C.classifyInvoice({...d,companyVat});
  const net=cents(d.net),vat=cents(d.vat),gross=cents(d.gross);
  if(Math.abs(net+vat-gross)>1)throw Error("TOTALI_INCOERENTI");
