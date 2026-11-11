@@ -1,0 +1,16 @@
+name: ITE 4.0.154 inventory TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-inventory-154.js','test-inventory-154.js','.github/workflows/inventory-154.yml']
+  workflow_dispatch:
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-inventory-154.js && node test-inventory-154.js
+      - run: node test-commercial-149.js && node test-extra-150.js && node test-invoices-151.js && node test-reconciliation-152.js && node test-reconciliation-153.js
