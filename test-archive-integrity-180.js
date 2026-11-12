@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict'),field=require('./ite-field-operations-171.js'),extra=require('./ite-intervention-extras-173.js'),audit=require('./ite-archive-integrity-180.js');
+let f=field.empty(),c=extra.empty();const add=(k,x)=>{f=field.add(f,f.revision,'T-1',k,x).state};
+add('clients',{id:'C',name:'Cliente TEST'});add('sites',{id:'S',clientId:'C',name:'Sede TEST'});add('systems',{id:'P',siteId:'S',name:'Impianto TEST'});add('equipment',{id:'E',systemId:'P',name:'Caldaia TEST'});add('operators',{id:'T-1',name:'Tecnico TEST'});
+add('appointments',{id:'A',clientId:'C',siteId:'S',equipmentId:'E',operatorId:'T-1',start:'2026-11-12T08:00:00Z',end:'2026-11-12T09:00:00Z'});
+f=field.arrive(f,f.revision,'T-1','A','2026-11-12T08:00:00Z').state;
+c=extra.addExtra(c,c.revision,'T-1',f,{id:'X',interventionId:'INT-A',kind:'POSA',description:'Posa TEST',quantity:2,unitPrice:50}).state;
+c=extra.decide(c,c.revision,'T-1','X','ACCETTATO').state;
+c=extra.makeQuote(c,c.revision,'T-1',f,{id:'Q',interventionId:'INT-A',extraIds:['X']}).state;
+const before=JSON.stringify({f,c});assert.equal(audit.inspect(f,c).valid,true);assert.equal(JSON.stringify({f,c}),before);
+const broken=JSON.parse(JSON.stringify(c));broken.quotes[0].totalCents=1;assert(audit.inspect(f,broken).issues.some(x=>x.code==='PREVENTIVO_TOTALE'));
+const orphan=JSON.parse(JSON.stringify(f));orphan.equipment[0].systemId='UNKNOWN';assert(audit.inspect(orphan,c).issues.some(x=>x.code==='RIFERIMENTO_MANCANTE'));
+const mismatch=JSON.parse(JSON.stringify(f));mismatch.interventions[0].clientId='OTHER';assert(audit.inspect(mismatch,c).issues.some(x=>x.code==='INTERVENTO_APPUNTAMENTO'));
+const overlap=JSON.parse(JSON.stringify(f));overlap.appointments.push({...overlap.appointments[0],id:'A2'});assert(audit.inspect(overlap,c).issues.some(x=>x.code==='SOVRAPPOSIZIONE_TECNICO'));
+console.log('ITE 4.0.180 integrity tests OK');
