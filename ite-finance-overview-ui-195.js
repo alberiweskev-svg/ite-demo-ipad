@@ -28,16 +28,16 @@ function init(){
  function render(){
   output.replaceChildren();latest=null;
   try{
-   const report=snapshot();latest=report;exportCsv.disabled=!report.valid;
-   status.textContent=report.valid?"Riconciliazione coerente — TEST.":"Operazione bloccata: "+report.issues.join("; ");
+   const report=snapshot();const credit=root.ITECreditAudit196&&root.ITECreditAudit196.audit(F.snapshot());latest=report;exportCsv.disabled=!report.valid||!credit||!credit.valid;
+   status.textContent=report.valid&&credit&&credit.valid?"Riconciliazione e TD04 coerenti — TEST.":"Operazione bloccata: "+[...report.issues,...(credit?credit.issues:["MOTORE_TD04_ASSENTE"])].join("; ");
    const totals=d.createElement("p");totals.textContent="Crediti "+euro(report.totals.receivablesCents)+" · Incassato "+euro(report.totals.receivedCents)+" · Da incassare "+euro(report.totals.openReceivablesCents)+" · Debiti "+euro(report.totals.payablesCents)+" · Pagato "+euro(report.totals.paidCents)+" · Da pagare "+euro(report.totals.openPayablesCents);output.append(totals);
-   const overdue=d.createElement("p");overdue.textContent="Scaduto da incassare "+euro(report.totals.overdueReceivablesCents)+" · Scaduto da pagare "+euro(report.totals.overduePayablesCents);output.append(overdue);
+   const overdue=d.createElement("p");overdue.textContent="Scaduto da incassare "+euro(report.totals.overdueReceivablesCents)+" · Scaduto da pagare "+euro(report.totals.overduePayablesCents);output.append(overdue);if(credit){const correction=d.createElement("p");correction.textContent="Vendite registrate "+euro(credit.saleCents)+" · TD04 collegate "+euro(credit.creditCents)+" · Vendite nette documentali "+euro(credit.netCents)+". Le TD04 NON riducono automaticamente scadenze o pagamenti.";output.append(correction)}
    for(const r of report.rows){const row=d.createElement("div");row.className="item";row.textContent=r.source+" · "+r.type+" · "+r.documentId+(r.installmentId?" / "+r.installmentId:"")+" · "+r.dueDate+" · residuo "+euro(r.outstandingCents);output.append(row)}
   }catch(err){exportCsv.disabled=true;status.textContent="Controllo non disponibile: "+err.message}
  }
  function download(text){const url=URL.createObjectURL(new Blob([text],{type:"text/csv;charset=utf-8"}));const a=d.createElement("a");a.href=url;a.download="ITE-4.0.195-RICONCILIAZIONE-TEST.csv";panel.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
  refresh.addEventListener("click",render);date.addEventListener("change",render);
- exportCsv.addEventListener("click",()=>{try{const current=snapshot();if(!current.valid)throw Error("REPORT_NON_VALIDO");download(R.csv(current))}catch(e){status.textContent="Esportazione bloccata: "+e.message}});
+ exportCsv.addEventListener("click",()=>{try{const current=snapshot();if(!current.valid||!root.ITECreditAudit196||!root.ITECreditAudit196.audit(F.snapshot()).valid)throw Error("REPORT_NON_VALIDO");download(R.csv(current))}catch(e){status.textContent="Esportazione bloccata: "+e.message}});
  d.addEventListener("ite-finance-changed-195",render);
  render();
 }
