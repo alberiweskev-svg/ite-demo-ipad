@@ -1,0 +1,32 @@
+name: ITE 4.0.181 integrated TEST archive
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-archive-integrity-180.js'
+      - 'ite-portable-test-ui-176.js'
+      - 'ite-portable-test-176.js'
+      - 'test-integrated-restore-181.js'
+      - '.github/workflows/integrated-restore-181.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-integrity:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-archive-integrity-180.js
+          node --check ite-portable-test-ui-176.js
+          node --check ite-portable-test-176.js
+          node --check test-integrated-restore-181.js
+      - name: Synthetic roundtrip and integrity
+        env:
+          TZ: ${{ matrix.tz }}
+        run: node test-integrated-restore-181.js
