@@ -1,0 +1,29 @@
+name: ITE 4.0.184 fiscal synthetic integration
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-fiscal-test-183.js'
+      - 'ite-fiscal-workspace-ui-184.js'
+      - 'test-fiscal-test-183.js'
+      - 'test-fiscal-ui-184.js'
+      - 'index.html'
+      - '.github/workflows/fiscal-ui-184.yml'
+  workflow_dispatch:
+jobs:
+  fiscal:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-fiscal-test-183.js
+      - run: node --check ite-fiscal-workspace-ui-184.js
+      - run: node test-fiscal-test-183.js
+      - run: node test-fiscal-ui-184.js
