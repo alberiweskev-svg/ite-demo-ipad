@@ -6,7 +6,7 @@ function init(){
  const parent=d.getElementById("ite-field-workspace-172");if(!parent)return;
  const host=d.createElement("div");host.className="panel";host.id="ite-extras-workspace-174";parent.append(host);
  let s=E.empty(),seq=0;
- root.ITE_ExtrasWorkspaceBridge175=Object.freeze({snapshot:()=>JSON.parse(JSON.stringify(s)),subscribe:fn=>{subscribers.add(fn);return ()=>subscribers.delete(fn)}});
+ root.ITE_ExtrasWorkspaceBridge175=Object.freeze({snapshot:()=>JSON.parse(JSON.stringify(s)),restoreTest:next=>{s=JSON.parse(JSON.stringify(next));seq=Math.max(seq,s.extras.length+s.quotes.length+10);render();subscribers.forEach(fn=>{try{fn()}catch(_){}})},subscribe:fn=>{subscribers.add(fn);return ()=>subscribers.delete(fn)}});
  const subscribers=new Set();
  const el=(tag,txt)=>{const x=d.createElement(tag);if(txt!==undefined)x.textContent=txt;return x};
  const title=el("h3","Extra e preventivi — TEST 4.0.174"),note=el("p","Collegati agli interventi della stessa sessione. FORNITURA, POSA, SMONTAGGIO e SMALTIMENTO sono voci distinte. Nessun dato viene salvato.");note.className="hint";
