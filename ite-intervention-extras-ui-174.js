@@ -6,12 +6,14 @@ function init(){
  const parent=d.getElementById("ite-field-workspace-172");if(!parent)return;
  const host=d.createElement("div");host.className="panel";host.id="ite-extras-workspace-174";parent.append(host);
  let s=E.empty(),seq=0;
+ root.ITE_ExtrasWorkspaceBridge175=Object.freeze({snapshot:()=>JSON.parse(JSON.stringify(s)),subscribe:fn=>{subscribers.add(fn);return ()=>subscribers.delete(fn)}});
+ const subscribers=new Set();
  const el=(tag,txt)=>{const x=d.createElement(tag);if(txt!==undefined)x.textContent=txt;return x};
  const title=el("h3","Extra e preventivi — TEST 4.0.174"),note=el("p","Collegati agli interventi della stessa sessione. FORNITURA, POSA, SMONTAGGIO e SMALTIMENTO sono voci distinte. Nessun dato viene salvato.");note.className="hint";
  const status=el("p");status.setAttribute("role","status");
  const actions=el("div");actions.className="actions";const body=el("div");host.append(title,note,status,actions,body);
  function button(text,fn,into=actions){const b=el("button",text);b.type="button";b.addEventListener("click",fn);into.append(b);return b}
- function transact(fn){try{s=fn().state;status.textContent="Operazione TEST registrata — revisione "+s.revision;render()}catch(e){status.textContent="Operazione respinta: "+e.message}}
+ function transact(fn){try{s=fn().state;status.textContent="Operazione TEST registrata — revisione "+s.revision;render();subscribers.forEach(fn=>{try{fn()}catch(_){}})}catch(e){status.textContent="Operazione respinta: "+e.message}}
  function field(){return B.snapshot()}
  function form(label,defs,callback){body.replaceChildren(el("h4",label));const f=el("form");f.className="grid";const inputs={};
  defs.forEach(([key,name,opts,type])=>{const wrap=el("label",name);let x;if(opts){x=el("select");opts.forEach(([value,text])=>{const o=el("option",text);o.value=value;x.append(o)})}else{x=el("input");x.type=type||"text";x.maxLength=500}x.required=true;wrap.append(x);f.append(wrap);inputs[key]=x});
