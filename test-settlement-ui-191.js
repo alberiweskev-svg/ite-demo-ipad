@@ -1,0 +1,26 @@
+/* Regression TEST 4.0.191: synthetic fiscal + settlement integration. */
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const path=require("node:path");
+const F=require("./ite-fiscal-test-183.js");
+const S=require("./ite-settlement-test-190.js");
+const html=fs.readFileSync(path.join(__dirname,"index.html"),"utf8");
+assert.match(html,/ite-settlement-test-190\.js/);
+assert.match(html,/ite-settlement-workspace-ui-191\.js/);
+const ui=fs.readFileSync(path.join(__dirname,"ite-settlement-workspace-ui-191.js"),"utf8");
+assert.match(ui,/ITE_FiscalWorkspaceBridge185/);
+assert.match(ui,/A\.addEntry/);
+assert.match(ui,/A\.addPayment/);
+assert.match(ui,/A\.csv/);
+const fiscal=F.createStore();
+F.add(fiscal,{id:"f191",type:"VENDITA",number:"FAKE-191",date:"2026-11-12",counterparty:"Cliente inventato",lines:[{description:"Fornitura simulata",quantity:1,unitPrice:100,vatRate:22}]});
+F.transition(fiscal,"f191","REGISTRATO");
+let ledger=S.create();
+ledger=S.addEntry(fiscal,ledger,{id:"e191",documentId:"f191",dueDate:"2026-12-12",amountCents:12200});
+ledger=S.addPayment(fiscal,ledger,{id:"p191",entryId:"e191",date:"2026-11-12",amountCents:2200,method:"BONIFICO"});
+const r=S.inspect(fiscal,ledger);
+assert.equal(r.valid,true);assert.equal(r.totals.openReceivablesCents,10000);
+assert.match(S.csv(r),/FAKE-191/);
+assert.throws(()=>S.addPayment(fiscal,ledger,{id:"p192",entryId:"e191",date:"2026-11-12",amountCents:10001,method:"POS"}));
+assert.equal(S.importTest(fiscal,S.exportTest(fiscal,ledger)).entries.length,1);
+console.log("4.0.191 synthetic settlement integration OK");
