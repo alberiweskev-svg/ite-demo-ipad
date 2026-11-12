@@ -1,0 +1,30 @@
+name: ITE 4.0.188 document lifecycle TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-lifecycle-188.js'
+      - 'ite-document-lifecycle-ui-188.js'
+      - 'ite-fiscal-workspace-ui-184.js'
+      - 'ite-fiscal-test-183.js'
+      - 'test-document-lifecycle-188.js'
+      - 'index.html'
+      - '.github/workflows/document-lifecycle-188.yml'
+  workflow_dispatch:
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test-document-lifecycle-188.js
+      - run: node test-fiscal-test-183.js
+      - run: node test-fiscal-audit-187.js
+      - run: node --check ite-document-lifecycle-ui-188.js
