@@ -1,0 +1,16 @@
+"use strict";
+const assert=require("node:assert/strict");const f=require("./ite-fiscal-test-183.js");
+const doc=(id,type,number)=>({id,type,number,date:"2026-11-12",counterparty:"Cliente TEST",lines:[{description:"Fornitura TEST",unitPrice:100,quantity:2,vatRate:10},{description:"Posa TEST",unitPrice:50,quantity:1,vatRate:22}],...(type==="TD04"?{reference:{number:"F-01",date:"2026-11-01"}}:{})});
+const s=f.createStore();for(const [i,type] of f.TYPES.entries())f.add(s,doc("test"+i,type,"N-"+i));
+assert.equal(s.documents.length,4);assert.deepEqual(f.totals(doc("x","VENDITA","X")).totalCents,28100);
+assert.equal(f.summary(s).issues.length,0);assert.equal(f.summary(s).byType.TD04.count,1);
+assert.throws(()=>f.add(s,doc("test0","VENDITA","X")),/ID_DUPLICATO/);
+assert.throws(()=>f.add(s,doc("other","VENDITA","N-0")),/NUMERO_DUPLICATO/);
+assert.deepEqual(f.validate({...doc("bad","TD04","X"),reference:null}),["RIFERIMENTO_TD04"]);
+assert.deepEqual(f.validate({...doc("bad","ACQUISTO","X"),date:"2026-02-30"}),["DATA_INVALIDA"]);
+const exported=f.exportTest(s);const restored=f.importTest(exported);assert.equal(restored.documents.length,4);
+restored.documents[0].lines[0].description="MODIFICATO";assert.equal(s.documents[0].lines[0].description,"Fornitura TEST");
+f.transition(s,"test0","REGISTRATO");assert.throws(()=>f.transition(s,"test0","ANNULLATO"),/BLOCCATO/);
+s.documents[1].totals.totalCents++;assert.ok(f.summary(s).issues.some(x=>x.includes("TOTALE_ALTERATO")));assert.throws(()=>f.exportTest(s),/INCOERENTE/);
+assert.throws(()=>f.importTest('{"schema":"WRONG","documents":[]}'),/FORMATO/);
+console.log("ITE 4.0.183: test registro documenti TEST superati");
