@@ -1,0 +1,16 @@
+/* I.T.E. 4.0.177 — calendar projections; read-only, no persistence. */
+(function(root){"use strict";
+const clone=x=>JSON.parse(JSON.stringify(x));
+const validDate=x=>typeof x==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&!Number.isNaN(Date.parse(x+"T00:00:00Z"))&&new Date(x+"T00:00:00Z").toISOString().slice(0,10)===x;
+const day=x=>{const d=new Date(x+"T00:00:00Z");return d.getUTCDay()};
+const shift=(x,n)=>{const d=new Date(x+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+function range(date,mode){if(!validDate(date)||!["giorno","settimana","mese"].includes(mode))throw Error("PERIODO_NON_VALIDO");let first=date,last=date;if(mode==="settimana"){first=shift(date,-((day(date)+6)%7));last=shift(first,6)}if(mode==="mese"){first=date.slice(0,7)+"-01";last=shift(shift(first,32).slice(0,7)+"-01",-1)}return {first,last};}
+function project(state,date,mode,operatorId=""){if(!state||!Array.isArray(state.appointments)||!Array.isArray(state.operators)||!Array.isArray(state.clients)||!Array.isArray(state.sites)||!Array.isArray(state.equipment)||!Array.isArray(state.interventions))throw Error("STATO_NON_VALIDO");const r=range(date,mode);if(operatorId&&!state.operators.some(x=>x.id===operatorId))throw Error("TECNICO_NON_TROVATO");
+const names=(key,id)=>{const a=state[key].find(x=>x.id===id);return a?a.name:"[non presente]"};
+const start=Date.parse(r.first+"T00:00:00Z"),end=Date.parse(shift(r.last,1)+"T00:00:00Z");
+const rows=state.appointments.filter(a=>a.status!=="ANNULLATO"&&(!operatorId||a.operatorId===operatorId)&&Number.isFinite(Date.parse(a.start))&&Number.isFinite(Date.parse(a.end))&&Date.parse(a.start)<end&&Date.parse(a.end)>start).map(a=>{const i=state.interventions.find(i=>i.appointmentId===a.id);return {id:a.id,start:a.start,end:a.end,status:a.status,operatorId:a.operatorId,operator:names("operators",a.operatorId),client:names("clients",a.clientId),site:names("sites",a.siteId),equipment:names("equipment",a.equipmentId),interventionStatus:i?i.status:"",durationMinutes:i&&Number.isFinite(i.durationMinutes)?i.durationMinutes:null}}).sort((a,b)=>a.start.localeCompare(b.start)||a.id.localeCompare(b.id));
+const overlaps=[];for(let i=0;i<rows.length;i++)for(let j=i+1;j<rows.length;j++){if(rows[i].operatorId===rows[j].operatorId&&Date.parse(rows[i].start)<Date.parse(rows[j].end)&&Date.parse(rows[j].start)<Date.parse(rows[i].end))overlaps.push([rows[i].id,rows[j].id])}
+const totals={appointments:rows.length,closed:rows.filter(x=>x.status==="CHIUSO").length,plannedMinutes:rows.reduce((s,x)=>s+(Date.parse(x.end)-Date.parse(x.start))/60000,0),workedMinutes:rows.reduce((s,x)=>s+(x.durationMinutes||0),0),overlaps:overlaps.length};
+return clone({range:r,mode,operatorId,rows,overlaps,totals})}
+const api=Object.freeze({range,shift,project});if(typeof module!=="undefined"&&module.exports)module.exports=api;root.ITE_Calendar177=api;
+})(typeof globalThis!=="undefined"?globalThis:this);
