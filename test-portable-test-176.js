@@ -1,0 +1,15 @@
+const assert=require("node:assert/strict");const F=require("./ite-field-operations-171.js"),E=require("./ite-intervention-extras-173.js"),P=require("./ite-portable-test-176.js");
+let f=F.empty(),e=E.empty();let x=F.add(f,f.revision,"TEST","clients",{id:"C1",name:"Cliente fittizio"});f=x.state;
+x=F.add(f,f.revision,"TEST","sites",{id:"S1",clientId:"C1",name:"Sede fittizia"});f=x.state;
+x=F.add(f,f.revision,"TEST","systems",{id:"I1",siteId:"S1",name:"Impianto fittizio"});f=x.state;
+x=F.add(f,f.revision,"TEST","equipment",{id:"E1",systemId:"I1",name:"Caldaia TEST"});f=x.state;
+x=F.add(f,f.revision,"TEST","operators",{id:"O1",name:"Tecnico TEST"});f=x.state;
+x=F.add(f,f.revision,"TEST","appointments",{id:"A1",clientId:"C1",siteId:"S1",equipmentId:"E1",operatorId:"O1",start:"2026-11-12T09:00:00Z",end:"2026-11-12T10:00:00Z"});f=x.state;
+x=F.arrive(f,f.revision,"O1","A1","2026-11-12T09:05:00Z");f=x.state;
+x=E.addExtra(e,e.revision,"TEST",f,{id:"X1",interventionId:"INT-A1",kind:"POSA",description:"Posa TEST",quantity:1,unitPrice:50});e=x.state;
+const original=JSON.stringify({f,e});const portable=P.pack(f,e);const restored=P.unpack(JSON.stringify(portable));assert.deepEqual(restored,{field:f,extras:e});assert.equal(JSON.stringify({f,e}),original);
+restored.field.clients[0].name="Mutato";assert.equal(f.clients[0].name,"Cliente fittizio");
+for(const bad of ['{}','not-json',JSON.stringify({...portable,schema:2})])assert.throws(()=>P.unpack(bad));
+const broken=structuredClone(portable);broken.field.sites[0].clientId="ASSENTE";assert.throws(()=>P.unpack(JSON.stringify(broken)),/ORFANA/);
+const broken2=structuredClone(portable);broken2.extras.extras[0].interventionId="ASSENTE";assert.throws(()=>P.unpack(JSON.stringify(broken2)),/EXTRA/);
+console.log("4.0.176 portable TEST OK");
