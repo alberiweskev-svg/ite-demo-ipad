@@ -1,0 +1,23 @@
+name: ITE 4.0.191 settlement integration TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-settlement*', 'ite-fiscal-test-183.js', 'ite-settlement-workspace-ui-191.js', 'test-settlement-ui-191.js', 'index.html', '.github/workflows/settlement-ui-191.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run synthetic integration
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node test-settlement-190.js
+          node test-settlement-ui-191.js
