@@ -1,0 +1,31 @@
+name: ITE 4.0.186 fiscal workspace TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-fiscal-workspace-ui-184.js'
+      - 'ite-fiscal-test-183.js'
+      - 'test-fiscal-workspace-186.js'
+      - '.github/workflows/fiscal-workspace-186.yml'
+  workflow_dispatch:
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and regression
+        env:
+          TZ: ${{ matrix.tz }}
+        run: |
+          node --check ite-fiscal-workspace-ui-184.js
+          node --check ite-fiscal-test-183.js
+          node test-fiscal-test-183.js
+          node test-fiscal-ui-184.js
+          node test-quote-fiscal-185.js
+          node test-fiscal-workspace-186.js
