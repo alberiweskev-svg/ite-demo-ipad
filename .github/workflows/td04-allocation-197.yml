@@ -1,0 +1,22 @@
+name: TD04 allocation 4.0.197
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-credit-allocation-197.js','ite-finance-overview-ui-195.js','index.html','tests/test-credit-allocation-197.js','.github/workflows/td04-allocation-197.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-credit-allocation-197.js && node --check ite-finance-overview-ui-195.js
+      - run: node tests/test-credit-allocation-197.js
+      - run: node tests/test-credit-audit-196.js
