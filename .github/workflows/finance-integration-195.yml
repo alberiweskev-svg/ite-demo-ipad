@@ -1,0 +1,33 @@
+name: ITE 4.0.195 finance integration TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-finance-*.js'
+      - 'ite-settlement-*.js'
+      - 'ite-installments-*.js'
+      - 'index.html'
+      - 'tests/test-finance-integration-195.js'
+      - '.github/workflows/finance-integration-195.yml'
+  workflow_dispatch:
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check ite-finance-reconciliation-194.js
+          node --check ite-finance-overview-ui-195.js
+          node --check ite-settlement-workspace-ui-191.js
+          node --check ite-installments-workspace-ui-193.js
+      - name: Integrated finance guards
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: node tests/test-finance-integration-195.js
