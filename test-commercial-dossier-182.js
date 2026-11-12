@@ -1,0 +1,10 @@
+const assert=require("node:assert/strict"),D=require("./ite-commercial-dossier-182.js");
+const field={interventions:[{id:"I1",clientId:"C1",siteId:"S1"}]};
+const commerce={extras:[{id:"E1",interventionId:"I1",kind:"FORNITURA",status:"ACCETTATO",quantity:2,unitPrice:25},{id:"E2",interventionId:"I1",kind:"POSA",status:"ACCETTATO",quantity:1,unitPrice:40},{id:"E3",interventionId:"I1",kind:"ALTRO",status:"PROPOSTO",quantity:1,unitPrice:10}],quotes:[{id:"P1",interventionId:"I1",extraIds:["E1","E2"],totalCents:9000,status:"ACCETTATO"}]};
+const original=JSON.stringify({field,commerce}),r=D.build(field,commerce);
+assert.equal(r.valid,true);assert.equal(r.stats.acceptedCents,9000);assert.equal(r.stats.extrasPending,1);assert.equal(r.records[0].kinds.FORNITURA,5000);assert.equal(r.records[0].kinds.POSA,4000);
+assert.equal(JSON.stringify({field,commerce}),original);assert.match(D.csv(r),/Fornitura EUR/);
+commerce.quotes[0].totalCents=8000;assert.equal(D.build(field,commerce).valid,false);
+commerce.quotes[0].totalCents=9000;commerce.quotes[0].extraIds=["E1","E9"];assert.ok(D.build(field,commerce).issues.some(x=>x.code==="RIGA_NON_AMMISSIBILE"));
+commerce.quotes[0].extraIds=["E1","E2"];commerce.quotes[0].id="=HYPERLINK";assert.match(D.csv(D.build(field,commerce)),/"'=HYPERLINK"/);
+console.log("ITE 4.0.182 synthetic dossier tests OK");
