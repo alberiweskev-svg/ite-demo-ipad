@@ -1,0 +1,15 @@
+const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
+const html=fs.readFileSync("index.html","utf8"),workspace=fs.readFileSync("ite-field-workspace-ui-172.js","utf8"),ui=fs.readFileSync("ite-intervention-extras-ui-174.js","utf8");
+for(const path of ["ite-field-operations-171.js","ite-field-workspace-ui-172.js","ite-intervention-extras-173.js","ite-intervention-extras-ui-174.js"])assert(html.includes(path),path+" not linked");
+assert(html.indexOf("ite-field-workspace-ui-172.js")<html.indexOf("ite-intervention-extras-ui-174.js"));
+assert(workspace.includes("ITE_FieldWorkspaceBridge174"));assert(workspace.includes("notify()"));assert(ui.includes("B.snapshot()"));assert(ui.includes("E.makeQuote"));assert(ui.includes("E.decide"));assert(ui.includes("E.setQuoteStatus"));
+new vm.Script(workspace);new vm.Script(ui);
+const F=require("./ite-field-operations-171.js"),E=require("./ite-intervention-extras-173.js");let f=F.empty(),s=E.empty();
+for(const [kind,id,parent] of [["clients","c",{}],["sites","s",{clientId:"c"}],["systems","p",{siteId:"s"}],["equipment","e",{systemId:"p"}],["operators","tec",{}]])f=F.add(f,f.revision,"tec",kind,{id,name:id,...parent}).state;
+f=F.add(f,f.revision,"tec","appointments",{id:"a",clientId:"c",siteId:"s",equipmentId:"e",operatorId:"tec",start:"2026-11-12T09:00:00Z",end:"2026-11-12T10:00:00Z"}).state;
+f=F.arrive(f,f.revision,"tec","a","2026-11-12T09:00:00Z").state;
+for(const [id,kind,price] of [["x1","FORNITURA",20],["x2","POSA",50]])s=E.addExtra(s,s.revision,"tec",f,{id,interventionId:"INT-a",kind,description:kind,quantity:1,unitPrice:price}).state;
+for(const id of ["x1","x2"])s=E.decide(s,s.revision,"tec",id,"ACCETTATO").state;
+const q=E.makeQuote(s,s.revision,"tec",f,{id:"q",interventionId:"INT-a",extraIds:["x1","x2"],paymentTerms:"Come da accordi"});assert.equal(q.result.totalCents,7000);assert.equal(q.result.lines.length,2);
+assert.equal(E.setQuoteStatus(q.state,q.state.revision,"tec","q","ACCETTATO").result.status,"ACCETTATO");
+console.log("OK integration: scripts, syntax, field→extra→quote→acceptance");
