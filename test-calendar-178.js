@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const F=require('./ite-field-operations-171.js'),C=require('./ite-calendar-177.js');
+let s=F.empty();const add=(kind,item)=>{s=F.add(s,s.revision,'OPERATORE_TEST',kind,item).state};
+add('clients',{id:'C1',name:'Cliente Fittizio'});add('sites',{id:'S1',name:'Sede TEST',clientId:'C1'});add('systems',{id:'I1',name:'Impianto TEST',siteId:'S1'});add('equipment',{id:'E1',name:'Generatore TEST',systemId:'I1'});
+add('operators',{id:'T1',name:'Tecnico TEST'});add('operators',{id:'T2',name:'Tecnico B TEST'});
+add('appointments',{id:'A1',clientId:'C1',siteId:'S1',equipmentId:'E1',operatorId:'T1',start:'2026-11-12T23:30:00Z',end:'2026-11-13T00:30:00Z'});
+add('appointments',{id:'A2',clientId:'C1',siteId:'S1',equipmentId:'E1',operatorId:'T2',start:'2026-11-12T08:00:00Z',end:'2026-11-12T09:00:00Z'});
+const original=JSON.stringify(s),p=C.project(s,'2026-11-12','settimana');
+assert.equal(p.rows.length,2);
+assert.equal(p.totals.plannedMinutes,120);
+assert.equal(p.days.find(x=>x.date==='2026-11-12').plannedMinutes,90);
+assert.equal(p.days.find(x=>x.date==='2026-11-13').plannedMinutes,30);
+assert.equal(p.technicians.length,2);
+assert.equal(p.technicians.find(x=>x.id==='T1').plannedMinutes,60);
+assert.equal(C.project(s,'2026-11-12','giorno','T1').days[0].plannedMinutes,30);
+assert.equal(JSON.stringify(s),original);
+console.log('PASS 4.0.178 calendar day splitting, technician workloads and immutable source');
