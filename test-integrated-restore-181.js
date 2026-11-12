@@ -1,0 +1,23 @@
+/* I.T.E. 4.0.181 — synthetic integrated archive preflight regression. */
+'use strict';
+const assert=require('node:assert/strict');
+const F=require('./ite-field-operations-171.js');
+const E=require('./ite-intervention-extras-173.js');
+const P=require('./ite-portable-test-176.js');
+const I=require('./ite-archive-integrity-180.js');
+const field=F.empty(),commercial=E.empty();
+assert.equal(I.inspect(field,commercial).valid,true);
+const payload=JSON.stringify(P.pack(field,commercial));
+const restored=P.unpack(payload);
+assert.equal(I.inspect(restored.field,restored.extras).valid,true);
+assert.notStrictEqual(restored.field,field);
+restored.field.clients.push({id:'CLI-TEST',name:'Cliente fittizio'});
+assert.equal(field.clients.length,0);
+assert.equal(I.inspect(restored.field,restored.extras).valid,true);
+restored.field.sites.push({id:'SEDE-TEST',name:'Sede fittizia',clientId:'NON_ESISTE'});
+const issues=I.inspect(restored.field,restored.extras);
+assert.equal(issues.valid,false);
+assert(issues.issues.some(x=>x.code==='RIFERIMENTO_MANCANTE'));
+assert.equal(I.inspect(field,commercial).valid,true);
+assert.throws(()=>P.unpack(JSON.stringify({...JSON.parse(payload),schema:999})),/VERSIONE_NON_SUPPORTATA/);
+console.log('4.0.181: portable TEST roundtrip, integrity and non-mutation OK');
