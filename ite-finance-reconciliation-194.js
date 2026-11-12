@@ -4,10 +4,10 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 const validDate=x=>typeof x==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&!Number.isNaN(Date.parse(x+"T00:00:00Z"))&&new Date(x+"T00:00:00Z").toISOString().slice(0,10)===x;
 function audit(fiscal,simple,installments,asOf,engines){
  if(!validDate(asOf))throw Error("DATA_RIFERIMENTO_NON_VALIDA");
- const E=engines||{simple:root.ITE_SettlementTest190,installments:root.ITE_Installments192};
+ const E=engines||{simple:root.ITE_Settlement190,installments:root.ITE_Installments192};
  if(!E.simple||!E.installments)throw Error("MOTORI_SCADENZIARIO_ASSENTI");
  const s=E.simple.inspect(fiscal,simple),i=E.installments.inspect(fiscal,installments);
- const issues=[...(s.issues||[]).map(x=>"SEMPLICE:"+x),...(i.errors||[]).map(x=>"RATE:"+x)];
+ const issues=[...(s.issues||[]).map(x=>"SEMPLICE:"+x),...(i.issues||[]).map(x=>"RATE:"+x)];
  const docIds=new Set(),rows=[];
  function accept(r,source){
   if(!r||typeof r.documentId!=="string"||typeof r.dueDate!=="string"||!Number.isSafeInteger(r.amountCents)||!Number.isSafeInteger(r.paidCents)||!["VENDITA","ACQUISTO"].includes(r.type)){issues.push("RIGA_INVALIDA:"+source);return;}
