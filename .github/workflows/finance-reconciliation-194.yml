@@ -1,0 +1,26 @@
+name: ITE 4.0.194 finance reconciliation TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-finance-reconciliation-194.js'
+      - 'test-finance-reconciliation-194.js'
+      - '.github/workflows/finance-reconciliation-194.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-finance-reconciliation-194.js
+      - run: node test-finance-reconciliation-194.js
+      - run: node test-settlement-190.js
+      - run: node test-installments-192.js
