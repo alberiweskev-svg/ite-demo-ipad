@@ -1,0 +1,27 @@
+name: ITE 4.0.190 settlement TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-settlement-test-190.js'
+      - 'test-settlement-190.js'
+      - '.github/workflows/settlement-190.yml'
+  workflow_dispatch:
+jobs:
+  settlement:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-settlement-test-190.js
+      - run: node --check test-settlement-190.js
+      - run: node test-settlement-190.js
+      - run: node test-fiscal-test-183.js
+      - run: node test-document-lifecycle-188.js
