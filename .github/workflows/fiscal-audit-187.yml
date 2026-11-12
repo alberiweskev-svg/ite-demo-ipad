@@ -1,0 +1,30 @@
+name: ITE 4.0.187 fiscal audit TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-fiscal-audit-187.js'
+      - 'ite-fiscal-test-183.js'
+      - 'ite-fiscal-workspace-ui-184.js'
+      - 'test-fiscal-audit-187.js'
+      - '.github/workflows/fiscal-audit-187.yml'
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit documentale TEST
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node --check ite-fiscal-audit-187.js
+          node --check ite-fiscal-workspace-ui-184.js
+          node test-fiscal-test-183.js
+          node test-fiscal-audit-187.js
