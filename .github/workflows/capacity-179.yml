@@ -1,0 +1,22 @@
+name: ITE 4.0.179 technician timezone regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-field-technician-capacity.js', 'test-field-technician-capacity.js', 'test-capacity-179.js', '.github/workflows/capacity-179.yml']
+  workflow_dispatch:
+jobs:
+  timezone:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome, America/New_York]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-field-technician-capacity.js
+      - run: node test-field-technician-capacity.js
+      - run: node test-capacity-179.js
