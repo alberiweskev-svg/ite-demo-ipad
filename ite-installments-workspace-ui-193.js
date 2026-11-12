@@ -25,12 +25,16 @@ function init(){
  const output=d.createElement("div");output.setAttribute("aria-live","polite");
  section.append(title,warning,planForm,movementForm,actions,status,output);parent.append(section);
  let store=A.create(),counter=0;
+ root.ITEFinanceSession195=root.ITEFinanceSession195||{};
+ root.ITEFinanceSession195.installments=()=>JSON.parse(JSON.stringify(store));
+ const conflicts=()=>{const other=root.ITEFinanceSession195.simple?.();return new Set((other?.entries||[]).map(e=>e.documentId));};
+ const changed=()=>d.dispatchEvent(new Event("ite-finance-changed-195"));
  const euro=x=>(x/100).toLocaleString("it-IT",{style:"currency",currency:"EUR"});
  const snapshot=()=>B.snapshot();
  function report(){return A.inspect(snapshot(),store)}
  function render(){
   const f=snapshot();documentSelect.replaceChildren();installmentSelect.replaceChildren();output.replaceChildren();
-  const used=new Set(store.plans.map(x=>x.documentId));
+  const used=new Set([...store.plans.map(x=>x.documentId),...conflicts()]);
   for(const doc of f.documents.filter(x=>["VENDITA","ACQUISTO"].includes(x.type)&&x.status==="REGISTRATO"&&!used.has(x.id))){
    const option=d.createElement("option");option.value=doc.id;option.textContent=doc.type+" "+doc.number+" — "+euro(doc.totals.totalCents);documentSelect.append(option)
   }
@@ -49,12 +53,12 @@ function init(){
  planForm.addEventListener("submit",event=>{event.preventDefault();try{
   const values=dates.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
   if(!values.length||values.length>120)throw Error("NUMERO_RATE_NON_VALIDO");
-  const id="rate_"+(++counter);store=A.split(snapshot(),store,documentSelect.value,values,id);dates.value="";render()
+  const id="rate_"+(++counter);if(conflicts().has(documentSelect.value))throw Error("FATTURA_GIA_IN_SCADENZIARIO_SEMPLICE");store=A.split(snapshot(),store,documentSelect.value,values,id);dates.value="";render();changed()
  }catch(err){status.textContent="Piano respinto: "+err.message}});
  movementForm.addEventListener("submit",event=>{event.preventDefault();try{
   if(!/^\d+(?:[.,]\d{1,2})?$/.test(amount.value))throw Error("IMPORTO_NON_VALIDO");
   const cents=Math.round(Number(amount.value.replace(",","."))*100);
-  store=A.addMovement(snapshot(),store,{id:"pag_"+(++counter),installmentId:installmentSelect.value,date:movementDate.value,amountCents:cents,method:method.value});amount.value="";render()
+  store=A.addMovement(snapshot(),store,{id:"pag_"+(++counter),installmentId:installmentSelect.value,date:movementDate.value,amountCents:cents,method:method.value});amount.value="";render();changed()
  }catch(err){status.textContent="Movimento respinto: "+err.message}});
  refresh.addEventListener("click",render);
  csv.addEventListener("click",()=>{try{download("ITE-4.0.193-RATE-TEST.csv",A.csv(report()),"text/csv;charset=utf-8")}catch(err){status.textContent=err.message}});
@@ -62,9 +66,10 @@ function init(){
  importFile.addEventListener("change",async()=>{const file=importFile.files&&importFile.files[0];if(!file)return;try{
   if(file.size>2000000)throw Error("FILE_TROPPO_GRANDE");const candidate=A.importTest(snapshot(),await file.text());
   if(!root.confirm("Sostituire i piani rateali TEST della sessione?"))return;
-  store=candidate;counter=Math.max(counter,store.plans.length+store.movements.length)+100;render()
+  store=candidate;counter=Math.max(counter,store.plans.length+store.movements.length)+100;render();changed()
  }catch(err){status.textContent="Importazione respinta: "+err.message}finally{importFile.value=""}});
- clear.addEventListener("click",()=>{if(!root.confirm("Eliminare solo i piani rateali TEST?"))return;store=A.create();counter=0;render()});
+ clear.addEventListener("click",()=>{if(!root.confirm("Eliminare solo i piani rateali TEST?"))return;store=A.create();counter=0;render();changed()});
+ d.addEventListener("ite-finance-changed-195",render);
  render();
 }
 if(root.document){if(root.document.readyState==="loading")root.document.addEventListener("DOMContentLoaded",init,{once:true});else init()}
