@@ -1,0 +1,32 @@
+name: ITE 4.0.185 quote fiscal bridge TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-quote-fiscal-bridge-185.js'
+      - 'ite-quote-fiscal-ui-185.js'
+      - 'ite-fiscal-workspace-ui-184.js'
+      - 'test-quote-fiscal-185.js'
+      - 'index.html'
+      - '.github/workflows/quote-fiscal-185.yml'
+  workflow_dispatch:
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-quote-fiscal-bridge-185.js
+          node --check ite-quote-fiscal-ui-185.js
+          node --check ite-fiscal-workspace-ui-184.js
+      - name: Synthetic test
+        env:
+          TZ: ${{ matrix.tz }}
+        run: node test-quote-fiscal-185.js
