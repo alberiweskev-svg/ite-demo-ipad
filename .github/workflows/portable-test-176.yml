@@ -1,0 +1,24 @@
+name: ITE 4.0.176 portable TEST workspace
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-portable-test-176.js'
+      - 'ite-portable-test-ui-176.js'
+      - 'test-portable-test-176.js'
+      - 'ite-field-workspace-ui-172.js'
+      - 'ite-intervention-extras-ui-174.js'
+      - 'index.html'
+      - '.github/workflows/portable-test-176.yml'
+  workflow_dispatch:
+jobs:
+  portable-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-portable-test-176.js && node --check ite-portable-test-ui-176.js && node --check ite-field-workspace-ui-172.js && node --check ite-intervention-extras-ui-174.js
+      - run: node test-portable-test-176.js
+      - run: node test-field-operations-171.js && node test-intervention-extras-173.js && node test-operations-dashboard-175.js
