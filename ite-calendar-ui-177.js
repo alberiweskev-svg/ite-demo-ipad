@@ -18,6 +18,8 @@ function render(){const s=B.snapshot(),selected=tech.value;tech.replaceChildren(
 output.replaceChildren();let v;try{v=C.project(s,date.value,mode.value,tech.value)}catch(e){output.append(el("p",e.message));return}
 output.append(el("h4",v.range.first+" — "+v.range.last));output.append(el("p",v.totals.appointments+" appuntamenti · "+v.totals.closed+" chiusi · "+v.totals.plannedMinutes+" minuti programmati · "+v.totals.workedMinutes+" minuti lavorati"));
 if(v.overlaps.length)output.append(el("p","Attenzione: "+v.overlaps.length+" sovrapposizioni per tecnico"));
+const workload=el("div");workload.className="item";workload.append(el("strong","Carico per tecnico"));v.technicians.forEach(t=>workload.append(el("p",t.name+": "+t.appointments+" appuntamenti · "+t.plannedMinutes+" minuti programmati · "+t.workedMinutes+" minuti lavorati")));output.append(workload);
+const days=el("div");days.className="item";days.append(el("strong","Distribuzione giornaliera"));v.days.filter(x=>x.appointments.length).forEach(x=>days.append(el("p",x.date+": "+x.appointments.length+" appuntamenti · "+x.plannedMinutes+" minuti")));output.append(days);
 const table=el("table");table.style.width="100%";const head=el("tr");["Inizio","Fine","Cliente / sede","Impianto","Tecnico","Stato"].forEach(t=>head.append(el("th",t)));table.append(head);
 v.rows.forEach(a=>{const tr=el("tr");[dateLabel(a.start),dateLabel(a.end),a.client+" — "+a.site,a.equipment,a.operator,a.status+(a.interventionStatus?" / "+a.interventionStatus:"")].forEach(t=>tr.append(el("td",t)));table.append(tr)});output.append(table);if(!v.rows.length)output.append(el("p","Nessun appuntamento nel periodo selezionato."))}
 B.subscribe(render);render()}
