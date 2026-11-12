@@ -1,0 +1,24 @@
+name: ITE 4.0.183 synthetic fiscal register
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-fiscal-test-183.js'
+      - 'test-fiscal-test-183.js'
+      - '.github/workflows/fiscal-test-183.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-fiscal-test-183.js
+      - run: node test-fiscal-test-183.js
