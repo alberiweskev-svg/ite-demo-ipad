@@ -1,0 +1,24 @@
+name: ITE 4.0.180 cross-domain integrity
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-archive-integrity-180.js', 'test-archive-integrity-180.js', '.github/workflows/archive-integrity-180.yml']
+  workflow_dispatch:
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-archive-integrity-180.js
+      - run: node --check test-archive-integrity-180.js
+      - run: node test-archive-integrity-180.js
+      - run: node test-field-operations-171.js
+      - run: node test-intervention-extras-173.js
