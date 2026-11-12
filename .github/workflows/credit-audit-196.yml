@@ -1,0 +1,29 @@
+name: ITE 4.0.196 TD04 TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-credit-audit-196.js'
+      - 'tests/test-credit-audit-196.js'
+      - 'ite-finance-overview-ui-195.js'
+      - 'index.html'
+      - '.github/workflows/credit-audit-196.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify TD04 and JS syntax
+        env:
+          TZ: ${{ matrix.tz }}
+        run: |
+          node --check ite-credit-audit-196.js
+          node --check ite-finance-overview-ui-195.js
+          node tests/test-credit-audit-196.js
