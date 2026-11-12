@@ -1,0 +1,24 @@
+name: ITE 4.0.177 Calendar TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-calendar-177.js'
+      - 'ite-calendar-ui-177.js'
+      - 'test-calendar-177.js'
+      - 'ite-field-operations-171.js'
+      - 'index.html'
+      - '.github/workflows/calendar-177.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-calendar-177.js && node --check ite-calendar-ui-177.js && node --check test-calendar-177.js
+      - run: node test-calendar-177.js
+      - run: node test-field-operations-171.js
+      - run: node test-field-workspace-172.js
