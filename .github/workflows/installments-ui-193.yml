@@ -1,0 +1,28 @@
+name: ITE 4.0.193 rate workspace TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-installments-192.js'
+      - 'ite-installments-workspace-ui-193.js'
+      - 'test-installments-ui-193.js'
+      - 'test-installments-192.js'
+      - 'index.html'
+      - '.github/workflows/installments-ui-193.yml'
+  workflow_dispatch:
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-installments-192.js && node --check ite-installments-workspace-ui-193.js && node --check test-installments-ui-193.js
+      - run: node test-installments-192.js
+      - run: node test-installments-ui-193.js
