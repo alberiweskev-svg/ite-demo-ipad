@@ -1,29 +1,13 @@
-/* I.T.E. 4.0 — technician workload and conflict-free appointment slots. */
+/* I.T.E. 4.0.179 — timezone-independent Europe/Rome technician capacity. */
 (function(root){'use strict';
 const planning=root.ITEFieldPlanning||(typeof require==='function'?require('./ite-field-planning.js'):null);
-const pad=n=>String(n).padStart(2,'0'),key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-function dayBounds(day){if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('GIORNO_NON_VALIDO');const start=new Date(day+'T00:00:00');if(!Number.isFinite(start.getTime())||key(start)!==day)throw Error('GIORNO_NON_VALIDO');return {start,end:new Date(start.getFullYear(),start.getMonth(),start.getDate()+1)}}
-function workload(catalog,appointments,day){
- const {start,end}=dayBounds(day),entries=planning.calendar(appointments,{from:start.toISOString(),to:end.toISOString()});
- return catalog.operators.map(op=>{
-  const jobs=entries.filter(a=>a.operatorId===op.id&&a.status!=='cancelled');
-  const busyMinutes=jobs.reduce((total,a)=>total+Math.max(0,Math.min(Date.parse(a.endsAt),end.getTime())-Math.max(Date.parse(a.startsAt),start.getTime()))/60000,0);
-  return {operatorId:op.id,name:op.name||op.id,color:op.color||null,active:op.active!==false,count:jobs.length,busyMinutes,appointments:jobs.map(a=>a.id)};
- });
-}
-function slots(appointments,{day,operatorId,durationMinutes=60,startHour=8,endHour=18,stepMinutes=30}={}){
- if(!operatorId)throw Error('OPERATORE_OBBLIGATORIO');
- if(!Number.isInteger(durationMinutes)||durationMinutes<=0||!Number.isInteger(stepMinutes)||stepMinutes<=0||!Number.isInteger(startHour)||!Number.isInteger(endHour)||startHour<0||endHour>24||startHour>=endHour)throw Error('PARAMETRI_FASCIA_NON_VALIDI');
- const {start}=dayBounds(day),busy=appointments.filter(a=>a.operatorId===operatorId&&a.status!=='cancelled');
- const result=[];
- for(let offset=startHour*60;offset+durationMinutes<=endHour*60;offset+=stepMinutes){
-  const from=new Date(start.getFullYear(),start.getMonth(),start.getDate(),0,offset),to=new Date(from.getTime()+durationMinutes*60000);
-  if(from.getFullYear()!==start.getFullYear()||from.getMonth()!==start.getMonth()||from.getDate()!==start.getDate()||to.getFullYear()!==start.getFullYear()||to.getMonth()!==start.getMonth()||to.getDate()!==start.getDate()||to.getHours()*60+to.getMinutes()!==offset+durationMinutes)continue;
-  if(busy.some(a=>from.getTime()<Date.parse(a.endsAt)&&Date.parse(a.startsAt)<to.getTime()))continue;
-  result.push({startsAt:from.toISOString(),endsAt:to.toISOString(),label:pad(from.getHours())+':'+pad(from.getMinutes())+'–'+pad(to.getHours())+':'+pad(to.getMinutes())});
- }
- return result;
-}
-const api=Object.freeze({workload,slots});root.ITEFieldTechnicianCapacity=api;
-if(typeof module!=='undefined'&&module.exports)module.exports=api;
+const zone='Europe/Rome',pad=n=>String(n).padStart(2,'0');
+const fmt=new Intl.DateTimeFormat('en-GB',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+function parts(ms){const p=Object.fromEntries(fmt.formatToParts(new Date(ms)).filter(x=>x.type!=='literal').map(x=>[x.type,Number(x.value)]));return p;}
+function dateValid(day){if(typeof day!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day))throw Error('GIORNO_NON_VALIDO');const d=new Date(day+'T00:00:00Z');if(!Number.isFinite(d.getTime())||d.toISOString().slice(0,10)!==day)throw Error('GIORNO_NON_VALIDO');return d;}
+function wall(day,minutes){const d=dateValid(day),y=d.getUTCFullYear(),m=d.getUTCMonth()+1,dd=d.getUTCDate();const hour=Math.floor(minutes/60),minute=minutes%60;const nominal=Date.UTC(y,m-1,dd,hour,minute);const matches=[];for(const offset of [60,120]){const ms=nominal-offset*60000,p=parts(ms);if(p.year===y&&p.month===m&&p.day===dd&&p.hour===hour&&p.minute===minute)matches.push(ms);}return matches.sort((a,b)=>a-b);}
+function dayBounds(day){dateValid(day);const d=new Date(day+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+1);const next=d.toISOString().slice(0,10);return {start:new Date(wall(day,0)[0]),end:new Date(wall(next,0)[0])};}
+function workload(catalog,appointments,day){const {start,end}=dayBounds(day);if(!planning||!Array.isArray(appointments)||!catalog||!Array.isArray(catalog.operators))throw Error('DATI_NON_VALIDI');const entries=planning.calendar(appointments,{from:start.toISOString(),to:end.toISOString()});return catalog.operators.map(op=>{const jobs=entries.filter(a=>a.operatorId===op.id&&a.status!=='cancelled');return {operatorId:op.id,name:op.name||op.id,color:op.color||null,active:op.active!==false,count:jobs.length,busyMinutes:jobs.reduce((n,a)=>n+Math.max(0,Math.min(Date.parse(a.endsAt),end.getTime())-Math.max(Date.parse(a.startsAt),start.getTime()))/60000,0),appointments:jobs.map(a=>a.id)};});}
+function slots(appointments,{day,operatorId,durationMinutes=60,startHour=8,endHour=18,stepMinutes=30}={}){if(!operatorId)throw Error('OPERATORE_OBBLIGATORIO');if(!Array.isArray(appointments)||![durationMinutes,stepMinutes,startHour,endHour].every(Number.isInteger)||durationMinutes<=0||stepMinutes<=0||startHour<0||endHour>24||startHour>=endHour)throw Error('PARAMETRI_FASCIA_NON_VALIDI');dateValid(day);const busy=appointments.filter(a=>a.operatorId===operatorId&&a.status!=='cancelled'),out=[];for(let minute=startHour*60;minute+durationMinutes<=endHour*60;minute+=stepMinutes){const starts=wall(day,minute),ends=wall(day,minute+durationMinutes);if(!starts.length||!ends.length)continue;const from=starts[0],to=ends.find(t=>t>from&&t-from===durationMinutes*60000);if(to===undefined)continue;if(busy.some(a=>from<Date.parse(a.endsAt)&&Date.parse(a.startsAt)<to))continue;const label=n=>pad(Math.floor(n/60))+':'+pad(n%60);out.push({startsAt:new Date(from).toISOString(),endsAt:new Date(to).toISOString(),label:label(minute)+'–'+label(minute+durationMinutes)});}return out;}
+const api=Object.freeze({dayBounds,workload,slots});root.ITEFieldTechnicianCapacity=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
