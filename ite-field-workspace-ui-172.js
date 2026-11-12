@@ -9,13 +9,16 @@ function init(){
  const bar=d.createElement("div");bar.className="actions";host.append(bar);
  const area=d.createElement("div");host.append(area);
  let s=F.empty(),serial=0;
+ const listeners=new Set();
+ root.ITE_FieldWorkspaceBridge174=Object.freeze({snapshot:()=>JSON.parse(JSON.stringify(s)),subscribe:fn=>{listeners.add(fn);return ()=>listeners.delete(fn)}});
+ function notify(){listeners.forEach(fn=>{try{fn()}catch(_){}})}
  const kinds=[["clients","Cliente",["name"]],["sites","Sede",["name","clientId"]],["systems","Impianto",["name","siteId"]],["equipment","Apparecchiatura",["name","systemId"]],["operators","Operatore",["name"]],["appointments","Appuntamento",["clientId","siteId","equipmentId","operatorId","start","end"]]];
  const fields={name:"Nome",clientId:"Cliente",siteId:"Sede",systemId:"Impianto",equipmentId:"Apparecchiatura",operatorId:"Tecnico",start:"Inizio",end:"Fine"};
  const link={clientId:"clients",siteId:"sites",systemId:"systems",equipmentId:"equipment",operatorId:"operators"};
  function el(tag,label){const x=d.createElement(tag);if(label!==undefined)x.textContent=label;return x}
  function button(label,fn,container=bar){const b=el("button",label);b.type="button";b.addEventListener("click",fn);container.append(b);return b}
  function feedback(t,ok){status.textContent=t;status.style.color=ok?"#176438":"#a03132"}
- function action(fn){try{s=fn(s).state;feedback("Operazione TEST registrata. Revisione "+s.revision,true);render()}catch(e){feedback("Operazione respinta: "+e.message,false)}}
+ function action(fn){try{s=fn(s).state;feedback("Operazione TEST registrata. Revisione "+s.revision,true);render();notify()}catch(e){feedback("Operazione respinta: "+e.message,false)}}
  function inputForm(title,definitions,submit){
  area.replaceChildren();area.append(el("h3",title));const form=el("form");form.className="grid";area.append(form);const inputs={};
  definitions.forEach(([key,label,choices])=>{const wrap=el("label",label);let control;
