@@ -1,0 +1,17 @@
+const assert=require("node:assert/strict");
+const F=require("./ite-fiscal-test-183.js"),L=require("./ite-document-lifecycle-188.js");
+const store=F.createStore(),line={description:"Posa TEST",quantity:1,unitPrice:100,vatRate:10};
+F.add(store,{id:"p1",type:"PROFORMA",number:"P1",date:"2026-11-12",counterparty:"Cliente TEST",lines:[line]});
+assert.throws(()=>L.createSale(store,"p1","V1","2026-11-12"),/PROFORMA_NON_REGISTRATA/);
+F.transition(store,"p1","REGISTRATO");
+const sale=L.createSale(store,"p1","V1","2026-11-12");assert.equal(sale.totals.totalCents,11000);
+assert.throws(()=>L.createSale(store,"p1","V2","2026-11-12"),/PROFORMA_GIA_CONVERTITA/);
+assert.throws(()=>L.createCredit(store,sale.id,"NC1","2026-11-12"),/VENDITA_NON_REGISTRATA/);
+F.transition(store,sale.id,"REGISTRATO");
+const credit=L.createCredit(store,sale.id,"NC1","2026-11-12");assert.equal(credit.reference.number,"V1");
+assert.throws(()=>L.createCredit(store,sale.id,"NC2","2026-11-12"),/TD04_SUPERA_VENDITA/);
+assert.equal(L.reconcile(store).valid,true);
+const tampered=JSON.parse(JSON.stringify(store));tampered.documents.find(d=>d.type==="TD04").originSaleId="missing";
+assert.equal(L.reconcile(tampered).valid,false);
+assert.equal(F.importTest(F.exportTest(store)).documents.length,3);
+console.log("ITE 4.0.188 lifecycle tests OK");
