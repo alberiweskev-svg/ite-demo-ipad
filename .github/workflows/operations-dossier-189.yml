@@ -1,0 +1,29 @@
+name: ITE 4.0.189 integrated operations dossier
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-dossier-189.js'
+      - 'ite-operations-dossier-ui-189.js'
+      - 'test-operations-dossier-189.js'
+      - 'index.html'
+      - '.github/workflows/operations-dossier-189.yml'
+  workflow_dispatch:
+jobs:
+  dossier:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-operations-dossier-189.js
+      - run: node --check ite-operations-dossier-ui-189.js
+      - run: node test-operations-dossier-189.js
+      - run: node test-document-lifecycle-188.js
+      - run: node test-fiscal-audit-187.js
