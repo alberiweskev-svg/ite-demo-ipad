@@ -1,0 +1,27 @@
+name: ITE 4.0.175 operations dashboard
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operations-dashboard-175.js'
+      - 'ite-operations-dashboard-ui-175.js'
+      - 'ite-intervention-extras-ui-174.js'
+      - 'test-operations-dashboard-175.js'
+      - 'index.html'
+      - '.github/workflows/operations-dashboard-175.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-operations-dashboard-175.js
+      - run: node --check ite-operations-dashboard-ui-175.js
+      - run: node --check ite-intervention-extras-ui-174.js
+      - run: node test-operations-dashboard-175.js
+      - run: node test-field-operations-171.js
+      - run: node test-intervention-extras-173.js
+      - run: node test-intervention-extras-174.js
