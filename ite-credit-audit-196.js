@@ -27,7 +27,7 @@ function audit(store){
  for(const sale of docs.filter(d=>d&&d.type==="VENDITA"&&d.status==="REGISTRATO")){
   const base=sale.totals&&sale.totals.totalCents;
   if(!Number.isSafeInteger(base)||base<0){issues.push("VENDITA_IMPORTO_INVALIDO:"+sale.id);continue;}
-  saleCents+=base;creditCents+=allocations.get(sale.id)||0;
+  saleCents+=base;creditCents+=rows.filter(r=>r.saleId===sale.id&&r.status==="REGISTRATO").reduce((sum,r)=>sum+r.amountCents,0);
  }
  if(!Number.isSafeInteger(saleCents)||!Number.isSafeInteger(creditCents))issues.push("TOTALE_FUORI_LIMITE");
  return {schema:"ITE_TD04_AUDIT_TEST_196",valid:issues.length===0,issues:[...new Set(issues)],saleCents,creditCents,netCents:saleCents-creditCents,rows,warning:"TD04 contabilizzate solo come rettifica documentale TEST: nessuna compensazione automatica di rate, scadenze o pagamenti."};
