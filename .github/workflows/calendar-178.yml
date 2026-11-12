@@ -1,0 +1,34 @@
+name: ITE 4.0.178 Calendar integrated TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-calendar-177.js'
+      - 'ite-calendar-ui-177.js'
+      - 'test-calendar-177.js'
+      - 'test-calendar-178.js'
+      - '.github/workflows/calendar-178.yml'
+  workflow_dispatch:
+jobs:
+  calendar-integrated:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [Europe/Rome, UTC]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-calendar-177.js
+          node --check ite-calendar-ui-177.js
+          node --check test-calendar-178.js
+      - name: Integrated synthetic calendar regression
+        run: |
+          node test-field-operations-171.js
+          node test-calendar-177.js
+          node test-calendar-178.js
