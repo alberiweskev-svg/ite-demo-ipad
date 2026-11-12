@@ -1,0 +1,28 @@
+name: ITE 4.0.182 synthetic commercial dossier
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-commercial-dossier-182.js'
+      - 'ite-commercial-dossier-ui-182.js'
+      - 'test-commercial-dossier-182.js'
+      - '.github/workflows/commercial-dossier-182.yml'
+  workflow_dispatch:
+jobs:
+  dossier:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check ite-commercial-dossier-182.js
+          node --check ite-commercial-dossier-ui-182.js
+          node --check test-commercial-dossier-182.js
+      - env:
+          TZ: ${{ matrix.tz }}
+        run: node test-commercial-dossier-182.js
