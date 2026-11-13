@@ -1,0 +1,27 @@
+name: ITE 4.0.208 integrated cockpit
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-integrated-workspace-207.js'
+      - 'ite-workflow-cockpit-ui-203.js'
+      - 'index.html'
+      - 'tests/test-integrated-cockpit-208.js'
+      - '.github/workflows/integrated-cockpit-208.yml'
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Integration and regressions
+        run: |
+          TZ=${{ matrix.timezone }} node tests/test-integrated-cockpit-208.js
+          TZ=${{ matrix.timezone }} node tests/test-integrated-workspace-207.js
+          TZ=${{ matrix.timezone }} node tests/test-operational-batch-202.js
