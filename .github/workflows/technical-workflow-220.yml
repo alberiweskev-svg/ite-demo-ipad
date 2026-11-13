@@ -1,0 +1,33 @@
+name: ITE technical workflow 4.0.220
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-workflow-220.js'
+      - 'ite-technical-register-ui-219.js'
+      - 'ite-workspace-store-209.js'
+      - 'tests/test-technical-workflow-220.js'
+      - '.github/workflows/technical-workflow-220.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-technical-workflow-220.js
+          node --check ite-technical-register-ui-219.js
+      - name: Functional and regression tests
+        env:
+          TZ: ${{ matrix.tz }}
+        run: |
+          node tests/test-technical-workflow-220.js
+          node tests/test-technical-register-219.js
+          node tests/test-technical-workspace-218.js
