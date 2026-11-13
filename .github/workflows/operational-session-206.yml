@@ -1,0 +1,32 @@
+name: ITE 4.0.206 reversible operational session
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operational-session-206.js'
+      - 'ite-workflow-cockpit-ui-203.js'
+      - 'index.html'
+      - 'tests/test-operational-session-206.js'
+      - '.github/workflows/operational-session-206.yml'
+  workflow_dispatch:
+jobs:
+  session:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Session and operational regression
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node --check ite-operational-session-206.js
+          node --check ite-workflow-cockpit-ui-203.js
+          node tests/test-operational-session-206.js
+          node tests/test-agenda-lifecycle-205.js
+          node tests/test-operational-batch-202.js
+          node tests/test-operational-hardening-204.js
