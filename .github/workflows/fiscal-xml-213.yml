@@ -1,0 +1,31 @@
+name: Fiscal XML local preview 4.0.213
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-fiscal-xml-213.js'
+      - 'ite-fiscal-review-ui-212.js'
+      - 'tests/test-fiscal-xml-213.js'
+      - 'index.html'
+      - '.github/workflows/fiscal-xml-213.yml'
+  workflow_dispatch:
+jobs:
+  fiscal-xml:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and regression
+        run: |
+          node --check ite-fiscal-xml-213.js
+          node --check ite-fiscal-review-ui-212.js
+          node tests/test-fiscal-ledger-211.js
+          node tests/test-fiscal-review-212.js
+          node tests/test-fiscal-xml-213.js
+        env:
+          TZ: ${{ matrix.tz }}
