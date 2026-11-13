@@ -1,0 +1,17 @@
+"use strict";
+const assert=require("node:assert/strict"),F=require("../ite-fiscal-ledger-211.js");
+const sale={id:"V1",direction:"OUT",type:"VENDITA",documentCode:"TD01",number:"1",date:"2026-11-13",counterpartyId:"CLIENTE-TEST",netCents:10000,vatCents:1000,grossCents:11000};
+const buy={id:"A1",direction:"IN",type:"ACQUISTO",documentCode:"TD01",number:"1",date:"2026-11-13",counterpartyId:"FORNITORE-TEST",netCents:20000,vatCents:4400,grossCents:24400};
+const credit={id:"NC1",direction:"OUT",type:"NOTA_CREDITO",documentCode:"TD04",number:"NC1",date:"2026-11-13",counterpartyId:"CLIENTE-TEST",netCents:-2000,vatCents:-200,grossCents:-2200,referenceId:"V1"};
+const pro={id:"PR1",direction:"OUT",type:"PROFORMA",documentCode:"PR",number:"PR1",date:"2026-11-13",counterpartyId:"CLIENTE-TEST",netCents:5000,vatCents:500,grossCents:5500};
+const l=F.create([sale,buy]);l.insert(credit);l.insert(pro);
+assert.deepEqual(l.totals(),{acquisti:24400,vendite:11000,proforma:5500,noteCreditoAcquisto:0,noteCreditoVendita:-2200,saldoVendite:8800,saldoAcquisti:24400});
+assert.throws(()=>l.insert({...sale,id:"V2"}),/NUMERO_DUPLICATO/);
+assert.throws(()=>l.insert({...credit,id:"NC2",number:"NC2",referenceId:"missing"}),/RIFERIMENTO/);
+assert.throws(()=>l.insert({...sale,id:"V3",number:"3",grossCents:1}),/TOTALI/);
+assert.throws(()=>l.insert({...sale,id:"V4",number:"4",date:"2026-02-30"}),/DATA/);
+assert.throws(()=>l.insert({...sale,id:"V5",number:"5",type:"ACQUISTO"}),/CLASSIFICAZIONE/);
+const before=l.snapshot();before[0].number="CHANGED";assert.equal(l.snapshot()[0].number,"1");
+l.changeStatus("PR1","ANNULLATO");assert.equal(l.totals().proforma,0);
+assert.throws(()=>l.changeStatus("MISSING","ANNULLATO"),/NON_TROVATO/);
+console.log("Fiscal ledger 4.0.211: OK");
