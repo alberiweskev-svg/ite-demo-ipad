@@ -24,7 +24,7 @@ assert.equal(done.field.interventions[0].durationMinutes,50);
 assert.equal(JSON.stringify([field,commercial]),before);
 assert.throws(()=>B.transact(field,commercial,[actions[0],actions[0]]),/LOTTO_ANNULLATO_PASSO_2/);
 assert.equal(JSON.stringify([field,commercial]),before);
-assert.throws(()=>B.transact(field,commercial,[actions[0],actions[1],actions[2],actions[3],actions[4],actions[6],actions[7]]),/LOTTO_ANNULLATO_INTEGRITA/);
+assert.throws(()=>B.transact(field,commercial,[actions[0],actions[1],actions[2],actions[3],actions[4],actions[6],actions[7]]),/LOTTO_ANNULLATO_PASSO_7/);
 const corrupt=JSON.parse(JSON.stringify(done));corrupt.field.sites[0].clientId="missing";
 assert(B.audit(corrupt.field,corrupt.commercial).issues.some(x=>x.startsWith("SEDE_CLIENTE")));
 const duplicate=JSON.parse(JSON.stringify(done));duplicate.commercial.quotes.push({...duplicate.commercial.quotes[0],id:"q2"});
