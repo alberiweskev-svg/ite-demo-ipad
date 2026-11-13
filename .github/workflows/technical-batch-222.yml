@@ -1,0 +1,29 @@
+name: ITE 4.0.222 Technical Batch
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-workflow-220.js'
+      - 'ite-technical-register-ui-219.js'
+      - 'ite-workspace-store-209.js'
+      - 'ite-document-intake-217.js'
+      - 'tests/test-technical-*.js'
+      - '.github/workflows/technical-batch-222.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test technical document regression
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node tests/test-technical-flow-221.js
+          node tests/test-technical-batch-222.js
