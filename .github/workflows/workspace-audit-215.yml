@@ -1,0 +1,28 @@
+name: ITE 4.0.215 fiscal workspace audit
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workspace-audit-215.js'
+      - 'ite-workspace-store-209.js'
+      - 'ite-fiscal-ledger-211.js'
+      - 'tests/test-workspace-audit-215.js'
+      - '.github/workflows/workspace-audit-215.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-workspace-audit-215.js
+      - run: node --check tests/test-workspace-audit-215.js
+      - run: node tests/test-workspace-audit-215.js
+      - run: node tests/test-fiscal-workspace-214.js
