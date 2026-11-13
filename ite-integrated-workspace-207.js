@@ -1,0 +1,19 @@
+/* I.T.E. 4.0.207 — integrated TEST dossier, agenda and commercial export. No persistence. */
+(function(root,factory){const api=factory(typeof module==="object"&&module.exports?require("./ite-operational-batch-202.js"):root.ITEOperationalBatch202,typeof module==="object"&&module.exports?require("./ite-operational-dossier-198.js"):root.ITEOperationalDossier198);if(typeof module==="object"&&module.exports)module.exports=api;root.ITEIntegratedWorkspace207=api;})(typeof globalThis!=="undefined"?globalThis:this,function(B,D){"use strict";
+const clone=x=>JSON.parse(JSON.stringify(x));
+const safe=x=>{let s=String(x??"");if(/^\\s*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
+function snapshot(field,commercial){
+ const audit=B.audit(field,commercial);if(!audit.valid)throw Error("ARCHIVIO_TEST_NON_VALIDO: "+audit.issues.join(","));
+ const dossier=D.build(field,commercial);if(!dossier.valid)throw Error("FASCICOLO_TEST_NON_VALIDO: "+dossier.issues.join(","));
+ const clients=field.clients.map(c=>({id:c.id,name:c.name||c.id,sites:field.sites.filter(s=>s.clientId===c.id).map(s=>({id:s.id,name:s.name||s.id,systems:field.systems.filter(y=>y.siteId===s.id).map(y=>({id:y.id,name:y.name||y.id,equipment:field.equipment.filter(e=>e.systemId===y.id).map(e=>({id:e.id,name:e.name||e.id}))}))}))}));
+ const agenda=field.appointments.slice().sort((a,b)=>Date.parse(a.start)-Date.parse(b.start)||a.id.localeCompare(b.id)).map(a=>({id:a.id,start:a.start,end:a.end,status:a.status,operatorId:a.operatorId,clientId:a.clientId,siteId:a.siteId,equipmentId:a.equipmentId,interventionId:(field.interventions.find(i=>i.appointmentId===a.id)||{}).id||null}));
+ const interventions=field.interventions.map(i=>({id:i.id,appointmentId:i.appointmentId,status:i.status,operatorId:i.operatorId,arrivedAt:i.arrivedAt,exitedAt:i.exitedAt,durationMinutes:i.durationMinutes,revisions:clone(i.revisions||[]),extras:commercial.extras.filter(e=>e.interventionId===i.id).map(e=>clone(e)),quotes:commercial.quotes.filter(q=>q.interventionId===i.id).map(q=>clone(q))}));
+ return clone({schema:"ITE_INTEGRATED_WORKSPACE_TEST_207",clients,agenda,interventions,totals:audit.totals,generatedFrom:"MEMORY_ONLY",warning:"Solo dati fittizi TEST. Non contiene registrazioni fiscali."});
+}
+function agendaByOperator(report){assertReport(report);const result={};for(const a of report.agenda)(result[a.operatorId]||(result[a.operatorId]=[])).push(clone(a));return result;}
+function commercialByIntervention(report){assertReport(report);return report.interventions.map(i=>{const approved=i.extras.filter(e=>e.status==="APPROVATO");const total=k=>approved.filter(e=>e.kind===k).reduce((n,e)=>n+e.priceCents,0);return {interventionId:i.id,supplyCents:total("FORNITURA"),installationCents:total("POSA"),acceptedQuoteCents:i.quotes.filter(q=>q.status==="ACCETTATO").reduce((n,q)=>n+q.totalCents,0)};});}
+function assertReport(r){if(!r||r.schema!=="ITE_INTEGRATED_WORKSPACE_TEST_207"||!Array.isArray(r.agenda)||!Array.isArray(r.interventions))throw Error("REPORT_TEST_NON_VALIDO");}
+function csvAgenda(report){assertReport(report);const rows=[["Appuntamento","Inizio","Fine","Stato","Tecnico","Cliente","Sede","Apparecchiatura","Intervento"],...report.agenda.map(a=>[a.id,a.start,a.end,a.status,a.operatorId,a.clientId,a.siteId,a.equipmentId,a.interventionId||""])];return "\uFEFF"+rows.map(r=>r.map(safe).join(";")).join("\r\n")+"\r\n";}
+function exportSynthetic(report){assertReport(report);return JSON.stringify({schema:report.schema,agenda:report.agenda,interventions:report.interventions,clients:report.clients,totals:report.totals},null,2);}
+return Object.freeze({snapshot,agendaByOperator,commercialByIntervention,csvAgenda,exportSynthetic});
+});
