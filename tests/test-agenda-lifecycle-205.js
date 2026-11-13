@@ -1,0 +1,20 @@
+"use strict";
+const assert=require("node:assert/strict");
+const B=require("../ite-operational-batch-202.js");
+const fresh=()=>({field:{clients:[{id:"c"}],sites:[{id:"s",clientId:"c"}],systems:[{id:"sys",siteId:"s"}],equipment:[{id:"e",systemId:"sys"}],operators:[{id:"op"},{id:"op2"}],appointments:[],interventions:[]},commercial:{extras:[],quotes:[]}});
+const t="2026-11-16T09:00:00+01:00",end="2026-11-16T10:00:00+01:00";
+const create=(id,operatorId="op",start=t,finish=end)=>({type:"APPOINTMENT_CREATE",id,clientId:"c",siteId:"s",equipmentId:"e",operatorId,start,end:finish});
+function batch(state,actions){return B.transact(state.field,state.commercial,actions)}
+let s=fresh(),r=batch(s,[create("a"),{type:"APPOINTMENT_RESCHEDULE",appointmentId:"a",start:"2026-11-16T11:00:00+01:00",end:"2026-11-16T12:00:00+01:00"},{type:"APPOINTMENT_REASSIGN",appointmentId:"a",operatorId:"op2"}]);
+assert.equal(r.field.appointments[0].operatorId,"op2");assert.equal(r.field.appointments[0].start,"2026-11-16T11:00:00+01:00");assert.equal(s.field.appointments.length,0);
+r=batch(r,[create("b","op"),{type:"APPOINTMENT_CANCEL",appointmentId:"b"}]);assert.equal(r.field.appointments[1].status,"ANNULLATO");
+assert.throws(()=>batch(r,[{type:"APPOINTMENT_RESCHEDULE",appointmentId:"b",start:t,end:end}]),/ANNULLATO|NON_MODIFICABILE/);
+r=batch(r,[{type:"ARRIVAL",appointmentId:"a",interventionId:"i",at:"2026-11-16T11:00:00+01:00"},{type:"CLOSE",interventionId:"i",at:"2026-11-16T12:00:00+01:00"},{type:"INTERVENTION_REVISE_TIME",interventionId:"i",arrivedAt:"2026-11-16T11:10:00+01:00",exitedAt:"2026-11-16T12:05:00+01:00",reason:"Correzione orario TEST"}]);
+assert.equal(r.field.interventions[0].durationMinutes,55);assert.equal(r.field.interventions[0].revisions.length,1);assert.equal(r.report.valid,true);
+assert.throws(()=>batch(r,[{type:"APPOINTMENT_CANCEL",appointmentId:"a"}]),/NON_ANNULLABILE/);
+assert.throws(()=>batch(r,[{type:"INTERVENTION_REVISE_TIME",interventionId:"i",arrivedAt:t,exitedAt:end,reason:""}]),/REVISIONE_NON_VALIDA/);
+const conflict=batch(fresh(),[create("a"),create("b","op2")]);
+assert.throws(()=>batch(conflict,[{type:"APPOINTMENT_REASSIGN",appointmentId:"b",operatorId:"op"}]),/SOVRAPPOSIZIONE_TECNICO/);
+assert.throws(()=>batch(conflict,[{type:"APPOINTMENT_CANCEL",appointmentId:"b"},{type:"APPOINTMENT_REASSIGN",appointmentId:"a",operatorId:"missing"}]),/LOTTO_ANNULLATO_PASSO_2/);
+assert.equal(conflict.field.appointments[1].status,"PIANIFICATO");
+console.log("4.0.205 agenda lifecycle TEST: OK");
