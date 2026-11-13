@@ -20,9 +20,10 @@ function init(){
  const state=field("Stato",Intake.STATES.map(x=>[x,x]));
  const note=field("Nota sintetica");note.maxLength=300;
  const pdf=field("Controllo intestazione PDF (facoltativo)");pdf.type="file";pdf.accept=".pdf,application/pdf";
+ const bulkStatus=field("Stato per modifica multipla",Intake.STATES.map(x=>[x,x]));
  const filter=field("Filtro registro",[["","Tutti"],...Intake.TYPES.map(x=>[x,x])]);
  const seed={clients:[{id:"C-TEST",name:"Cliente dimostrativo"}],sites:[{id:"S-TEST",clientId:"C-TEST",name:"Immobile demo"}],systems:[{id:"SYS-TEST",siteId:"S-TEST",name:"Impianto demo"}],equipment:[{id:"E-TEST",systemId:"SYS-TEST",name:"Generatore demo"}],operators:[{id:"OP-TEST",name:"Tecnico demo"}],appointments:[],interventions:[]};
- const store=Store.create(root.localStorage,seed,{extras:[],quotes:[]});let inspected=0,seq=0;
+ const store=Store.create(root.localStorage,seed,{extras:[],quotes:[]});let inspected=0,seq=0;const selected=new Set();
  try{store.restore();}catch(e){status.textContent="Archivio non leggibile: "+e.message;}
  function snapshot(){return store.snapshot();}
  function choices(){const f=snapshot().field;setOptions(client,[["","Nessuno"],...f.clients.map(x=>[x.id,x.name||x.id])]);refreshSite();}
@@ -34,9 +35,21 @@ function init(){
  function transact(op){try{W.apply(store,op);status.textContent="Operazione salvata nell'archivio locale TEST.";render();return true;}catch(e){status.textContent="Operazione respinta: "+e.message+". Se un'altra scheda ha modificato l'archivio, ricaricarlo.";return false;}}
  button("Registra documento TEST",()=>{
   const id="TD-TEST-"+Date.now().toString(36)+"-"+(++seq);
-  const meta={id,type:type.value,status:state.value,label:"Documento sintetico "+id,note:note.value,size:inspected,clientId:client.value||null,siteId:site.value||null,interventionId:intervention.value||null,created:"TEST-2026-11-13"};
+  const meta={id,type:type.value,status:state.value,label:"Documento sintetico "+id,note:note.value,size:inspected,clientId:client.value||null,siteId:site.value||null,interventionId:intervention.value||null,created:"TEST-"+new Date().toISOString().slice(0,10)};
   if(transact({action:"add",patch:meta})){note.value="";pdf.value="";inspected=0;}
  });
+ button("Applica stato ai selezionati",()=>{
+  const ids=[...selected].filter(id=>snapshot().technicalDocuments.some(x=>x.id===id));
+  if(!ids.length){status.textContent="Selezionare almeno un documento.";return;}
+  if(transactBatch(ids.map(id=>({action:"update",id,patch:{status:bulkStatus.value}}))))selected.clear();
+ });
+ button("Elimina selezionati TEST",()=>{
+  const ids=[...selected].filter(id=>snapshot().technicalDocuments.some(x=>x.id===id));
+  if(!ids.length){status.textContent="Selezionare almeno un documento.";return;}
+  if(!root.confirm("Eliminare "+ids.length+" registrazioni TEST?"))return;
+  if(transactBatch(ids.map(id=>({action:"remove",id}))))selected.clear();
+ });
+ function transactBatch(operations){try{const result=W.applyBatch(store,operations);status.textContent="Lotto salvato: "+operations.length+" modifiche, revisione "+result.revision+".";render();return true;}catch(e){status.textContent="Lotto annullato integralmente: "+e.message;return false;}}
  button("Ricarica archivio",()=>{try{store.restore();render();status.textContent="Archivio locale riletto.";}catch(e){status.textContent=e.message;}});
  pdf.addEventListener("change",async()=>{
   inspected=0;const file=pdf.files&&pdf.files[0];if(!file)return;
@@ -49,10 +62,14 @@ function init(){
  function render(){
   let p;try{p=snapshot();}catch(e){status.textContent=e.message;return;}
   choices();output.replaceChildren();const report=W.report(p);
+  for(const id of [...selected])if(!p.technicalDocuments.some(x=>x.id===id))selected.delete(id);
   el("h4","Registro tecnico TEST: "+report.total+" documenti",output);
   el("p","Da classificare/verificare: "+report.pending.length+" · Non associati: "+report.unlinked.length,output);
   for(const doc of p.technicalDocuments.filter(x=>!filter.value||x.type===filter.value)){
    const item=el("div",undefined,output);item.className="item";
+   const choose=el("label","Seleziona per operazione multipla",item),check=el("input",undefined,choose);
+   check.type="checkbox";check.style.width="auto";check.checked=selected.has(doc.id);
+   check.addEventListener("change",()=>{if(check.checked)selected.add(doc.id);else selected.delete(doc.id);});
    el("strong",doc.type+" — "+doc.id,item);
    el("p",doc.status+" · "+(doc.clientId||"non associato")+" · "+doc.size+" byte",item);
    const editor=el("select",undefined,item);
