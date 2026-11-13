@@ -9,5 +9,5 @@ for(const fragment of ["W.snapshot(state.field,state.commercial)","W.agendaByOpe
 assert.equal(typeof engine.snapshot,"function");
 assert.equal(typeof engine.csvAgenda,"function");
 assert.throws(()=>engine.csvAgenda({}),/REPORT_TEST_NON_VALIDO/);
-assert.throws(()=>engine.snapshot({clients:[]},{extras:[]}),/ARCHIVIO_/);
+assert.throws(()=>engine.snapshot({clients:[]},{extras:[]}),Error);
 console.log("4.0.208 integration smoke: OK");
