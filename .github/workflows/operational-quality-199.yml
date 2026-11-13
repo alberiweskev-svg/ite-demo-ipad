@@ -1,0 +1,32 @@
+name: ITE 4.0.199 operational quality TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operational-quality-199.js'
+      - 'ite-operational-dossier-ui-198.js'
+      - 'tests/test-operational-quality-199.js'
+      - 'index.html'
+      - '.github/workflows/operational-quality-199.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Operational dossier and quality tests
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node tests/test-operational-dossier-198.js
+          node tests/test-operational-quality-199.js
+      - name: Verify integrated demo
+        run: |
+          grep -q 'ite-operational-quality-199.js' index.html
+          grep -q 'ite-operational-dossier-ui-198.js' index.html
