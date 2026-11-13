@@ -6,8 +6,8 @@ function init(){
  const panel=d.createElement("section");panel.className="panel";panel.id="ite-workflow-cockpit-203";
  const heading=d.createElement("h3");heading.textContent="Flusso operativo e agenda — collaudo TEST 4.0.206";
  const warning=d.createElement("p");warning.textContent="Archivio sintetico temporaneo, separato dalle anagrafiche operative. Nessuna sincronizzazione, fatturazione o salvataggio. Non inserire dati reali.";
- const controls=d.createElement("div"),output=d.createElement("div"),status=d.createElement("p");status.setAttribute("role","status");
- panel.append(heading,warning,controls,status,output);host.append(panel);
+ const controls=d.createElement("div"),output=d.createElement("div"),status=d.createElement("p"),integrated=d.createElement("div");status.setAttribute("role","status");
+ panel.append(heading,warning,controls,status,output,integrated);host.append(panel);
  const Session=root.ITEOperationalSession206; if(!Session){status.textContent="Modulo sessione 4.0.206 non caricato.";return;} const start="2026-11-13T09:00:00+01:00",end="2026-11-13T10:00:00+01:00";
  function fresh(){return {field:{clients:[{id:"C-TEST",name:"Cliente dimostrativo"}],sites:[{id:"S-TEST",clientId:"C-TEST",name:"Immobile demo"}],systems:[{id:"SYS-TEST",siteId:"S-TEST",name:"Riscaldamento demo"}],equipment:[{id:"E-TEST",systemId:"SYS-TEST",name:"Generatore fittizio"}],operators:[{id:"OP-TEST",name:"Tecnico demo"},{id:"OP-TEST-2",name:"Secondo tecnico demo"}],appointments:[],interventions:[]},commercial:{extras:[],quotes:[]}};}
  let state=fresh(),session=Session.create(state.field,state.commercial),history=[],serial=0;
@@ -25,9 +25,23 @@ function init(){
  button("Annulla ultimo lotto TEST",()=>{try{const result=session.undo();state={field:result.state.field,commercial:result.state.commercial};status.textContent="Lotto annullato in memoria.";render();}catch(e){status.textContent=e.message;}});
  button("Ripristina lotto TEST",()=>{try{const result=session.redo();state={field:result.state.field,commercial:result.state.commercial};status.textContent="Lotto ripristinato in memoria.";render();}catch(e){status.textContent=e.message;}});
  button("Azzera solo collaudo",()=>{state=fresh();session.reset(state.field,state.commercial);history=[];serial=0;status.textContent="Archivio dimostrativo azzerato.";render();});
- function render(){output.replaceChildren();const report=B.audit(state.field,state.commercial);const summary=d.createElement("p");summary.textContent="Integrità: "+(report.valid?"OK":"ERRORI: "+report.issues.join(", "))+" · Appuntamenti: "+report.totals.appointments+" · Interventi: "+report.totals.interventions+" · Fornitura approvata: € "+(report.totals.approvedSupplyCents/100).toFixed(2)+" · Posa approvata: € "+(report.totals.approvedInstallationCents/100).toFixed(2)+" · Preventivi accettati: € "+(report.totals.acceptedQuotesCents/100).toFixed(2);output.append(summary);
+ function render(){output.replaceChildren();integrated.replaceChildren();const report=B.audit(state.field,state.commercial);const summary=d.createElement("p");summary.textContent="Integrità: "+(report.valid?"OK":"ERRORI: "+report.issues.join(", "))+" · Appuntamenti: "+report.totals.appointments+" · Interventi: "+report.totals.interventions+" · Fornitura approvata: € "+(report.totals.approvedSupplyCents/100).toFixed(2)+" · Posa approvata: € "+(report.totals.approvedInstallationCents/100).toFixed(2)+" · Preventivi accettati: € "+(report.totals.acceptedQuotesCents/100).toFixed(2);output.append(summary);
  for(const a of state.field.appointments){const p=d.createElement("p");const i=state.field.interventions.find(v=>v.appointmentId===a.id);p.textContent=a.id+" · "+a.start+" · "+a.status+" · Tecnico "+a.operatorId+(i?" · "+i.status+" · "+i.durationMinutes+" minuti":"");output.append(p);}
- const log=d.createElement("p");const sessionStatus=session.status();log.textContent="Lotti TEST in memoria: "+sessionStatus.index+" / "+(sessionStatus.length-1)+" · Eventi applicati: "+sessionStatus.events+" · Annulla: "+(sessionStatus.canUndo?"sì":"no")+" · Ripristina: "+(sessionStatus.canRedo?"sì":"no");output.append(log);}
+ const log=d.createElement("p");const sessionStatus=session.status();log.textContent="Lotti TEST in memoria: "+sessionStatus.index+" / "+(sessionStatus.length-1)+" · Eventi applicati: "+sessionStatus.events+" · Annulla: "+(sessionStatus.canUndo?"sì":"no")+" · Ripristina: "+(sessionStatus.canRedo?"sì":"no");output.append(log);renderIntegrated();}
+ function renderIntegrated(){
+ const W=root.ITEIntegratedWorkspace207;
+ if(!W){const p=d.createElement("p");p.textContent="Fascicolo integrato 4.0.207 non caricato.";integrated.append(p);return;}
+ try{
+ const report=W.snapshot(state.field,state.commercial),group=W.agendaByOperator(report),amounts=W.commercialByIntervention(report);
+ const h=d.createElement("h4");h.textContent="Fascicolo, agenda e commerciale integrati — TEST 4.0.208";integrated.append(h);
+ const info=d.createElement("p");info.textContent="Cliente: "+report.clients.map(c=>c.name).join(", ")+" · Sedi: "+report.clients.reduce((n,c)=>n+c.sites.length,0)+" · Appuntamenti: "+report.agenda.length+" · Interventi: "+report.interventions.length;integrated.append(info);
+ for(const [operator,items] of Object.entries(group)){const p=d.createElement("p");p.textContent="Tecnico "+operator+": "+items.map(a=>a.id+" ("+a.status+", "+a.start+")").join("; ");integrated.append(p);}
+ for(const a of amounts){const p=d.createElement("p");p.textContent=a.interventionId+" · FORNITURA € "+(a.supplyCents/100).toFixed(2)+" · POSA € "+(a.installationCents/100).toFixed(2)+" · Preventivi accettati € "+(a.acceptedQuoteCents/100).toFixed(2);integrated.append(p);}
+ function exportButton(label,content,type,filename){const b=d.createElement("button");b.type="button";b.textContent=label;b.addEventListener("click",()=>{const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=d.createElement("a");a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});integrated.append(b);}
+ exportButton("Esporta agenda CSV TEST",W.csvAgenda(report),"text/csv;charset=utf-8","agenda-test-208.csv");
+ exportButton("Esporta fascicolo JSON TEST",W.exportSynthetic(report),"application/json","fascicolo-test-208.json");
+ }catch(e){const p=d.createElement("p");p.textContent="Esportazione bloccata: "+e.message;integrated.append(p);}
+ }
  render();
 }
 if(root.document){if(root.document.readyState==="loading")root.document.addEventListener("DOMContentLoaded",init,{once:true});else init();}
