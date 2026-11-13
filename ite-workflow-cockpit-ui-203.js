@@ -42,6 +42,35 @@ function init(){
  exportButton("Esporta fascicolo JSON TEST",W.exportSynthetic(report),"application/json","fascicolo-test-208.json");
  }catch(e){const p=d.createElement("p");p.textContent="Esportazione bloccata: "+e.message;integrated.append(p);}
  }
+ const Store=root.ITEWorkspaceStore209;
+ if(Store&&root.localStorage){
+  try{
+   const persistent=Store.create(root.localStorage,state.field,state.commercial);
+   const previous=persistent.restore();
+   if(previous){state={field:previous.field,commercial:previous.commercial};session.reset(state.field,state.commercial);status.textContent="Archivio TEST locale ripristinato. Non contiene dati operativi.";}
+   button("Salva archivio TEST sul dispositivo",()=>{
+    try{const p=persistent.save(state,persistent.snapshot().revision);status.textContent="Archivio TEST salvato localmente · revisione "+p.revision;}
+    catch(e){status.textContent="Salvataggio TEST non riuscito: "+e.message;}
+   });
+   button("Ricarica archivio TEST locale",()=>{
+    try{const p=persistent.restore();if(!p){status.textContent="Nessun archivio TEST salvato.";return;}state={field:p.field,commercial:p.commercial};session.reset(state.field,state.commercial);status.textContent="Archivio TEST ricaricato.";render();}
+    catch(e){status.textContent="Ripristino TEST bloccato: "+e.message;}
+   });
+   button("Elimina salvataggio TEST locale",()=>{
+    try{persistent.reset();status.textContent="Solo il salvataggio TEST locale è stato eliminato. La sessione corrente resta invariata.";}
+    catch(e){status.textContent=e.message;}
+   });
+   button("Esporta archivio TEST JSON",()=>{
+    try{const content=Store.encode({...Store.synthetic(state.field,state.commercial),revision:persistent.snapshot().revision});const blob=new Blob([content],{type:"application/json"}),url=URL.createObjectURL(blob),a=d.createElement("a");a.href=url;a.download="ite-archivio-sintetico-209.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+    catch(e){status.textContent="Esportazione TEST bloccata: "+e.message;}
+   });
+   const pick=d.createElement("input");pick.type="file";pick.accept=".json,application/json";pick.setAttribute("aria-label","Importa solo archivio sintetico TEST");controls.append(pick);
+   pick.addEventListener("change",async()=>{
+    try{const file=pick.files&&pick.files[0];if(!file)return;if(file.size>800000)throw Error("FILE_TROPPO_GRANDE");const raw=await file.text();const p=persistent.importJson(raw);state={field:p.field,commercial:p.commercial};session.reset(state.field,state.commercial);status.textContent="Archivio sintetico TEST importato e validato.";render();}
+    catch(e){status.textContent="Importazione TEST rifiutata: "+e.message;}finally{pick.value="";}
+   });
+  }catch(e){status.textContent="Archivio TEST locale non disponibile: "+e.message;}
+ }
  render();
 }
 if(root.document){if(root.document.readyState==="loading")root.document.addEventListener("DOMContentLoaded",init,{once:true});else init();}
