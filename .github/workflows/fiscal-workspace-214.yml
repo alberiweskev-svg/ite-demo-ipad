@@ -1,0 +1,33 @@
+name: ITE 4.0.214 shared fiscal workspace
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workspace-store-209.js'
+      - 'ite-fiscal-review-ui-212.js'
+      - 'ite-fiscal-ledger-211.js'
+      - 'tests/test-fiscal-workspace-214.js'
+      - '.github/workflows/fiscal-workspace-214.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and shared workspace regression
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node --check ite-workspace-store-209.js
+          node --check ite-fiscal-review-ui-212.js
+          node --check tests/test-fiscal-workspace-214.js
+          node tests/test-fiscal-workspace-214.js
+          node tests/test-fiscal-ledger-211.js
+          node tests/test-fiscal-review-212.js
+          node tests/test-fiscal-xml-213.js
