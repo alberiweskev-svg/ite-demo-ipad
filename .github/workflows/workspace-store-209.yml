@@ -1,0 +1,31 @@
+name: ITE 4.0.209 synthetic workspace validation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workspace-store-209.js'
+      - 'ite-workflow-cockpit-ui-203.js'
+      - 'index.html'
+      - 'tests/test-workspace-store-209.js'
+      - '.github/workflows/workspace-store-209.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-workspace-store-209.js
+      - run: node --check ite-workflow-cockpit-ui-203.js
+      - run: node tests/test-workspace-store-209.js
+      - run: node tests/test-operational-workflow-201.js
+      - run: node tests/test-operational-batch-202.js
+      - run: node tests/test-integrated-workspace-207.js
+      - run: node tests/test-integrated-cockpit-208.js
