@@ -1,0 +1,31 @@
+name: Technical register 4.0.219
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-register-ui-219.js'
+      - 'ite-document-intake-217.js'
+      - 'ite-workspace-store-209.js'
+      - 'tests/test-technical-register-219.js'
+      - '.github/workflows/technical-register-219.yml'
+      - 'index.html'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax and synthetic workspace
+        env:
+          TZ: ${{ matrix.tz }}
+        run: |
+          node --check ite-technical-register-ui-219.js
+          node --check ite-document-intake-217.js
+          node --check ite-workspace-store-209.js
+          node tests/test-technical-register-219.js
