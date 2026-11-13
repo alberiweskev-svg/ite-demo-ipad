@@ -1,0 +1,30 @@
+name: ITE 4.0.205 agenda lifecycle
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operational-workflow-201.js'
+      - 'ite-operational-batch-202.js'
+      - 'ite-workflow-cockpit-ui-203.js'
+      - 'tests/test-agenda-lifecycle-205.js'
+      - '.github/workflows/agenda-lifecycle-205.yml'
+  workflow_dispatch:
+jobs:
+  agenda:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test agenda lifecycle and regression
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node tests/test-agenda-lifecycle-205.js
+          node tests/test-operational-workflow-201.js
+          node tests/test-operational-batch-202.js
+          node tests/test-operational-hardening-204.js
