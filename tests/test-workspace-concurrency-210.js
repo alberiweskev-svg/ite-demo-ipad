@@ -1,0 +1,16 @@
+"use strict";
+const assert=require("node:assert/strict");
+const Store=require("../ite-workspace-store-209.js");
+const field={clients:[{id:"C"}],sites:[{id:"S",clientId:"C"}],systems:[{id:"Y",siteId:"S"}],equipment:[{id:"E",systemId:"Y"}],operators:[{id:"O"}],appointments:[],interventions:[]};
+const commercial={extras:[],quotes:[]};
+const data=new Map(),storage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)};
+const a=Store.create(storage,field,commercial),b=Store.create(storage,field,commercial);
+a.save(a.snapshot());
+assert.throws(()=>b.save(b.snapshot()),/REVISIONE_CONFLITTO_DISPOSITIVO/);
+const bRestored=b.restore();assert.equal(bRestored.revision,1);
+b.save(b.snapshot());assert.equal(a.snapshot().revision,1);
+assert.throws(()=>a.save(a.snapshot()),/REVISIONE_CONFLITTO_DISPOSITIVO/);
+a.restore();a.save(a.snapshot());assert.equal(a.snapshot().revision,3);
+const c=Store.create(storage,field,commercial);c.restore();storage.removeItem(Store.KEY);
+assert.throws(()=>c.save(c.snapshot()),/ARCHIVIO_ESTERNO_ELIMINATO/);
+console.log("4.0.210: optimistic concurrency and synthetic storage regression OK");
