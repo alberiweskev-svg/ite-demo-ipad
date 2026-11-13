@@ -1,0 +1,23 @@
+/* Synthetic-only regression tests for integrated fiscal links 4.0.215. */
+const assert=require("node:assert/strict");
+const A=require("../ite-workspace-audit-215.js");
+const S=require("../ite-workspace-store-209.js");
+const field={clients:[{id:"C1"},{id:"C2"}],sites:[{id:"S1",clientId:"C1"}],systems:[{id:"P1",siteId:"S1"}],equipment:[{id:"E1",systemId:"P1"}],operators:[{id:"O1"}],appointments:[{id:"A1",clientId:"C1",siteId:"S1",equipmentId:"E1",operatorId:"O1",start:"2026-11-13T08:00:00",end:"2026-11-13T09:00:00"}],interventions:[{id:"I1",appointmentId:"A1"}]};
+const commercial={extras:[{id:"X1",interventionId:"I1",kind:"FORNITURA",priceCents:10000},{id:"X2",interventionId:"I1",kind:"POSA",priceCents:5000}],quotes:[{id:"Q1",interventionId:"I1",extraIds:["X1","X2"]}]};
+const fiscal=[{id:"D1",direction:"OUT",type:"VENDITA",documentCode:"TD01",number:"1",date:"2026-11-13",counterpartyId:"C1",netCents:10000,vatCents:1000,grossCents:11000},{id:"N1",direction:"OUT",type:"NOTA_CREDITO",documentCode:"TD04",number:"NC1",date:"2026-11-13",counterpartyId:"C1",netCents:-1000,vatCents:-100,grossCents:-1100,referenceId:"D1"},{id:"D2",direction:"OUT",type:"PROFORMA",documentCode:"PR",number:"PR1",date:"2026-11-13",counterpartyId:"C2",netCents:2000,vatCents:200,grossCents:2200}];
+const workspace={...S.synthetic(field,commercial),fiscal};
+const links=[{documentId:"D1",clientId:"C1",quoteId:"Q1"},{documentId:"N1",clientId:"C1"}];
+const original=JSON.stringify(workspace);
+const result=A.validateLinks(workspace,links);
+assert.equal(result.linked.length,2);
+assert.deepEqual(result.unlinked,["D2"]);
+assert.equal(result.byClient[0].venditeCents,11000);
+assert.equal(result.byClient[0].noteCreditoCents,-1100);
+assert.equal(JSON.stringify(workspace),original);
+assert.deepEqual(A.decodeLinks(A.encodeLinks(links)),links);
+assert.throws(()=>A.decodeLinks('{"schema":"ITE_FISCAL_LINKS_215","mode":"PRODUCTION","links":[]}'),/FORMATO_NON_COMPATIBILE/);
+assert.throws(()=>A.audit(workspace,[links[0],links[0]]),/DOCUMENTO_COLLEGATO_DUE_VOLTE/);
+assert.equal(A.audit(workspace,[{documentId:"D1",clientId:"C2",quoteId:"Q1"}]).issues[0].code,"GERARCHIA_CLIENTE_INCOERENTE");
+assert.equal(A.audit(workspace,[{documentId:"N1",clientId:"C1"}]).issues[0].code,"TD04_CLIENTE_ORIGINALE_NON_COLLEGATO");
+assert.equal(A.audit(workspace,[{documentId:"D1",clientId:"C1",quoteId:"missing"}]).issues[0].code,"PREVENTIVO_MANCANTE");
+console.log("ITE 4.0.215 fiscal workspace audit: OK");
