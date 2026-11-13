@@ -1,0 +1,31 @@
+name: ITE 4.0.210 synthetic persistence regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workspace-store-209.js'
+      - 'ite-workflow-cockpit-ui-203.js'
+      - 'tests/test-workspace-concurrency-210.js'
+      - '.github/workflows/workspace-persistence-210.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regression tests
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node --check ite-workspace-store-209.js
+          node --check ite-workflow-cockpit-ui-203.js
+          node tests/test-workspace-concurrency-210.js
+          node tests/test-workspace-store-209.js
+          node tests/test-operational-session-206.js
+          node tests/test-integrated-cockpit-208.js
