@@ -1,0 +1,31 @@
+name: Integrated workspace TEST 4.0.207
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-integrated-workspace-207.js'
+      - 'ite-operational-workflow-201.js'
+      - 'ite-operational-batch-202.js'
+      - 'ite-operational-dossier-198.js'
+      - 'tests/test-integrated-workspace-207.js'
+      - '.github/workflows/integrated-workspace-207.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run integrated TEST regression
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node tests/test-integrated-workspace-207.js
+          node tests/test-operational-workflow-201.js
+          node tests/test-operational-batch-202.js
+          node tests/test-operational-session-206.js
