@@ -28,6 +28,19 @@ function mount(){
  button("Esporta registro JSON TEST",()=>download(JSON.stringify({schema:"ITE_FISCAL_TEST_212",mode:"SYNTHETIC_TEST_ONLY",documents:ledger.snapshot()},null,2),"ite-registro-fiscale-test-212.json"));
  const picker=d.createElement("input");picker.type="file";picker.accept=".json,application/json";picker.setAttribute("aria-label","Importa registro fiscale sintetico");controls.append(picker);
  picker.addEventListener("change",async()=>{try{const file=picker.files&&picker.files[0];if(!file)return;if(file.size>300000)throw Error("FILE_TROPPO_GRANDE");const parsed=JSON.parse(await file.text());if(!parsed||parsed.schema!=="ITE_FISCAL_TEST_212"||parsed.mode!=="SYNTHETIC_TEST_ONLY"||!Array.isArray(parsed.documents))throw Error("SOLO_JSON_TEST_212");const next=F.create(parsed.documents);ledger=next;render();message.textContent="Registro TEST importato e validato.";}catch(e){message.textContent="Importazione rifiutata: "+e.message;}finally{picker.value="";}});
+ const XML=root.ITEFiscalXML213;
+ if(XML){
+ const section=d.createElement("section"),h=d.createElement("h4"),hint=d.createElement("p"),file=d.createElement("input"),previewBox=d.createElement("pre"),direction=d.createElement("select"),id=d.createElement("input"),party=d.createElement("input"),reference=d.createElement("input"),confirm=d.createElement("button");
+ h.textContent="Importazione XML fattura elettronica — anteprima locale 4.0.213";
+ hint.textContent="Il file rimane su questo dispositivo. TD01/TD04: verifica obbligatoria prima della registrazione TEST. Non selezionare documenti reali nella demo pubblica.";
+ file.type="file";file.accept=".xml,text/xml,application/xml";file.setAttribute("aria-label","Seleziona XML per anteprima locale");
+ for(const [v,label] of [["","Seleziona direzione"],["IN","Acquisto (IN)"],["OUT","Vendita (OUT)"]]){const o=d.createElement("option");o.value=v;o.textContent=label;direction.append(o);}
+ id.placeholder="ID documento TEST";party.placeholder="ID controparte TEST";reference.placeholder="ID fattura originaria (TD04)";confirm.type="button";confirm.textContent="Registra anteprima nel registro TEST";confirm.disabled=true;
+ let pending=null;previewBox.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere";
+ file.addEventListener("change",async()=>{pending=null;confirm.disabled=true;previewBox.textContent="";try{const selected=file.files&&file.files[0];if(!selected)return;if(selected.size>XML.MAX)throw Error("FILE_TROPPO_GRANDE");const raw=await selected.text();const parsed=new DOMParser().parseFromString(raw,"application/xml");pending=XML.parse(raw,()=>parsed);previewBox.textContent=JSON.stringify(pending,null,2);id.value="XML-TEST-"+Date.now();party.value="CONTROPARTE-TEST";message.textContent="Anteprima locale pronta: controllare tutti i dati prima di registrare.";confirm.disabled=false;}catch(e){message.textContent="XML rifiutato: "+e.message;}finally{file.value="";}});
+ confirm.addEventListener("click",()=>{try{if(!pending)throw Error("ANTEPRIMA_MANCANTE");const raw=XML.toLedger(pending,{direction:direction.value,id:id.value.trim(),counterpartyId:party.value.trim(),referenceId:reference.value.trim()});ledger.insert(raw);pending=null;confirm.disabled=true;previewBox.textContent="";render();message.textContent="Documento aggiunto esclusivamente al registro TEST in memoria, da verificare.";}catch(e){message.textContent="Registrazione TEST rifiutata: "+e.message;}});
+ section.append(h,hint,file,previewBox,direction,id,party,reference,confirm);host.append(section);
+ }
  const target=d.getElementById("ite-workflow-cockpit-203")||d.querySelector("main")||d.body;target.append(host);render();
 }
 if(root.document){if(root.document.readyState==="loading")root.document.addEventListener("DOMContentLoaded",mount,{once:true});else mount();}
