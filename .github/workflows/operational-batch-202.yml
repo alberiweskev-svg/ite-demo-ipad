@@ -1,0 +1,28 @@
+name: Operational batch 4.0.202 TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operational-workflow-201.js'
+      - 'ite-operational-batch-202.js'
+      - 'tests/test-operational-workflow-201.js'
+      - 'tests/test-operational-batch-202.js'
+      - '.github/workflows/operational-batch-202.yml'
+  workflow_dispatch:
+jobs:
+  operational:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Workflow 201 and batch 202 regression
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node tests/test-operational-workflow-201.js
+          node tests/test-operational-batch-202.js
