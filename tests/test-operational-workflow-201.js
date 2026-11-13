@@ -11,6 +11,8 @@ apply({type:"EXTRA_ADD",id:"x2",interventionId:"i",kind:"POSA",description:"Posa
 apply({type:"EXTRA_APPROVE",id:"x1",status:"APPROVATO"});
 apply({type:"QUOTE_CREATE",id:"q",interventionId:"i",extraIds:["x1","x2"]});
 assert.equal(state.commercial.quotes[0].totalCents,20000);
+assert.throws(()=>apply({type:"QUOTE_DECIDE",id:"q",status:"ACCETTATO"}),/PREVENTIVO_EXTRA_NON_APPROVATO/);
+apply({type:"EXTRA_APPROVE",id:"x2",status:"APPROVATO"});
 apply({type:"QUOTE_DECIDE",id:"q",status:"ACCETTATO"});
 apply({type:"CLOSE",interventionId:"i",at:"2026-11-13T09:50:00+01:00"});
 assert.equal(state.field.interventions[0].durationMinutes,45);
