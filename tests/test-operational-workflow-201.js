@@ -1,0 +1,21 @@
+const assert=require("node:assert/strict"),W=require("../ite-operational-workflow-201.js");
+const f={clients:[{id:"c"}],sites:[{id:"s",clientId:"c"}],systems:[{id:"y",siteId:"s"}],equipment:[{id:"e",systemId:"y"}],operators:[{id:"o"}],appointments:[],interventions:[]},c={extras:[],quotes:[]};
+const original=JSON.stringify([f,c]);let state={field:f,commercial:c};
+function apply(action){state=W.run(state.field,state.commercial,action);return state;}
+apply({type:"APPOINTMENT_CREATE",id:"a",clientId:"c",siteId:"s",equipmentId:"e",operatorId:"o",start:"2026-11-13T09:00:00+01:00",end:"2026-11-13T10:00:00+01:00"});
+assert.throws(()=>apply({type:"APPOINTMENT_CREATE",id:"b",clientId:"c",siteId:"s",equipmentId:"e",operatorId:"o",start:"2026-11-13T09:30:00+01:00",end:"2026-11-13T10:30:00+01:00"}),/SOVRAPPOSIZIONE/);
+apply({type:"ARRIVAL",appointmentId:"a",interventionId:"i",at:"2026-11-13T09:05:00+01:00"});
+assert.throws(()=>apply({type:"ARRIVAL",appointmentId:"a",interventionId:"i2",at:"2026-11-13T09:06:00+01:00"}),/STATO_APPUNTAMENTO/);
+apply({type:"EXTRA_ADD",id:"x1",interventionId:"i",kind:"FORNITURA",description:"Materiale prova",priceCents:12000});
+apply({type:"EXTRA_ADD",id:"x2",interventionId:"i",kind:"POSA",description:"Posa prova",priceCents:8000});
+apply({type:"EXTRA_APPROVE",id:"x1",status:"APPROVATO"});
+apply({type:"QUOTE_CREATE",id:"q",interventionId:"i",extraIds:["x1","x2"]});
+assert.equal(state.commercial.quotes[0].totalCents,20000);
+apply({type:"QUOTE_DECIDE",id:"q",status:"ACCETTATO"});
+apply({type:"CLOSE",interventionId:"i",at:"2026-11-13T09:50:00+01:00"});
+assert.equal(state.field.interventions[0].durationMinutes,45);
+assert.equal(state.field.appointments[0].status,"ESEGUITO");
+assert.equal(JSON.stringify([f,c]),original);
+assert.throws(()=>apply({type:"CLOSE",interventionId:"i",at:"2026-11-13T10:00:00+01:00"}),/NON_APERTO/);
+assert.throws(()=>apply({type:"EXTRA_ADD",id:"bad",interventionId:"i",kind:"ALTRO",description:"No",priceCents:10}),/EXTRA_NON_VALIDO/);
+console.log("Operational workflow 201: end-to-end, overlap, duplicate, quote, closure, immutability passed");
