@@ -1,0 +1,10 @@
+const assert=require("node:assert/strict");const D=require("../ite-operational-dossier-198.js");
+const f={clients:[{id:"c",name:"Cliente TEST"}],sites:[{id:"s",clientId:"c",name:"Sede TEST"}],systems:[{id:"y",siteId:"s",name:"Impianto TEST"}],equipment:[{id:"e",systemId:"y",name:"Caldaia TEST"}],operators:[{id:"o",name:"Tecnico TEST"}],appointments:[{id:"a",clientId:"c",siteId:"s",equipmentId:"e",operatorId:"o",start:"2026-11-13T09:00:00+01:00",end:"2026-11-13T10:00:00+01:00",status:"CHIUSO"}],interventions:[{id:"i",appointmentId:"a",clientId:"c",siteId:"s",equipmentId:"e",status:"CHIUSO",durationMinutes:45}]};
+const c={extras:[{id:"x",interventionId:"i",kind:"POSA",status:"ACCETTATO",description:"Posa TEST"}],quotes:[{id:"q",interventionId:"i",extraIds:["x"],status:"ACCETTATO",totalCents:10000}]};
+const before=JSON.stringify([f,c]),r=D.build(f,c);assert.equal(r.valid,true);assert.equal(r.totals.interventions,1);assert.equal(r.totals.quoteCents,10000);assert.equal(r.totals.workedMinutes,45);assert.equal(JSON.stringify([f,c]),before);
+assert.equal(D.build(f,c,{clientId:"c"}).totals.appointments,1);assert.throws(()=>D.build(f,c,{clientId:"missing"}),/CLIENTE_NON_TROVATO/);
+assert.match(D.csv(r),/Cliente TEST/);assert.throws(()=>D.csv({...r,valid:false}),/REPORT_NON_VALIDO/);
+const broken=structuredClone(f);broken.sites[0].clientId="missing";assert.equal(D.build(broken,c).valid,false);
+const orphan=structuredClone(c);orphan.extras[0].interventionId="missing";assert.equal(D.build(f,orphan).valid,false);
+const injected=structuredClone(f);injected.clients[0].name="=HYPERLINK(1)";assert.match(D.csv(D.build(injected,c)),/'=HYPERLINK/);
+console.log("Operational dossier 198: 9 assertions passed");
