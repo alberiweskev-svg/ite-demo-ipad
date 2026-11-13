@@ -1,0 +1,25 @@
+name: ITE 4.0.211 fiscal ledger TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-fiscal-ledger-211.js'
+      - 'tests/test-fiscal-ledger-211.js'
+      - '.github/workflows/fiscal-ledger-211.yml'
+  workflow_dispatch:
+jobs:
+  fiscal-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-fiscal-ledger-211.js
+      - run: node --check tests/test-fiscal-ledger-211.js
+      - run: node tests/test-fiscal-ledger-211.js
