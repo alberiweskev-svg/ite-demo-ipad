@@ -1,0 +1,24 @@
+/* Regression 4.0.214: shared synthetic fiscal ledger and operational workspace. */
+"use strict";
+const assert=require("node:assert/strict");
+const Store=require("../ite-workspace-store-209.js");
+const Fiscal=require("../ite-fiscal-ledger-211.js");
+const field={clients:[{id:"C"}],sites:[{id:"S",clientId:"C"}],systems:[{id:"SYS",siteId:"S"}],equipment:[{id:"E",systemId:"SYS"}],operators:[{id:"O"}],appointments:[],interventions:[]};
+const commercial={extras:[],quotes:[]};
+const data=new Map(),storage={getItem:k=>data.has(k)?data.get(k):null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)};
+const doc={id:"V1",direction:"OUT",type:"VENDITA",documentCode:"TD01",number:"1",date:"2026-11-13",counterpartyId:"C",netCents:10000,vatCents:1000,grossCents:11000};
+const note={id:"NC1",direction:"OUT",type:"NOTA_CREDITO",documentCode:"TD04",number:"NC1",date:"2026-11-13",counterpartyId:"C",netCents:-1000,vatCents:-100,grossCents:-1100,referenceId:"V1"};
+const a=Store.create(storage,field,commercial);
+let v=a.save({...a.snapshot(),fiscal:[doc,note]});
+assert.equal(v.revision,1);
+assert.equal(Fiscal.create(v.fiscal).totals().saldoVendite,9900);
+const b=Store.create(storage,field,commercial);assert.equal(b.restore().fiscal.length,2);
+v=a.save({field,commercial},1);assert.equal(v.fiscal.length,2,"operational saves preserve fiscal ledger");
+assert.throws(()=>b.save({...b.snapshot(),fiscal:[]}),/REVISIONE_CONFLITTO_DISPOSITIVO/);
+assert.equal(b.restore().revision,2);
+assert.throws(()=>b.save({...b.snapshot(),fiscal:[{...doc,grossCents:1}]}),/TOTALI_NON_COHERENTI/);
+assert.equal(b.snapshot().fiscal.length,2);
+assert.equal(Store.decode(JSON.stringify({schema:Store.SCHEMA,mode:"SYNTHETIC_TEST_ONLY",revision:0,field,commercial})).fiscal.length,0,"legacy envelope compatible");
+const after=b.save({...b.snapshot(),fiscal:[]});assert.equal(after.revision,3);
+assert.equal(a.snapshot().fiscal.length,2,"isolated copies");
+console.log("4.0.214 shared fiscal workspace regression OK");
