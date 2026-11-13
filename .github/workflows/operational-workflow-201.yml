@@ -1,0 +1,26 @@
+name: Operational workflow 4.0.201 TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operational-workflow-201.js'
+      - 'tests/test-operational-workflow-201.js'
+      - '.github/workflows/operational-workflow-201.yml'
+  workflow_dispatch:
+jobs:
+  operational-workflow:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-operational-workflow-201.js
+      - run: node tests/test-operational-workflow-201.js
+      - run: node tests/test-operational-quality-199.js
+      - run: node tests/test-operational-dossier-198.js
