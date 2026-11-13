@@ -24,6 +24,22 @@ function run(field,commercial,action){
   hierarchy(x);operator(x);if(!Number.isFinite(time(x.start))||!Number.isFinite(time(x.end))||time(x.end)<=time(x.start))throw Error("ORARIO_NON_VALIDO");
   for(const y of ap)if(y.operatorId===x.operatorId&&y.status!=="ANNULLATO"&&Number.isFinite(time(y.start))&&Number.isFinite(time(y.end))&&time(x.start)<time(y.end)&&time(y.start)<time(x.end))throw Error("SOVRAPPOSIZIONE_TECNICO");
   ap.push(x);
+ }else if(a.type==="APPOINTMENT_RESCHEDULE"||a.type==="APPOINTMENT_REASSIGN"){
+  const x=appointment();
+  if(x.status!=="PIANIFICATO"||iv.some(v=>v.appointmentId===x.id))throw Error("APPUNTAMENTO_NON_MODIFICABILE");
+  const candidate={...x,start:a.type==="APPOINTMENT_RESCHEDULE"?a.start:x.start,end:a.type==="APPOINTMENT_RESCHEDULE"?a.end:x.end,operatorId:a.type==="APPOINTMENT_REASSIGN"?a.operatorId:x.operatorId};
+  operator(candidate);
+  if(!Number.isFinite(time(candidate.start))||!Number.isFinite(time(candidate.end))||time(candidate.end)<=time(candidate.start))throw Error("ORARIO_NON_VALIDO");
+  if(ap.some(y=>y.id!==x.id&&y.status!=="ANNULLATO"&&y.operatorId===candidate.operatorId&&time(candidate.start)<time(y.end)&&time(y.start)<time(candidate.end)))throw Error("SOVRAPPOSIZIONE_TECNICO");
+  x.start=candidate.start;x.end=candidate.end;x.operatorId=candidate.operatorId;
+ }else if(a.type==="APPOINTMENT_CANCEL"){
+  const x=appointment();if(x.status!=="PIANIFICATO"||iv.some(v=>v.appointmentId===x.id))throw Error("APPUNTAMENTO_NON_ANNULLABILE");x.status="ANNULLATO";
+ }else if(a.type==="INTERVENTION_REVISE_TIME"){
+  const x=get(iv,a.interventionId);if(!x||x.status!=="CHIUSO")throw Error("INTERVENTO_NON_CHIUSO");
+  const p=get(ap,x.appointmentId);
+  if(!p||p.status!=="ESEGUITO"||!Number.isFinite(time(a.arrivedAt))||!Number.isFinite(time(a.exitedAt))||time(a.arrivedAt)<time(p.start)||time(a.exitedAt)<time(a.arrivedAt)||!id(a.reason))throw Error("REVISIONE_NON_VALIDA");
+  x.revisions=Array.isArray(x.revisions)?x.revisions:[];x.revisions.push({previousArrivedAt:x.arrivedAt,previousExitedAt:x.exitedAt,newArrivedAt:a.arrivedAt,newExitedAt:a.exitedAt,reason:a.reason});
+  x.arrivedAt=a.arrivedAt;x.exitedAt=a.exitedAt;x.durationMinutes=Math.round((time(a.exitedAt)-time(a.arrivedAt))/60000);
  }else if(a.type==="ARRIVAL"){
   const x=appointment();hierarchy(x);operator(x);if(x.status!=="PIANIFICATO")throw Error("STATO_APPUNTAMENTO");
   if(!id(a.interventionId)||get(iv,a.interventionId)||iv.some(i=>i.appointmentId===x.id))throw Error("INTERVENTO_DUPLICATO");
