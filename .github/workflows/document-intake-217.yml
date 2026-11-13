@@ -1,0 +1,27 @@
+name: ITE document intake 4.0.217
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-intake-217.js'
+      - 'tests/test-document-intake-217.js'
+      - '.github/workflows/document-intake-217.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test intake and regression
+        env:
+          TZ: ${{ matrix.tz }}
+        run: |
+          node --check ite-document-intake-217.js
+          node tests/test-document-intake-217.js
+          node tests/test-document-links-216.js
