@@ -24,6 +24,22 @@ function change(documents,field,operation){
  }else throw Error("AZIONE_NON_VALIDA");
  Intake.checkRelations(next,field);return next;
 }
+function batch(documents,field,operations){
+ if(!Array.isArray(operations)||operations.length===0||operations.length>100)throw Error("LOTTO_NON_VALIDO");
+ let next=clone(documents);
+ for(const op of operations)next=change(next,field,op);
+ return next;
+}
+function preview(store,operations){
+ const current=store.snapshot();
+ const next=batch(current.technicalDocuments,current.field,operations);
+ return {revision:current.revision,before:current.technicalDocuments.length,after:next.length,documents:next};
+}
+function applyBatch(store,operations){
+ const current=store.snapshot();
+ const technicalDocuments=batch(current.technicalDocuments,current.field,operations);
+ return store.save({...current,technicalDocuments},current.revision);
+}
 function apply(store,operation){
  // Use the local snapshot, never restore here: restoring would silently adopt
  // a concurrent tab's revision and defeat the optimistic locking contract.
@@ -37,5 +53,5 @@ function report(workspace){
  for(const d of docs)counts[d.type]++;
  return {total:docs.length,byType:counts,unlinked:docs.filter(d=>!d.clientId).map(d=>d.id),pending:docs.filter(d=>d.status==="DA_CLASSIFICARE"||d.status==="DA_VERIFICARE").map(d=>d.id)};
 }
-return Object.freeze({options,change,apply,report});
+return Object.freeze({options,change,batch,preview,applyBatch,apply,report});
 });
