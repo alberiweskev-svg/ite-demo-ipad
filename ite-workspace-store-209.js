@@ -27,20 +27,21 @@ function validate(field,commercial){
  for(const q of commercial.quotes)if(!interventions.has(q.interventionId)||!Array.isArray(q.extraIds)||q.extraIds.some(id=>!extras.has(id)))fail("PREVENTIVO_NON_VALIDO");
  return true;
 }
-function synthetic(field,commercial){validate(field,commercial);return {schema:SCHEMA,mode:"SYNTHETIC_TEST_ONLY",revision:0,field:copy(field),commercial:copy(commercial)};}
+function fiscalValid(fiscal){if(!Array.isArray(fiscal)||fiscal.length>5000)fail("FISCALE_NON_VALIDO");const F=(typeof globalThis!=="undefined"&&globalThis.ITEFiscalLedger211)||(typeof require==="function"?require("./ite-fiscal-ledger-211.js"):null);if(!F)fail("MOTORE_FISCALE_MANCANTE");return F.validate(fiscal);}
+function synthetic(field,commercial){validate(field,commercial);return {schema:SCHEMA,mode:"SYNTHETIC_TEST_ONLY",revision:0,field:copy(field),commercial:copy(commercial),fiscal:[]};}
 function decode(raw){if(typeof raw!=="string"||raw.length>MAX_BYTES)fail("DIMENSIONE_NON_VALIDA");let p;try{p=JSON.parse(raw);}catch(_){fail("JSON_NON_VALIDO");}
  if(!isObject(p)||p.schema!==SCHEMA||p.mode!=="SYNTHETIC_TEST_ONLY"||!Number.isSafeInteger(p.revision)||p.revision<0)fail("FORMATO_NON_COMPATIBILE");
- validate(p.field,p.commercial);return copy(p);}
+ validate(p.field,p.commercial);if(p.fiscal!==undefined)fiscalValid(p.fiscal);else p.fiscal=[];return copy(p);}
 function encode(p){const s=JSON.stringify(decode(JSON.stringify(p)));if(s.length>MAX_BYTES)fail("DIMENSIONE_NON_VALIDA");return s;}
 function create(storage,initialField,initialCommercial,key=KEY){
  if(!storage||typeof storage.getItem!=="function"||typeof storage.setItem!=="function"||typeof storage.removeItem!=="function")fail("STORAGE_NON_DISPONIBILE");
  let current=synthetic(initialField,initialCommercial);
  function snapshot(){return copy(current);}
- function save(next,expectedRevision=current.revision){if(expectedRevision!==current.revision)fail("REVISIONE_CONFLITTO");validate(next.field,next.commercial);const disk=storage.getItem(key);if(disk!==null){const saved=decode(disk);if(saved.revision!==current.revision)fail("REVISIONE_CONFLITTO_DISPOSITIVO");}else if(current.revision!==0)fail("ARCHIVIO_ESTERNO_ELIMINATO");const updated={schema:SCHEMA,mode:"SYNTHETIC_TEST_ONLY",revision:current.revision+1,field:copy(next.field),commercial:copy(next.commercial)};const serialized=encode(updated);storage.setItem(key,serialized);current=updated;return snapshot();}
+ function save(next,expectedRevision=current.revision){if(expectedRevision!==current.revision)fail("REVISIONE_CONFLITTO");validate(next.field,next.commercial);const fiscal=next.fiscal===undefined?current.fiscal:next.fiscal;fiscalValid(fiscal);const disk=storage.getItem(key);if(disk!==null){const saved=decode(disk);if(saved.revision!==current.revision)fail("REVISIONE_CONFLITTO_DISPOSITIVO");}else if(current.revision!==0)fail("ARCHIVIO_ESTERNO_ELIMINATO");const updated={schema:SCHEMA,mode:"SYNTHETIC_TEST_ONLY",revision:current.revision+1,field:copy(next.field),commercial:copy(next.commercial),fiscal:copy(fiscal)};const serialized=encode(updated);storage.setItem(key,serialized);current=updated;return snapshot();}
  function restore(){const raw=storage.getItem(key);if(raw===null)return null;const next=decode(raw);current=next;return snapshot();}
  function importJson(raw){const imported=decode(raw);return save(imported,current.revision);}
  function reset(){storage.removeItem(key);current=synthetic(initialField,initialCommercial);return snapshot();}
  return Object.freeze({snapshot,save,restore,importJson,exportJson:()=>encode(current),reset,key});
 }
-return Object.freeze({SCHEMA,KEY,validate,decode,encode,synthetic,create});
+return Object.freeze({SCHEMA,KEY,validate,decode,encode,synthetic,create,fiscalValid});
 });
