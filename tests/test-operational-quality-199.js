@@ -12,3 +12,12 @@ v=clone(f);v.interventions.push({...v.interventions[0],id:"i2"});assert.match(Q.
 let w=clone(c);w.quotes[0].extraIds=["missing"];assert.match(Q.audit(f,w).issues.join(),/PREVENTIVO_EXTRA/);
 w=clone(c);w.extras[0].kind="ALTRO";assert.match(Q.audit(f,w).warnings.join(),/EXTRA_TIPO_DA_VERIFICARE/);
 console.log("Operational quality 199: 11 assertions passed");
+let nested=clone(f);nested.appointments=[
+ {...nested.appointments[0],id:"a1",start:"2026-11-13T09:00:00+01:00",end:"2026-11-13T12:00:00+01:00"},
+ {...nested.appointments[0],id:"a2",start:"2026-11-13T09:30:00+01:00",end:"2026-11-13T10:00:00+01:00"},
+ {...nested.appointments[0],id:"a3",start:"2026-11-13T10:30:00+01:00",end:"2026-11-13T11:00:00+01:00"}];
+assert.equal(Q.audit(nested,c).totals.overlaps,2);
+assert.equal(Q.audit(nested,c).operatorSchedule[0].appointments.length,3);
+let orphan=clone(f);orphan.sites.push({id:"orphan",clientId:"missing"});assert.match(Q.audit(orphan,c).issues.join(),/SEDE_ORFANA/);
+let invalid=clone(f);invalid.appointments[0].start="2026-99-99T09:00:00+01:00";assert.match(Q.audit(invalid,c).issues.join(),/APPUNTAMENTO_ORARIO/);
+console.log("Operational quality 200: nested overlap, schedule, orphan and invalid date assertions passed");
