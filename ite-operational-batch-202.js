@@ -5,6 +5,7 @@ function assert(condition,code){if(!condition)throw Error(code);}
 function audit(field,commercial){
  W.validate(field,commercial);const issues=[],warnings=[];
  const by=(arr,id)=>arr.find(x=>x.id===id);
+ const validTime=x=>typeof x==="string"&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/.test(x)&&Number.isFinite(Date.parse(x));
  const check=(ok,code)=>{if(!ok)issues.push(code);};
  for(const s of field.sites)check(!!by(field.clients,s.clientId),"SEDE_CLIENTE_"+s.id);
  for(const s of field.systems)check(!!by(field.sites,s.siteId),"IMPIANTO_SEDE_"+s.id);
@@ -13,21 +14,27 @@ function audit(field,commercial){
   const e=by(field.equipment,a.equipmentId),sys=e&&by(field.systems,e.systemId),site=sys&&by(field.sites,sys.siteId);
   check(!!site&&site.id===a.siteId&&site.clientId===a.clientId,"APPUNTAMENTO_GERARCHIA_"+a.id);
   check(!!by(field.operators,a.operatorId),"APPUNTAMENTO_OPERATORE_"+a.id);
-  check(Number.isFinite(Date.parse(a.start))&&Number.isFinite(Date.parse(a.end))&&Date.parse(a.end)>Date.parse(a.start),"APPUNTAMENTO_ORARIO_"+a.id);
+  check(validTime(a.start)&&validTime(a.end)&&Date.parse(a.end)>Date.parse(a.start),"APPUNTAMENTO_ORARIO_"+a.id);
+  check(["PIANIFICATO","IN_CORSO","ESEGUITO","ANNULLATO"].includes(a.status),"APPUNTAMENTO_STATO_"+a.id);
  }
  const ordered=field.appointments.filter(a=>a.status!=="ANNULLATO").slice().sort((a,b)=>Date.parse(a.start)-Date.parse(b.start));
  for(let i=0;i<ordered.length;i++)for(let j=i+1;j<ordered.length;j++){
   const a=ordered[i],b=ordered[j];if(a.operatorId===b.operatorId&&Date.parse(a.start)<Date.parse(b.end)&&Date.parse(b.start)<Date.parse(a.end))issues.push("TECNICO_SOVRAPPOSTO_"+a.id+"_"+b.id);
  }
+ const linkedAppointments=new Set();
  for(const v of field.interventions){
+  check(!linkedAppointments.has(v.appointmentId),"INTERVENTO_DUPLICATO_APPUNTAMENTO_"+v.appointmentId);linkedAppointments.add(v.appointmentId);
   const a=by(field.appointments,v.appointmentId);
   check(!!a&&a.clientId===v.clientId&&a.siteId===v.siteId&&a.equipmentId===v.equipmentId&&a.operatorId===v.operatorId,"INTERVENTO_APPUNTAMENTO_"+v.id);
   check(!!a&&((v.status==="APERTO"&&a.status==="IN_CORSO")||(v.status==="CHIUSO"&&a.status==="ESEGUITO")),"INTERVENTO_STATO_"+v.id);
-  if(v.status==="CHIUSO")check(Number.isFinite(Date.parse(v.exitedAt))&&Date.parse(v.exitedAt)>=Date.parse(v.arrivedAt)&&v.durationMinutes===Math.round((Date.parse(v.exitedAt)-Date.parse(v.arrivedAt))/60000),"INTERVENTO_TEMPI_"+v.id);
+  check(["APERTO","CHIUSO"].includes(v.status),"INTERVENTO_STATO_NON_VALIDO_"+v.id);
+  check(validTime(v.arrivedAt)&&(!a||Date.parse(v.arrivedAt)>=Date.parse(a.start)),"INTERVENTO_ARRIVO_"+v.id);
+  if(v.status==="CHIUSO")check(validTime(v.exitedAt)&&Date.parse(v.exitedAt)>=Date.parse(v.arrivedAt)&&v.durationMinutes===Math.round((Date.parse(v.exitedAt)-Date.parse(v.arrivedAt))/60000),"INTERVENTO_TEMPI_"+v.id);
  }
  const quoted=new Map();
- for(const e of commercial.extras){check(!!by(field.interventions,e.interventionId),"EXTRA_INTERVENTO_"+e.id);check(["FORNITURA","POSA"].includes(e.kind)&&Number.isSafeInteger(e.priceCents)&&e.priceCents>=0,"EXTRA_IMPORTO_"+e.id);}
+ for(const e of commercial.extras){check(!!by(field.interventions,e.interventionId),"EXTRA_INTERVENTO_"+e.id);check(["FORNITURA","POSA"].includes(e.kind)&&Number.isSafeInteger(e.priceCents)&&e.priceCents>=0,"EXTRA_IMPORTO_"+e.id);check(["DA_APPROVARE","APPROVATO","RIFIUTATO"].includes(e.status),"EXTRA_STATO_"+e.id);}
  for(const q of commercial.quotes){
+  check(["DA_ACCETTARE","ACCETTATO","NON_ACCETTATO"].includes(q.status),"PREVENTIVO_STATO_"+q.id);
   const lines=Array.isArray(q.extraIds)?q.extraIds:[],items=lines.map(id=>by(commercial.extras,id));
   check(!!by(field.interventions,q.interventionId)&&lines.length>0&&new Set(lines).size===lines.length&&items.every(e=>e&&e.interventionId===q.interventionId),"PREVENTIVO_RIGHE_"+q.id);
   const sum=items.reduce((n,e)=>n+(e?e.priceCents:0),0);
