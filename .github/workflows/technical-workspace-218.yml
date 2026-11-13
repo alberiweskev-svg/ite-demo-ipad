@@ -1,0 +1,31 @@
+name: ITE 4.0.218 technical workspace TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workspace-store-209.js'
+      - 'ite-document-intake-217.js'
+      - 'tests/test-technical-workspace-218.js'
+      - '.github/workflows/technical-workspace-218.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JS and run regression tests
+        env:
+          TZ: ${{ matrix.tz }}
+        run: |
+          node --check ite-workspace-store-209.js
+          node --check ite-document-intake-217.js
+          node tests/test-document-intake-217.js
+          node tests/test-technical-workspace-218.js
