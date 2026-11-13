@@ -1,0 +1,14 @@
+"use strict";
+const assert=require("node:assert/strict"),F=require("../ite-fiscal-ledger-211.js");
+const sale={id:"V1",direction:"OUT",type:"VENDITA",documentCode:"TD01",number:"1",date:"2026-11-13",counterpartyId:"TEST-CLIENT",netCents:10000,vatCents:1000,grossCents:11000};
+const credit={id:"N1",direction:"OUT",type:"NOTA_CREDITO",documentCode:"TD04",number:"NC1",date:"2026-11-13",counterpartyId:"TEST-CLIENT",netCents:-1000,vatCents:-100,grossCents:-1100,referenceId:"V1"};
+const buy={id:"A1",direction:"IN",type:"ACQUISTO",documentCode:"TD01",number:"A1",date:"2026-11-13",counterpartyId:"TEST-SUPPLIER",netCents:20000,vatCents:4400,grossCents:24400};
+const pro={id:"P1",direction:"OUT",type:"PROFORMA",documentCode:"PR",number:"P1",date:"2026-11-13",counterpartyId:"TEST-CLIENT",netCents:3000,vatCents:300,grossCents:3300};
+const ledger=F.create([sale,credit,buy,pro]);assert.equal(ledger.totals().saldoVendite,9900);assert.equal(ledger.totals().saldoAcquisti,24400);
+const payload=JSON.stringify({schema:"ITE_FISCAL_TEST_212",mode:"SYNTHETIC_TEST_ONLY",documents:ledger.snapshot()});
+const restored=JSON.parse(payload);assert.equal(restored.schema,"ITE_FISCAL_TEST_212");assert.deepEqual(F.create(restored.documents).snapshot(),ledger.snapshot());
+assert.throws(()=>F.create([...restored.documents,{...sale,id:"V2"}]),/NUMERO_DUPLICATO/);
+assert.throws(()=>F.create([credit]),/RIFERIMENTO/);
+ledger.changeStatus("P1","ANNULLATO");assert.equal(ledger.totals().proforma,0);
+assert.match(require("node:fs").readFileSync(require("node:path").join(__dirname,"../ite-fiscal-review-ui-212.js"),"utf8"),/textContent=value/);
+console.log("Fiscal review 4.0.212: OK");
