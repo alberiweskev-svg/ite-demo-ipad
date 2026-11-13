@@ -1,0 +1,18 @@
+"use strict";
+const assert=require("node:assert/strict"),M=require("../ite-document-intake-217.js");
+const field={clients:[{id:"C1"}],sites:[{id:"S1",clientId:"C1"}],appointments:[{id:"A1",clientId:"C1",siteId:"S1"}],interventions:[{id:"I1",appointmentId:"A1"}]};
+const row={id:"D1",type:"DICO_IDRICA",status:"DA_CLASSIFICARE",label:"Documento sintetico",note:"",size:120,clientId:"C1",siteId:"S1",interventionId:"I1",created:"TEST-2026-11-13"};
+const s=M.create(field);s.add(row);assert.equal(s.snapshot().length,1);
+s.update("D1",{type:"DIRI",status:"VERIFICATO"});assert.equal(s.snapshot()[0].type,"DIRI");
+const exported=s.exportJson();const t=M.create(field);t.importJson(exported);assert.deepEqual(t.snapshot(),s.snapshot());
+assert.throws(()=>s.add({...row,id:"D2",clientId:"C2"}),/CLIENTE_ORFANO/);
+assert.throws(()=>s.add({...row,id:"D2",siteId:"BAD"}),/SEDE_INCOERENTE/);
+assert.throws(()=>s.add({...row,id:"D2",interventionId:"BAD"}),/INTERVENTO_INCOERENTE/);
+assert.throws(()=>s.add({...row,id:"D2",rawPdf:"secret"}),/CAMPO_NON_AMMESSO/);
+assert.throws(()=>s.update("D1",{id:"D3"}),/MODIFICA_NON_VALIDA/);
+assert.throws(()=>t.importJson('{"schema":"wrong"}'),/FORMATO_NON_COMPATIBILE/);
+const bytes=Uint8Array.from(Buffer.from("%PDF-1.7\nTEST"));assert.equal(M.pdfSignature(bytes).format,"PDF");
+assert.throws(()=>M.pdfSignature(Uint8Array.from(Buffer.from("not a pdf"))),/FIRMA_PDF_NON_VALIDA/);
+const copy=s.snapshot();copy[0].status="SCARTATO";assert.equal(s.snapshot()[0].status,"VERIFICATO");
+s.remove("D1");assert.equal(s.snapshot().length,0);
+console.log("4.0.217 document intake tests OK");
