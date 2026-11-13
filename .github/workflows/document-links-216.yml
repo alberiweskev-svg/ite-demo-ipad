@@ -1,0 +1,27 @@
+name: ITE 4.0.216 document links regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workspace-store-209.js'
+      - 'ite-workspace-audit-215.js'
+      - 'ite-document-links-ui-216.js'
+      - 'tests/test-document-links-216.js'
+      - '.github/workflows/document-links-216.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-workspace-store-209.js && node --check ite-workspace-audit-215.js && node --check ite-document-links-ui-216.js
+      - run: node tests/test-workspace-audit-215.js
+      - run: node tests/test-document-links-216.js
