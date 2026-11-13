@@ -1,0 +1,17 @@
+"use strict";
+const assert=require("node:assert/strict"),S=require("../ite-operational-session-206.js");
+const field={clients:[{id:"c"}],sites:[{id:"s",clientId:"c"}],systems:[{id:"sys",siteId:"s"}],equipment:[{id:"e",systemId:"sys"}],operators:[{id:"op"}],appointments:[],interventions:[]},commercial={extras:[],quotes:[]};
+const s=S.create(field,commercial,2);
+const appointment=n=>({type:"APPOINTMENT_CREATE",id:"a"+n,clientId:"c",siteId:"s",equipmentId:"e",operatorId:"op",start:"2026-11-"+String(n+10).padStart(2,"0")+"T09:00:00+01:00",end:"2026-11-"+String(n+10).padStart(2,"0")+"T10:00:00+01:00"});
+s.apply([appointment(1)],"Pianificazione");assert.equal(s.current().field.appointments.length,1);
+s.apply([{type:"ARRIVAL",appointmentId:"a1",interventionId:"i1",at:"2026-11-11T09:00:00+01:00"}],"Arrivo");
+assert.equal(s.current().field.interventions.length,1);
+s.undo();assert.equal(s.current().field.interventions.length,0);s.redo();assert.equal(s.current().field.interventions.length,1);
+assert.throws(()=>s.apply([{type:"CLOSE",interventionId:"i1",at:"2026-11-10T09:00:00+01:00"}]),/LOTTO_ANNULLATO/);
+assert.equal(s.current().field.interventions[0].status,"APERTO");
+s.undo();s.apply([appointment(2)],"Nuovo ramo");assert.equal(s.status().canRedo,false);
+const snapshot=s.current();snapshot.field.clients[0].id="alterato";assert.equal(s.current().field.clients[0].id,"c");
+s.apply([appointment(3)],"Terzo");assert.equal(s.status().length,3);
+assert.equal(s.status().report.valid,true);assert.equal(field.appointments.length,0);
+s.reset(field,commercial);assert.equal(s.status().length,1);assert.equal(s.current().field.appointments.length,0);
+console.log("ITE 4.0.206 session: PASS");
