@@ -1,0 +1,29 @@
+name: Fiscal review 4.0.212
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-fiscal-ledger-211.js'
+      - 'ite-fiscal-review-ui-212.js'
+      - 'tests/test-fiscal-review-212.js'
+      - 'tests/test-fiscal-ledger-211.js'
+      - 'index.html'
+      - '.github/workflows/fiscal-review-212.yml'
+  workflow_dispatch:
+jobs:
+  fiscal-review:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fiscal regression
+        run: |
+          node tests/test-fiscal-ledger-211.js
+          node tests/test-fiscal-review-212.js
+        env:
+          TZ: ${{ matrix.tz }}
