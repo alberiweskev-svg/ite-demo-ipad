@@ -2,7 +2,7 @@
 (function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;root.ITEOperationalQuality199=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){"use strict";
 const array=(x,k)=>{if(!x||!Array.isArray(x[k]))throw Error("ARCHIVIO_"+k.toUpperCase()+"_NON_VALIDO");return x[k]};
 const map=a=>new Map(a.map(x=>[x.id,x]));
-const minutes=x=>{if(typeof x!=="string"||!/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d/.test(x))return NaN;return Date.parse(x)};
+const minutes=x=>{if(typeof x!=="string"||!/^\d{4}-\d\d-\d\dT\d\d:\d\d/.test(x))return NaN;return Date.parse(x)};
 function audit(field,commercial){
  const clients=array(field,"clients"),sites=array(field,"sites"),systems=array(field,"systems"),equipment=array(field,"equipment"),operators=array(field,"operators"),appointments=array(field,"appointments"),interventions=array(field,"interventions");
  const extras=array(commercial,"extras"),quotes=array(commercial,"quotes");
