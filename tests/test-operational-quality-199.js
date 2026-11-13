@@ -1,0 +1,14 @@
+const assert=require("node:assert/strict");const Q=require("../ite-operational-quality-199.js");
+const f={clients:[{id:"c"}],sites:[{id:"s",clientId:"c"}],systems:[{id:"y",siteId:"s"}],equipment:[{id:"e",systemId:"y"}],operators:[{id:"o"}],appointments:[{id:"a",clientId:"c",siteId:"s",equipmentId:"e",operatorId:"o",start:"2026-11-13T09:00:00+01:00",end:"2026-11-13T10:00:00+01:00"}],interventions:[{id:"i",appointmentId:"a",clientId:"c",siteId:"s",equipmentId:"e",status:"CHIUSO",durationMinutes:45}]};
+const c={extras:[{id:"x",interventionId:"i",kind:"POSA"}],quotes:[{id:"q",interventionId:"i",extraIds:["x"],totalCents:100}]};
+const clone=x=>JSON.parse(JSON.stringify(x));const original=JSON.stringify([f,c]);
+assert.equal(Q.audit(f,c).valid,true);assert.equal(Q.audit(f,c).totals.interventions,1);assert.equal(JSON.stringify([f,c]),original);
+let v=clone(f);v.appointments.push({...v.appointments[0],id:"a2",start:"2026-11-13T09:30:00+01:00",end:"2026-11-13T10:30:00+01:00"});assert.equal(Q.audit(v,c).totals.overlaps,1);
+v=clone(f);v.appointments[0].end=v.appointments[0].start;assert.match(Q.audit(v,c).issues.join(),/APPUNTAMENTO_ORARIO/);
+v=clone(f);v.appointments[0].siteId="wrong";assert.match(Q.audit(v,c).issues.join(),/APPUNTAMENTO_GERARCHIA/);
+v=clone(f);v.interventions[0].appointmentId="missing";assert.match(Q.audit(v,c).issues.join(),/INTERVENTO_SENZA_APPUNTAMENTO/);
+v=clone(f);v.interventions[0].durationMinutes=75;assert.match(Q.audit(v,c).warnings.join(),/DURATA_SUPERA_APPUNTAMENTO/);
+v=clone(f);v.interventions.push({...v.interventions[0],id:"i2"});assert.match(Q.audit(v,c).issues.join(),/INTERVENTI_MULTIPLI_APPUNTAMENTO/);
+let w=clone(c);w.quotes[0].extraIds=["missing"];assert.match(Q.audit(f,w).issues.join(),/PREVENTIVO_EXTRA/);
+w=clone(c);w.extras[0].kind="ALTRO";assert.match(Q.audit(f,w).warnings.join(),/EXTRA_TIPO_DA_VERIFICARE/);
+console.log("Operational quality 199: 11 assertions passed");
