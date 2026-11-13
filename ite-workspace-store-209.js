@@ -36,7 +36,7 @@ function create(storage,initialField,initialCommercial,key=KEY){
  if(!storage||typeof storage.getItem!=="function"||typeof storage.setItem!=="function"||typeof storage.removeItem!=="function")fail("STORAGE_NON_DISPONIBILE");
  let current=synthetic(initialField,initialCommercial);
  function snapshot(){return copy(current);}
- function save(next,expectedRevision=current.revision){if(expectedRevision!==current.revision)fail("REVISIONE_CONFLITTO");validate(next.field,next.commercial);const updated={schema:SCHEMA,mode:"SYNTHETIC_TEST_ONLY",revision:current.revision+1,field:copy(next.field),commercial:copy(next.commercial)};const serialized=encode(updated);storage.setItem(key,serialized);current=updated;return snapshot();}
+ function save(next,expectedRevision=current.revision){if(expectedRevision!==current.revision)fail("REVISIONE_CONFLITTO");validate(next.field,next.commercial);const disk=storage.getItem(key);if(disk!==null){const saved=decode(disk);if(saved.revision!==current.revision)fail("REVISIONE_CONFLITTO_DISPOSITIVO");}else if(current.revision!==0)fail("ARCHIVIO_ESTERNO_ELIMINATO");const updated={schema:SCHEMA,mode:"SYNTHETIC_TEST_ONLY",revision:current.revision+1,field:copy(next.field),commercial:copy(next.commercial)};const serialized=encode(updated);storage.setItem(key,serialized);current=updated;return snapshot();}
  function restore(){const raw=storage.getItem(key);if(raw===null)return null;const next=decode(raw);current=next;return snapshot();}
  function importJson(raw){const imported=decode(raw);return save(imported,current.revision);}
  function reset(){storage.removeItem(key);current=synthetic(initialField,initialCommercial);return snapshot();}
