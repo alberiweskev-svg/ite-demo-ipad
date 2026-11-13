@@ -1,7 +1,7 @@
 /* I.T.E. 4.0.198 — operational dossier embedded in existing field workspace. */
 (function(root){"use strict";
 function init(){
- const d=root.document,host=d&&d.getElementById("ite-field-workspace-172"),bridge=root.ITE_FieldWorkspaceBridge174,extra=root.ITE_InterventionExtrasBridge174,engine=root.ITEOperationalDossier198;
+ const d=root.document,host=d&&d.getElementById("ite-field-workspace-172"),bridge=root.ITE_FieldWorkspaceBridge174,extra=root.ITE_ExtrasWorkspaceBridge175,engine=root.ITEOperationalDossier198;
  if(!host||!bridge||!engine)return;
  const panel=d.createElement("section");panel.className="panel";panel.id="ite-operational-dossier-198";
  const h=d.createElement("h3");h.textContent="Fascicolo operativo integrato — TEST";
