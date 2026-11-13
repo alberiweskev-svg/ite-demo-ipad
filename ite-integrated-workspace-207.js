@@ -1,7 +1,7 @@
 /* I.T.E. 4.0.207 — integrated TEST dossier, agenda and commercial export. No persistence. */
 (function(root,factory){const api=factory(typeof module==="object"&&module.exports?require("./ite-operational-batch-202.js"):root.ITEOperationalBatch202,typeof module==="object"&&module.exports?require("./ite-operational-dossier-198.js"):root.ITEOperationalDossier198);if(typeof module==="object"&&module.exports)module.exports=api;root.ITEIntegratedWorkspace207=api;})(typeof globalThis!=="undefined"?globalThis:this,function(B,D){"use strict";
 const clone=x=>JSON.parse(JSON.stringify(x));
-const safe=x=>{let s=String(x??"");if(/^\\s*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
+const safe=x=>{let s=String(x??"");if(/^\s*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
 function snapshot(field,commercial){
  const audit=B.audit(field,commercial);if(!audit.valid)throw Error("ARCHIVIO_TEST_NON_VALIDO: "+audit.issues.join(","));
  const dossier=D.build(field,commercial);if(!dossier.valid)throw Error("FASCICOLO_TEST_NON_VALIDO: "+dossier.issues.join(","));
