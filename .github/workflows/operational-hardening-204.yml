@@ -1,0 +1,33 @@
+name: Operational hardening 4.0.204
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-operational-workflow-201.js'
+      - 'ite-operational-batch-202.js'
+      - 'tests/test-operational-workflow-201.js'
+      - 'tests/test-operational-batch-202.js'
+      - 'tests/test-operational-hardening-204.js'
+      - '.github/workflows/operational-hardening-204.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Operational lifecycle and batch regression
+        run: |
+          node --check ite-operational-workflow-201.js
+          node --check ite-operational-batch-202.js
+          node tests/test-operational-workflow-201.js
+          node tests/test-operational-batch-202.js
+          node tests/test-operational-hardening-204.js
