@@ -1,0 +1,10 @@
+const assert=require("node:assert/strict"),X=require("../ite-fiscal-xml-213.js");
+const {DOMParser}=globalThis;
+assert.equal(X.cents("123.45"),12345);assert.equal(X.cents("-2.5"),-250);assert.throws(()=>X.cents("1e4"));
+const xml='<FatturaElettronica><FatturaElettronicaHeader><CedentePrestatore><DatiAnagrafici><IdFiscaleIVA><IdCodice>111</IdCodice></IdFiscaleIVA></DatiAnagrafici></CedentePrestatore><CessionarioCommittente><DatiAnagrafici><CodiceFiscale>222</CodiceFiscale></DatiAnagrafici></CessionarioCommittente></FatturaElettronicaHeader><FatturaElettronicaBody><DatiGenerali><DatiGeneraliDocumento><TipoDocumento>TD01</TipoDocumento><Data>2026-11-13</Data><Numero>TEST-1</Numero><ImportoTotaleDocumento>122.00</ImportoTotaleDocumento></DatiGeneraliDocumento></DatiGenerali><DatiBeniServizi><DatiRiepilogo><ImponibileImporto>100.00</ImponibileImporto><Imposta>22.00</Imposta></DatiRiepilogo></DatiBeniServizi></FatturaElettronicaBody></FatturaElettronica>';
+function parser(s){const names=[...s.matchAll(/<([A-Za-z][A-Za-z0-9]*)>/g)].map(m=>m[1]);function node(name,source){return {localName:name,textContent:source.replace(/<[^>]+>/g,""),getElementsByTagName(tag){const matches=[];for(const m of source.matchAll(/<([A-Za-z][A-Za-z0-9]*)>([\s\S]*?)<\/\1>/g)){if(tag==="*"||m[1]===tag)matches.push(node(m[1],m[2]));}return matches;}};}return {documentElement:node("FatturaElettronica",s),getElementsByTagName:tag=>tag==="parsererror"?[]:[]};}
+const p=X.parse(xml,parser);assert.equal(p.netCents,10000);assert.equal(p.vatCents,2200);assert.equal(p.grossCents,12200);assert.equal(p.seller,"111");assert.equal(p.buyer,"222");
+const mapped=X.toLedger(p,{direction:"IN",id:"A-1",counterpartyId:"SUP-1"});assert.equal(mapped.type,"ACQUISTO");assert.equal(mapped.status,"DA_VERIFICARE");
+assert.throws(()=>X.toLedger({...p,documentCode:"TD04"},{direction:"OUT",id:"N-1",counterpartyId:"C-1"}),/RIFERIMENTO/);
+assert.throws(()=>X.parse('<!DOCTYPE x>'+xml,parser),/ENTITA/);assert.throws(()=>X.parse(xml.replace("TD01","TD05"),parser),/NON_SUPPORTATO/);
+console.log("Fiscal XML 4.0.213: OK");
