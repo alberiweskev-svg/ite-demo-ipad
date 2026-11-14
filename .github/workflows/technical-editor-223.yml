@@ -1,0 +1,34 @@
+name: ITE 4.0.223 technical editor regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-register-ui-219.js'
+      - 'ite-technical-workflow-220.js'
+      - 'ite-document-intake-217.js'
+      - 'ite-workspace-store-209.js'
+      - 'tests/test-technical-editor-223.js'
+      - 'tests/test-technical-batch-222.js'
+      - '.github/workflows/technical-editor-223.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check ite-technical-register-ui-219.js
+          node --check ite-technical-workflow-220.js
+      - name: Regression
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node tests/test-technical-batch-222.js
+          node tests/test-technical-editor-223.js
