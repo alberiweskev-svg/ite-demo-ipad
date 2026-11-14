@@ -50,6 +50,8 @@ function init(){
   if(transactBatch(ids.map(id=>({action:"remove",id}))))selected.clear();
  });
  function transactBatch(operations){try{const result=W.applyBatch(store,operations);status.textContent="Lotto salvato: "+operations.length+" modifiche, revisione "+result.revision+".";render();return true;}catch(e){status.textContent="Lotto annullato integralmente: "+e.message;return false;}}
+ button("Anteprima lotto selezionato",()=>{const ids=[...selected].filter(id=>snapshot().technicalDocuments.some(x=>x.id===id));if(!ids.length){status.textContent="Selezionare documenti per l’anteprima.";return;}try{const p=W.preview(store,ids.map(id=>({action:"update",id,patch:{status:bulkStatus.value}})));status.textContent="Anteprima senza salvataggio: "+ids.length+" documenti, stato "+bulkStatus.value+", revisione "+p.revision+".";}catch(e){status.textContent="Anteprima respinta: "+e.message;}});
+ button("Esporta registro TEST JSON",()=>{try{const p=snapshot();const raw=JSON.stringify({schema:"ITE_TECHNICAL_EXPORT_223",mode:"SYNTHETIC_TEST_ONLY",revision:p.revision,technicalDocuments:p.technicalDocuments},null,2);const blob=new Blob([raw],{type:"application/json"});const url=URL.createObjectURL(blob);const a=d.createElement("a");a.href=url;a.download="ite-documenti-tecnici-test.json";a.click();root.setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent="Esportati soltanto metadati TEST, nessun PDF.";}catch(e){status.textContent="Esportazione non riuscita: "+e.message;}});
  button("Ricarica archivio",()=>{try{store.restore();render();status.textContent="Archivio locale riletto.";}catch(e){status.textContent=e.message;}});
  pdf.addEventListener("change",async()=>{
   inspected=0;const file=pdf.files&&pdf.files[0];if(!file)return;
@@ -60,8 +62,9 @@ function init(){
   }catch(e){pdf.value="";status.textContent="PDF non riconosciuto: "+e.message;}
  });
  function render(){
+  const previousClient=client.value,previousSite=site.value,previousIntervention=intervention.value;
   let p;try{p=snapshot();}catch(e){status.textContent=e.message;return;}
-  choices();output.replaceChildren();const report=W.report(p);
+  choices();if([...client.options].some(x=>x.value===previousClient)){client.value=previousClient;refreshSite();if([...site.options].some(x=>x.value===previousSite)){site.value=previousSite;refreshIntervention();if([...intervention.options].some(x=>x.value===previousIntervention))intervention.value=previousIntervention;}}output.replaceChildren();const report=W.report(p);
   for(const id of [...selected])if(!p.technicalDocuments.some(x=>x.id===id))selected.delete(id);
   el("h4","Registro tecnico TEST: "+report.total+" documenti",output);
   el("p","Da classificare/verificare: "+report.pending.length+" · Non associati: "+report.unlinked.length,output);
@@ -74,7 +77,16 @@ function init(){
    el("p",doc.status+" · "+(doc.clientId||"non associato")+" · "+doc.size+" byte",item);
    const editor=el("select",undefined,item);
    setOptions(editor,Intake.STATES.map(x=>[x,x]));editor.value=doc.status;
-   button("Salva stato",()=>transact({action:"update",id:doc.id,patch:{status:editor.value}}),item);
+   const typeEditor=el("select",undefined,item);setOptions(typeEditor,Intake.TYPES.map(x=>[x,x]));typeEditor.value=doc.type;
+   const labelEditor=el("input",undefined,item);labelEditor.value=doc.label;labelEditor.maxLength=120;labelEditor.setAttribute("aria-label","Descrizione documento");
+   const noteEditor=el("textarea",undefined,item);noteEditor.value=doc.note;noteEditor.maxLength=300;noteEditor.setAttribute("aria-label","Note documento");
+   const clientEditor=el("select",undefined,item),siteEditor=el("select",undefined,item),interventionEditor=el("select",undefined,item);
+   const f=p.field;
+   setOptions(clientEditor,[["","Nessuno"],...f.clients.map(x=>[x.id,x.name||x.id])]);clientEditor.value=doc.clientId||"";
+   function updateSites(keep){const old=keep?(doc.siteId||""):"";setOptions(siteEditor,[["","Nessuna"],...W.options(f,clientEditor.value,"").sites.map(x=>[x.id,x.name])]);siteEditor.value=old;updateInterventions(keep);}
+   function updateInterventions(keep){const old=keep?(doc.interventionId||""):"";setOptions(interventionEditor,[["","Nessuno"],...W.options(f,clientEditor.value,siteEditor.value).interventions.map(x=>[x.id,x.name])]);interventionEditor.value=old;}
+   clientEditor.addEventListener("change",()=>updateSites(false));siteEditor.addEventListener("change",()=>updateInterventions(false));updateSites(true);
+   button("Salva modifiche",()=>transact({action:"update",id:doc.id,patch:{type:typeEditor.value,status:editor.value,label:labelEditor.value,note:noteEditor.value,clientId:clientEditor.value||null,siteId:siteEditor.value||null,interventionId:interventionEditor.value||null}}),item);
    button("Elimina TEST",()=>transact({action:"remove",id:doc.id}),item).className="danger";
   }
  }
