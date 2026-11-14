@@ -2,8 +2,8 @@
 (function(root){"use strict";
 function init(){
  const d=root.document,host=d.getElementById("ite-field-workspace-172");
- const Store=root.ITEWorkspaceStore209,Intake=root.ITEDocumentIntake217,W=root.ITETechnicalWorkflow220;
- if(!host||!Store||!Intake||!W||d.getElementById("ite-technical-register-219"))return;
+ const Store=root.ITEWorkspaceStore209,Intake=root.ITEDocumentIntake217,W=root.ITETechnicalWorkflow220,Exchange=root.ITETechnicalExchange224;
+ if(!host||!Store||!Intake||!W||!Exchange||d.getElementById("ite-technical-register-219"))return;
  const panel=d.createElement("section");panel.id="ite-technical-register-219";panel.className="panel";host.append(panel);
  const title=d.createElement("h3");title.textContent="Documenti tecnici — flusso TEST integrato 4.0.221";panel.append(title);
  const warning=d.createElement("p");warning.className="hint";warning.textContent="Solo dati fittizi. I PDF sono letti localmente per la sola intestazione: nessun file o contenuto PDF viene salvato o inviato.";panel.append(warning);
@@ -51,7 +51,11 @@ function init(){
  });
  function transactBatch(operations){try{const result=W.applyBatch(store,operations);status.textContent="Lotto salvato: "+operations.length+" modifiche, revisione "+result.revision+".";render();return true;}catch(e){status.textContent="Lotto annullato integralmente: "+e.message;return false;}}
  button("Anteprima lotto selezionato",()=>{const ids=[...selected].filter(id=>snapshot().technicalDocuments.some(x=>x.id===id));if(!ids.length){status.textContent="Selezionare documenti per l’anteprima.";return;}try{const p=W.preview(store,ids.map(id=>({action:"update",id,patch:{status:bulkStatus.value}})));status.textContent="Anteprima senza salvataggio: "+ids.length+" documenti, stato "+bulkStatus.value+", revisione "+p.revision+".";}catch(e){status.textContent="Anteprima respinta: "+e.message;}});
- button("Esporta registro TEST JSON",()=>{try{const p=snapshot();const raw=JSON.stringify({schema:"ITE_TECHNICAL_EXPORT_223",mode:"SYNTHETIC_TEST_ONLY",revision:p.revision,technicalDocuments:p.technicalDocuments},null,2);const blob=new Blob([raw],{type:"application/json"});const url=URL.createObjectURL(blob);const a=d.createElement("a");a.href=url;a.download="ite-documenti-tecnici-test.json";a.click();root.setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent="Esportati soltanto metadati TEST, nessun PDF.";}catch(e){status.textContent="Esportazione non riuscita: "+e.message;}});
+ button("Esporta registro TEST JSON",()=>{try{const p=snapshot();const raw=Exchange.serialize(p.technicalDocuments);const blob=new Blob([raw],{type:"application/json"});const url=URL.createObjectURL(blob);const a=d.createElement("a");a.href=url;a.download="ite-documenti-tecnici-test.json";a.click();root.setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent="Esportati soltanto metadati TEST, nessun PDF.";}catch(e){status.textContent="Esportazione non riuscita: "+e.message;}});
+ const importFile=field("Importa registro JSON TEST");importFile.type="file";importFile.accept=".json,application/json";
+ const importMode=field("Modalità importazione",[["merge","Aggiungi senza sovrascrivere"],["replace","Sostituisci intero registro TEST"]]);
+ button("Anteprima importazione JSON",async()=>{const file=importFile.files&&importFile.files[0];if(!file){status.textContent="Selezionare un file JSON TEST.";return;}if(file.size>250000){status.textContent="File troppo grande.";return;}try{const raw=await file.text();const p=Exchange.plan(store,raw,importMode.value);status.textContent="Anteprima senza salvataggio: "+p.incoming+" in ingresso, "+p.existing+" presenti, "+p.after+" dopo importazione."; }catch(e){status.textContent="Importazione respinta: "+e.message;}});
+ button("Conferma importazione JSON TEST",async()=>{const file=importFile.files&&importFile.files[0];if(!file){status.textContent="Selezionare un file JSON TEST.";return;}if(file.size>250000){status.textContent="File troppo grande.";return;}try{const raw=await file.text();const p=Exchange.plan(store,raw,importMode.value);if(!root.confirm("Importare "+p.incoming+" documenti TEST? Risultato: "+p.after+" registrazioni. Nessun PDF verrà acquisito."))return;Exchange.apply(store,raw,importMode.value);importFile.value="";status.textContent="Importazione TEST salvata.";render();}catch(e){status.textContent="Importazione annullata: "+e.message;}});
  button("Ricarica archivio",()=>{try{store.restore();render();status.textContent="Archivio locale riletto.";}catch(e){status.textContent=e.message;}});
  pdf.addEventListener("change",async()=>{
   inspected=0;const file=pdf.files&&pdf.files[0];if(!file)return;
