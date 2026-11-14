@@ -225,8 +225,36 @@ function showQuickEditor(){
   const color=field('Colore parete',tech.color,'color');
   const notes=field('Note tecniche',tech.notes,'text');
   button('Salva caratteristiche parete',()=>{const t=Number(thickness.value);if(!Number.isFinite(t)||t<=0||t>200)return err('Spessore non valido');checkpoint();if(!room.wallTech)room.wallTech={};room.wallTech[wallIndex]={thickness:t,material:material.value,structural:structural.value,finish:finish.value,color:color.value,notes:notes.value.slice(0,500)};done('Caratteristiche parete salvate. La funzione portante non è determinata automaticamente.');});
-  button('AGGIUNGI AMBIENTE da questa parete',()=>{const depthText=prompt('Profondità del nuovo ambiente in centimetri (perpendicolare alla parete):','300');if(depthText===null)return;const depth=Number(depthText.replace(',','.'));if(!Number.isFinite(depth)||depth<50||depth>10000)return err('Profondità non valida: inserisci una misura tra 50 e 10000 cm');const sideText=prompt('Lato rispetto alla direzione del muro P1 → P2: SINISTRA oppure DESTRA','DESTRA');if(sideText===null)return;const side=sideText.trim().toUpperCase();if(!['SINISTRA','DESTRA'].includes(side))return err('Scrivi SINISTRA o DESTRA');const name=prompt('Nome del nuovo ambiente','Nuovo ambiente');if(name===null)return;const a=room.points[wallIndex],b=room.points[(wallIndex+1)%room.points.length],len=hypot(a,b),sign=side==='SINISTRA'?-1:1;const dx=-(b.y-a.y)/len*depth*sign,dy=(b.x-a.x)/len*depth*sign;const points=[{...b},{...a},{x:round(a.x+dx,1),y:round(a.y+dy,1)},{x:round(b.x+dx,1),y:round(b.y+dy,1)}];if(!polygonValid(points))return err('Geometria del nuovo ambiente non valida');const oldName=$('newRoomName').value;$('newRoomName').value=name.trim()||'Nuovo ambiente';const added=newRoom(points,'manuale');$('newRoomName').value=oldName;if(added)msg('Nuovo ambiente collegato alla parete esistente: controlla la posizione e le quote.');});
-   button('Metti in squadra (90°)',()=>{const result=rectifyRoom(room,wallIndex);if(!result.ok)return err(result.message);save();showQuickEditor();msg(result.message)});
+  button('AGGIUNGI AMBIENTE da questa parete',()=>{
+ const a=room.points[wallIndex],b=room.points[(wallIndex+1)%room.points.length],len=hypot(a,b);
+ if(len<1)return err('Parete troppo corta');
+ const offsetText=prompt('Distanza dal punto '+(wallIndex+1)+' verso il punto '+((wallIndex+1)%room.points.length+1)+' (cm). Inserisci 0 per partire dall’angolo:','0');
+ if(offsetText===null)return;
+ const offset=Number(offsetText.replace(',','.'));
+ if(!Number.isFinite(offset)||offset<0||offset>=len)return err('Distanza non valida: deve essere compresa fra 0 e '+round(len,1)+' cm');
+ const widthText=prompt('Larghezza del tratto di parete condiviso con il nuovo ambiente (cm):',String(round(len-offset,1)));
+ if(widthText===null)return;
+ const width=Number(widthText.replace(',','.'));
+ if(!Number.isFinite(width)||width<20||offset+width>len+0.01)return err('Larghezza non valida: il tratto deve restare nella parete esistente.');
+ const depthText=prompt('Profondità del nuovo ambiente (cm):','300');
+ if(depthText===null)return;
+ const depth=Number(depthText.replace(',','.'));
+ if(!Number.isFinite(depth)||depth<20||depth>10000)return err('Profondità non valida');
+ const sideText=prompt('Lato del nuovo ambiente rispetto alla direzione dal punto '+(wallIndex+1)+' al punto '+((wallIndex+1)%room.points.length+1)+': SINISTRA o DESTRA','DESTRA');
+ if(sideText===null)return;
+ const side=sideText.trim().toUpperCase();
+ if(!['SINISTRA','DESTRA'].includes(side))return err('Seleziona SINISTRA o DESTRA');
+ const name=prompt('Nome del nuovo ambiente','Nuovo ambiente');
+ if(name===null)return;
+ const t=offset/len,u=(offset+width)/len,p={x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t},q={x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u};
+ const sign=side==='SINISTRA'?1:-1,dx=-(b.y-a.y)/len*depth*sign,dy=(b.x-a.x)/len*depth*sign;
+ const points=[p,q,{x:q.x+dx,y:q.y+dy},{x:p.x+dx,y:p.y+dy}].map(v=>({x:round(v.x,2),y:round(v.y,2)}));
+ if(!polygonValid(points))return err('Geometria del nuovo ambiente non valida');
+ const oldName=$('newRoomName').value;$('newRoomName').value=name.trim()||'Nuovo ambiente';
+ const added=newRoom(points,'manuale');$('newRoomName').value=oldName;
+ if(added)msg('Ambiente collegato da '+round(offset,1)+' cm dal punto '+(wallIndex+1)+'. Verifica le quote prima di confermarle.');
+});
+     button('Metti in squadra (90°)',()=>{const result=rectifyRoom(room,wallIndex);if(!result.ok)return err(result.message);save();showQuickEditor();msg(result.message)});
   button('Elimina parete',()=>deleteSelectedWall(room,wallIndex));
   button('Conferma misura reale',()=>{$('wallStatus').value=status.value;$('wallLength').value=length.value;$('verifyWall').click();showQuickEditor()});
  }else if(kind==='opening'){
