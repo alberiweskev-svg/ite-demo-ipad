@@ -1,0 +1,27 @@
+name: Technical exchange 4.0.224
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-technical-exchange-224.js'
+      - 'ite-technical-register-ui-219.js'
+      - 'index.html'
+      - 'tests/test-technical-exchange-224.js'
+      - '.github/workflows/technical-exchange-224.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-technical-exchange-224.js && node --check ite-technical-register-ui-219.js
+      - run: node tests/test-technical-exchange-224.js
+      - run: node tests/test-technical-editor-223.js
