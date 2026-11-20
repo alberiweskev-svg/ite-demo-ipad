@@ -27,7 +27,6 @@ function totals(quote){let cents=0;for(const l of quote.lines)cents+=l.cents*l.q
 function createStore(initial){let current=clone(initial||blank());validate(current);return Object.freeze({
  snapshot:()=>clone(current),
  transact:(expectedRevision,mutate)=>{if(expectedRevision!==current.revision)throw Error("REVISIONE_CONFLITTO");const next=clone(current);mutate(next);next.revision++;validate(next);current=next;return clone(current);},
- insert:(type,item,revision)=>{if(!TYPES.includes(type))throw Error("TIPO_NON_VALIDO");return this;},
  exportMetadata:()=>JSON.stringify(current),
  importMetadata:(raw,expectedRevision)=>{if(typeof raw!=="string"||raw.length>3000000)throw Error("IMPORT_TROPPO_GRANDE");const next=JSON.parse(raw);validate(next);if(expectedRevision!==current.revision)throw Error("REVISIONE_CONFLITTO");current={...clone(next),revision:current.revision+1};return clone(current);}
  });}
