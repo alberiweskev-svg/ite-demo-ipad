@@ -1,4 +1,4 @@
-name: Gestionale 4.0.226 demo smoke
+name: Gestionale 4.0.227 demo smoke
 on:
   push:
     branches: [sviluppo-4.0.0-base]
@@ -6,6 +6,7 @@ on:
       - 'gestionale4/**'
       - 'ite-integrated-core-225.js'
       - 'tests/test-integrated-core-225.js'
+      - 'tests/test-agenda-227.js'
       - '.github/workflows/gestionale4-demo.yml'
   workflow_dispatch:
 jobs:
@@ -25,6 +26,8 @@ jobs:
         run: |
           node --check ite-integrated-core-225.js
           node tests/test-integrated-core-225.js
+          node --check gestionale4/agenda-227.js
+          node tests/test-agenda-227.js
       - name: Validate demo inline script and integration
         run: |
           node - <<'NODE'
