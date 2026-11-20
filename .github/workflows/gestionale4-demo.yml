@@ -1,0 +1,43 @@
+name: Gestionale 4.0.226 demo smoke
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/**'
+      - 'ite-integrated-core-225.js'
+      - 'tests/test-integrated-core-225.js'
+      - '.github/workflows/gestionale4-demo.yml'
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate integrated core
+        run: |
+          node --check ite-integrated-core-225.js
+          node tests/test-integrated-core-225.js
+      - name: Validate demo inline script and integration
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+          const html=fs.readFileSync('gestionale4/index.html','utf8');
+          assert.match(html,/<script src="\.\.\/ite-integrated-core-225\.js"><\/script>/);
+          assert.match(html,/localStorage\.setItem/);
+          assert.match(html,/store\.importMetadata/);
+          assert.match(html,/EXTRA_FORNITURA/);
+          assert.match(html,/EXTRA_POSA/);
+          assert.match(html,/crypto\.randomUUID/);
+          const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);
+          assert.equal(scripts.length,1);
+          new vm.Script(scripts[0],{filename:'gestionale4/index.html'});
+          console.log('Demo integration smoke checks OK');
+          NODE
