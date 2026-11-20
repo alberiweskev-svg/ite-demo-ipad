@@ -1,0 +1,25 @@
+name: Integrated core 4.0.225
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-integrated-core-225.js'
+      - 'tests/test-integrated-core-225.js'
+      - '.github/workflows/integrated-core-225.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-integrated-core-225.js
+      - run: node --check tests/test-integrated-core-225.js
+      - run: node tests/test-integrated-core-225.js
