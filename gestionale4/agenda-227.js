@@ -1,0 +1,14 @@
+/* I.T.E. 4.0.227 — calendar and field workflow; no production data. */
+(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;root.ITEAgenda227=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){"use strict";
+const pad=n=>String(n).padStart(2,"0");
+const dayKey=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+function parseLocal(value){if(typeof value!=="string"||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}/.test(value))throw Error("DATA_NON_VALIDA");const d=new Date(value);if(!Number.isFinite(d.getTime()))throw Error("DATA_NON_VALIDA");return d;}
+function monday(date){const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());d.setDate(d.getDate()-(d.getDay()+6)%7);return d;}
+function range(anchor,mode){const a=new Date(anchor+"T12:00:00");if(!Number.isFinite(a.getTime()))throw Error("DATA_NON_VALIDA");let start,end;if(mode==="giorno"){start=new Date(a.getFullYear(),a.getMonth(),a.getDate());end=new Date(start);end.setDate(end.getDate()+1);}else if(mode==="settimana"){start=monday(a);end=new Date(start);end.setDate(end.getDate()+7);}else if(mode==="mese"){start=new Date(a.getFullYear(),a.getMonth(),1);end=new Date(a.getFullYear(),a.getMonth()+1,1);}else throw Error("VISTA_NON_VALIDA");return {start,end};}
+function events(state,anchor,mode,operator=""){const r=range(anchor,mode);return state.appointments.filter(a=>{const s=parseLocal(a.start),e=parseLocal(a.end);return s<r.end&&e>r.start&&(!operator||a.operator===operator);}).slice().sort((a,b)=>parseLocal(a.start)-parseLocal(b.start)||a.id.localeCompare(b.id));}
+function conflicts(state,appointment){const start=parseLocal(appointment.start),end=parseLocal(appointment.end);return state.appointments.filter(a=>a.id!==appointment.id&&a.operator===appointment.operator&&parseLocal(a.start)<end&&parseLocal(a.end)>start);}
+function openFromAppointment(store,appointmentId,id){return store.transact(store.snapshot().revision,s=>{const a=s.appointments.find(x=>x.id===appointmentId);if(!a)throw Error("APPUNTAMENTO_ASSENTE");if(s.interventions.some(x=>x.appointmentId===appointmentId))throw Error("INTERVENTO_GIA_PRESENTE");s.interventions.push({id,siteId:a.siteId,appointmentId:a.id,operator:a.operator,status:"APERTO"});});}
+function arrival(store,id,time){parseLocal(time);return store.transact(store.snapshot().revision,s=>{const x=s.interventions.find(x=>x.id===id);if(!x||x.status!=="APERTO")throw Error("STATO_NON_VALIDO");x.status="IN_CORSO";x.arrival=time;});}
+function close(store,id,time){parseLocal(time);return store.transact(store.snapshot().revision,s=>{const x=s.interventions.find(x=>x.id===id);if(!x||x.status!=="IN_CORSO"||!x.arrival||parseLocal(time)<parseLocal(x.arrival))throw Error("CHIUSURA_NON_VALIDA");x.exit=time;x.status="CHIUSO";});}
+return Object.freeze({dayKey,range,events,conflicts,openFromAppointment,arrival,close});
+});
