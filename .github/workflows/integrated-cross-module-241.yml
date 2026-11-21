@@ -1,0 +1,28 @@
+name: ITE 4.0.241 cross-module integrity
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-integrated-core-225.js'
+      - 'test-integrated-cross-module-241.js'
+      - 'gestionale4/**'
+      - 'tests/test-document-ui-239.js'
+      - '.github/workflows/integrated-cross-module-241.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-integrated-core-225.js && node --check test-integrated-cross-module-241.js
+      - run: node test-integrated-cross-module-241.js
+      - run: node tests/test-document-workspace-237.js && node tests/test-document-ui-239.js
