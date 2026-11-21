@@ -10,7 +10,7 @@ const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s))&&
 function classify(filename='',text=''){
  const n=(clean(filename)+' '+clean(text)).toLocaleLowerCase('it');
  if(/(?:^|[^a-z0-9])td[\s._-]*0?4(?=$|[^a-z0-9])|nota[\s_-]+di[\s_-]+credito/.test(n))return 'TD04';
- if(/pro\s*forma|copia di cortesia|\bpr[- /]?\d+/.test(n))return 'PROFORMA';
+ if(/pro\s*forma|copia[\s_-]+di[\s_-]+cortesia|\bpr[- /]?\d+/.test(n))return 'PROFORMA';
  if(/dichiarazione di rispondenza|\bdi[ .-]?ri\b/.test(n))return 'DIRI';
  if(/dichiarazione di conformit[aà]|\bdi[ .-]?co\b/.test(n))return /elettric|\bdm\s*37.*lettera a/.test(n)?'DICO_ELETTRICO':/idraulic|idro.?sanitari|lettera d/.test(n)?'DICO_IDRICO':'ALTRO';
  if(/allegat[oi].*gas|\bgas\b.*allegat/.test(n))return 'ALLEGATI_GAS';
