@@ -15,7 +15,7 @@ assert.equal(UI.read(store).items[0].number,'02');
 assert.throws(()=>D.update(state,'D1',{clientId:'C2'}).items&&D.linkCheck(D.update(state,'D1',{clientId:'C2'}),h),/SEDE_NON_COHERENTE/);
 assert.throws(()=>D.add(state,{...sample,id:'D2',number:'02'}),/POSSIBILE_DUPLICATO/);
 assert.throws(()=>D.update(state,'D1',{documentDate:'2026-02-30'}),/DATA_NON_VALIDA/);
-state=D.verify(state,'Tecnico Demo');UI.write(store,state);
+state=D.verify(state,'D1','Tecnico Demo');UI.write(store,state);
 assert.throws(()=>D.update(state,'D1',{type:'ALTRO'}),/VERIFICA_ORIGINALE_OBBLIGATORIA/);
 state=D.archive(state,'D1');UI.write(store,state);
 assert.equal(D.summary(UI.read(store)).archived,1);
