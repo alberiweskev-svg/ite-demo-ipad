@@ -1,6 +1,7 @@
 /* I.T.E. 4.0.246 — read-only commercial reconciliation across quote, extras, invoices and TD04. Synthetic/local only. */
 (function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;root.ITECommercialAudit246=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){"use strict";
 const integer=x=>Number.isSafeInteger(x)&&x>=0;
+const validLine=x=>x&&integer(x.cents)&&Number.isSafeInteger(x.qty)&&x.qty>0&&integer(x.cents*x.qty);
 function inspect(state){
  const issues=[],rows=[],seen=new Set(),invoiceIds=new Set(),quoteIds=new Set(),byId=new Map(state.invoices.map(x=>[x.id,x]));
  for(const q of state.quotes){if(quoteIds.has(q.id))issues.push({severity:"BLOCCANTE",code:"PREVENTIVO_ID_DUPLICATO",id:q.id});quoteIds.add(q.id);}
@@ -13,15 +14,22 @@ function inspect(state){
   const key=String(inv.kind)+"|"+String(inv.number||"").trim().toLocaleLowerCase("it");
   if(seen.has(key))add("BLOCCANTE","NUMERO_DUPLICATO_TIPO",inv.id);seen.add(key);
   if(!integer(inv.cents))add("BLOCCANTE","IMPORTO_NON_VALIDO",inv.id);
+  if(inv.kind==="VENDITA"&&!inv.quoteId)add("REVISIONE","FATTURA_SENZA_PREVENTIVO",inv.id);
+  if(inv.kind==="PROFORMA"&&inv.originalInvoiceId)add("REVISIONE","PROFORMA_CON_ORIGINE_FISCALE",inv.id);
   if(inv.kind==="TD04"){
    const original=byId.get(inv.originalInvoiceId);
    if(!original||original.kind!=="VENDITA"||original.clientId!==inv.clientId)add("BLOCCANTE","TD04_ORIGINE_NON_VALIDA",inv.id);
+   if(inv.quoteId&&original&&inv.quoteId!==original.quoteId)add("BLOCCANTE","TD04_PREVENTIVO_DIVERSO",inv.id);
   }
  }
  for(const q of state.quotes){
   if(!state.clients.some(c=>c.id===q.clientId))add("BLOCCANTE","CLIENTE_PREVENTIVO_ASSENTE",q.id);
   let supply=0,labor=0,other=0;
+  const lineIds=new Set();
   for(const line of q.lines){
+   if(lineIds.has(line.id))add("BLOCCANTE","RIGA_ID_DUPLICATO",q.id);
+   lineIds.add(line.id);
+   if(!validLine(line)){add("BLOCCANTE","RIGA_NON_VALIDA",q.id);continue}
    const amount=line.cents*line.qty;
    if(!integer(amount)){add("BLOCCANTE","RIGA_NON_VALIDA",q.id);continue}
    if(["FORNITURA","EXTRA_FORNITURA"].includes(line.kind))supply+=amount;
@@ -29,7 +37,12 @@ function inspect(state){
    else other+=amount;
   }
   const expected=new Map();
+  const extraIds=new Set();
   for(const extra of q.extraRequests||[]){
+   if(extraIds.has(extra.id))add("BLOCCANTE","EXTRA_ID_DUPLICATO",q.id);
+   extraIds.add(extra.id);
+   if(!integer(extra.supplyCents)||!integer(extra.laborCents)||!Number.isSafeInteger(extra.qty)||extra.qty<1){add("BLOCCANTE","EXTRA_IMPORTO_QUANTITA_NON_VALIDI",q.id);continue}
+   if(!["PROPOSTO","APPROVATO","PARZIALE","RIFIUTATO"].includes(extra.status)||extra.status==="PROPOSTO"&&extra.approvedQty!==0||extra.status==="RIFIUTATO"&&extra.approvedQty!==0||extra.status==="APPROVATO"&&extra.approvedQty!==extra.qty||extra.status==="PARZIALE"&&!(extra.approvedQty>0&&extra.approvedQty<extra.qty))add("BLOCCANTE","EXTRA_STATO_QUANTITA_INCOERENTE",q.id);
    if(extra.status==="PROPOSTO")add("REVISIONE","EXTRA_IN_ATTESA",q.id);
    if(!Number.isSafeInteger(extra.approvedQty)||extra.approvedQty<0||extra.approvedQty>extra.qty){add("BLOCCANTE","QUANTITA_EXTRA_NON_VALIDA",q.id);continue}
    for(const [suffix,kind,cents] of [["-F","EXTRA_FORNITURA",extra.supplyCents],["-P","EXTRA_POSA",extra.laborCents]]){
@@ -60,5 +73,13 @@ function inspect(state){
  }
  return {rows,issues,blocking:issues.filter(x=>x.severity==="BLOCCANTE").length,review:issues.filter(x=>x.severity==="REVISIONE").length,releaseAllowed:false};
 }
-return Object.freeze({inspect});
+function exportCsv(report){
+ if(!report||!Array.isArray(report.issues)||!Array.isArray(report.rows))throw Error("REPORT_NON_VALIDO");
+ const cell=x=>{let s=String(x??"").replace(/[\r\n\\t]/g," ");if(/^\\s*[=+\\-@]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
+ const records=[["TIPO","GRAVITA","CODICE","ID","CLIENTE","STATO","FORNITURA_CENT","POSA_CENT","TOTALE_CENT","FATTURATO_CENT","TD04_CENT","RESIDUO_CENT"]];
+ for(const x of report.issues)records.push(["ANOMALIA",x.severity,x.code,x.id,"","","","","","","",""]);
+ for(const x of report.rows)records.push(["PREVENTIVO","","",x.quoteId,x.clientId,x.status,x.supplyCents,x.laborCents,x.totalCents,x.invoicedCents,x.creditedCents,x.remainingCents]);
+ return "\uFEFF"+records.map(r=>r.map(cell).join(";")).join("\r\n")+"\r\n";
+}
+return Object.freeze({inspect,exportCsv});
 });
