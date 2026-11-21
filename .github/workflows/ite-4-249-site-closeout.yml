@@ -26,4 +26,4 @@ jobs:
           node gestionale4/test-commercial-audit-246.js
       - name: Check integrated page wiring
         run: |
-          node -e "const fs=require('fs'),s=fs.readFileSync('gestionale4/index.html','utf8');for(const x of ['site-closeout-249.js','renderCloseout(s)','data-tab=\\\"closeout\\\"'])if(!s.includes(x))throw Error('Missing UI integration: '+x)"
+          node -e "const fs=require('fs'),s=fs.readFileSync('gestionale4/index.html','utf8');for(const x of ['site-closeout-249.js','renderCloseout(s)' ,'renderCloseout(s);return'])if(!s.includes(x))throw Error('Missing UI integration: '+x)"
