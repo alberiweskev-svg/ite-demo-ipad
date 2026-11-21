@@ -1,0 +1,43 @@
+name: ITE 4.0.244 integrated extras
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/extras-244.js'
+      - 'gestionale4/test-extras-244.js'
+      - 'gestionale4/index.html'
+      - '.github/workflows/ite-extras-244.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  extras:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate module and synthetic integrated tests
+        run: |
+          node --check gestionale4/extras-244.js
+          node --check gestionale4/test-extras-244.js
+          node gestionale4/test-extras-244.js
+      - name: Validate integrated demo entrypoint
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs'),assert=require('node:assert/strict');
+          const html=fs.readFileSync('gestionale4/index.html','utf8');
+          assert.match(html,/src="extras-244.js"/);
+          assert.match(html,/data-tab="extras"/);
+          assert.match(html,/function renderExtras\(s\)/);
+          assert.match(html,/extra-propose/);
+          assert.match(html,/extra-decision/);
+          const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).filter(Boolean);
+          for(const source of scripts)new Function(source);
+          NODE
