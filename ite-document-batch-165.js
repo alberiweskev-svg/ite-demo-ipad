@@ -42,7 +42,11 @@ function commit(state,plan,actor,companyVat,expectedRevision){
  const rows=plan.documents.map(d=>({id:d.id,number:d.number,date:d.documentDate,
   issuerVat:d.issuerVat,type:d.documentType,net:d.net,vat:d.vat,total:d.gross,
   clientId:d.clientId,siteId:d.siteId,appointmentId:d.appointmentId,confirmed:true}));
- const checked=preview(state,rows,companyVat);
+ let checked;
+ try{checked=preview(state,rows,companyVat)}catch(e){
+  if(e.message==='TOTALI_NON_COERENTI')throw Error('ANTEPRIMA_MANOMESSA');
+  throw e;
+ }
  if(JSON.stringify(checked.documents)!==JSON.stringify(plan.documents))throw Error("ANTEPRIMA_MANOMESSA");
  let next=state;
  for(const d of checked.documents)next=I.saveDocument(next,d,actor,next.revision,companyVat);
