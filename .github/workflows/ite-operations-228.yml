@@ -1,0 +1,26 @@
+name: ITE 4.0.228 operational regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-integrated-core-225.js'
+      - 'gestionale4/**'
+      - 'tests/test-operations-228.js'
+      - '.github/workflows/ite-operations-228.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check gestionale4/operations-228.js
+      - run: node tests/test-operations-228.js
+      - run: node tests/test-agenda-227.js
