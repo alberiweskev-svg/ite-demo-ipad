@@ -8,8 +8,8 @@ function audit(s){
  const invoiceKeys=new Set();
  for(const i of s.invoices){
   if(!kinds.includes(i.kind)||!money(i.cents))note(errors,"FATTURA_NON_VALIDA",i.id);
-  const key=i.kind+"|"+i.number.trim().toLocaleLowerCase("it");
-  if(invoiceKeys.has(key))note(warning,"NUMERO_DUPLICATO_TIPO",i.id);invoiceKeys.add(key);
+  const key=i.kind+"|"+String(i.number||"").trim().toLocaleLowerCase("it");
+  if(invoiceKeys.has(key))note(errors,"NUMERO_DUPLICATO_TIPO",i.id);invoiceKeys.add(key);
   if(i.quoteId){const q=s.quotes.find(q=>q.id===i.quoteId);if(!q||q.clientId!==i.clientId)note(errors,"PREVENTIVO_CLIENTE_INCOERENTE",i.id);else if(i.kind==="VENDITA"&&q.status!=="ACCETTATO")note(warning,"PREVENTIVO_NON_ACCETTATO",i.id);}
   if(i.kind==="TD04"){
    const src=byId.get(i.originalInvoiceId);
@@ -38,7 +38,7 @@ function addInvoice(store,invoice){
   if(!s.clients.some(c=>c.id===invoice.clientId))throw Error("CLIENTE_ASSENTE");
   if(invoice.quoteId){const q=s.quotes.find(q=>q.id===invoice.quoteId);if(!q||q.clientId!==invoice.clientId)throw Error("PREVENTIVO_CLIENTE_DIVERSO");}
   s.invoices.push({id:invoice.id,clientId:invoice.clientId,kind:invoice.kind,number:invoice.number.trim(),cents:invoice.cents,...(invoice.quoteId?{quoteId:invoice.quoteId}:{})});
-  if(!audit(s).ok)throw Error("CONTABILITA_INCOERENTE");
+  const result=audit(s);if(!result.ok)throw Error(result.errors[0].code);
  });
 }
 function addCredit(store,sourceId,id,number,cents){
@@ -48,7 +48,7 @@ function addCredit(store,sourceId,id,number,cents){
   if(!src||src.kind!=="VENDITA")throw Error("TD04_ORIGINE_NON_VALIDA");
   if(s.invoices.some(i=>i.id===id))throw Error("ID_DUPLICATO");
   s.invoices.push({id,clientId:src.clientId,kind:"TD04",number:number.trim(),cents,originalInvoiceId:sourceId});
-  if(!audit(s).ok)throw Error("CONTABILITA_INCOERENTE");
+  const result=audit(s);if(!result.ok)throw Error(result.errors[0].code);
  });
 }
 return Object.freeze({audit,ledger,summary,addInvoice,addCredit});
