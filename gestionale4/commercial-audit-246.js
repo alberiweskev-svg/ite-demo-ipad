@@ -75,7 +75,7 @@ function inspect(state){
 }
 function exportCsv(report){
  if(!report||!Array.isArray(report.issues)||!Array.isArray(report.rows))throw Error("REPORT_NON_VALIDO");
- const cell=x=>{let s=String(x??"").replace(/[\r\n\\t]/g," ");if(/^\\s*[=+\\-@]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
+ const cell=x=>{let s=String(x??"").replace(/[\r\n\t]/g," ");if(/^\s*[=+\-@]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
  const records=[["TIPO","GRAVITA","CODICE","ID","CLIENTE","STATO","FORNITURA_CENT","POSA_CENT","TOTALE_CENT","FATTURATO_CENT","TD04_CENT","RESIDUO_CENT"]];
  for(const x of report.issues)records.push(["ANOMALIA",x.severity,x.code,x.id,"","","","","","","",""]);
  for(const x of report.rows)records.push(["PREVENTIVO","","",x.quoteId,x.clientId,x.status,x.supplyCents,x.laborCents,x.totalCents,x.invoicedCents,x.creditedCents,x.remainingCents]);
