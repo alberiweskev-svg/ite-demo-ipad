@@ -1,0 +1,30 @@
+name: ITE 4.0.231 workflow regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/**'
+      - 'ite-integrated-core-225.js'
+      - 'tests/test-workflow-231.js'
+      - '.github/workflows/ite-workflow-231.yml'
+  workflow_dispatch:
+jobs:
+  workflow:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check ite-integrated-core-225.js
+          node --check gestionale4/workflow-231.js
+          node --check tests/test-workflow-231.js
+      - name: Workflow integration tests
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: node tests/test-workflow-231.js
