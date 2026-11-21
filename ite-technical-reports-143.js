@@ -28,6 +28,7 @@ function save(state,record,actor,expectedRevision){
  const reports=n.technicalReports||(n.technicalReports=[]),old=reports.find(x=>x.appointmentId===a.id);
  if(old&&record.id!==old.id)throw Error("RAPPORTO_GIA_PRESENTE");
  if(!old&&reports.some(x=>x.id===record.id))throw Error("ID_GIA_PRESENTE");
+ if((record.attachments||[]).some(x=>x.data!==undefined||x.content!==undefined||x.base64!==undefined||x.bytes!==undefined))throw Error("ALLEGATI_NON_VALIDI");
  if(old&&old.status==="COMPLETATO"&&record.status!=="COMPLETATO"&&!s(record.reopenReason))throw Error("MOTIVO_RIAPERTURA_OBBLIGATORIO");
  const checks=(record.checks||[]).map(x=>({label:s(x.label).slice(0,100),done:x.done===true}));
  const measurements=(record.measurements||[]).map(x=>({label:s(x.label).slice(0,100),value:Number(x.value),unit:s(x.unit).slice(0,24)}));
