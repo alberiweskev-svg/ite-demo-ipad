@@ -1,4 +1,4 @@
-name: ITE 4.0.229 integrated checks
+name: ITE 4.0.230 integrated checks
 on:
   push:
     branches: [sviluppo-4.0.0-base]
@@ -20,3 +20,5 @@ jobs:
         run: |
           node tests/test-document-intake-229.js
           node tests/test-operations-228.js
+          node tests/test-finance-230.js
+          node --check gestionale4/finance-230.js
