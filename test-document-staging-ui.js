@@ -7,7 +7,7 @@ const s=new Store(),base=D.empty();
 assert.deepEqual(ui.read(s),base);
 const a=D.add(base,{id:'doc-1',filename:'DICO_DEMO.pdf',type:'DICO_ELETTRICO',status:'DA_VERIFICARE',addedAt:'2026-11-03',notes:'solo prova',clientId:null,siteId:null});
 ui.write(s,a);assert.equal(ui.read(s).items.length,1);
-const b=D.verify(a,'Tecnico Demo','Operatore');ui.write(s,b);
+const b=D.verify(a,'doc-1','Tecnico Demo');ui.write(s,b);
 assert.equal(D.summary(ui.read(s)).verified,1);
 assert.equal(D.summary(D.importJSON(s.getItem(ui.PREVIOUS))).awaitingReview,1);
 s.failKey=ui.PREVIOUS;
