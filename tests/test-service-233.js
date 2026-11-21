@@ -1,0 +1,16 @@
+const assert=require("node:assert/strict");
+const core=require("../ite-integrated-core-225.js"),service=require("../gestionale4/service-233.js");
+const store=core.createStore();
+store.transact(0,s=>{s.clients.push({id:"c",name:"Cliente Demo"});s.sites.push({id:"s",clientId:"c",address:"Via Demo"});s.plants.push({id:"p",siteId:"s",type:"Termico"});s.equipment.push({id:"e",plantId:"p",type:"Caldaia"});});
+service.schedule(store,{id:"a",siteId:"s",operator:"Tecnico Demo",start:"2026-11-23T09:00:00",end:"2026-11-23T10:00:00"});
+const rev=store.snapshot().revision;
+assert.throws(()=>service.schedule(store,{id:"b",siteId:"s",operator:"tecnico demo",start:"2026-11-23T09:30:00",end:"2026-11-23T10:30:00"}),/OPERATORE_OCCUPATO/);
+assert.equal(store.snapshot().revision,rev);
+service.start(store,{appointmentId:"a",interventionId:"i",operator:"Tecnico Demo",arrival:"2026-11-23T09:02:00",equipmentId:"e"});
+assert.throws(()=>service.start(store,{appointmentId:"a",interventionId:"i2",operator:"Tecnico Demo",arrival:"2026-11-23T09:04:00"}),/INTERVENTO_GIA_PRESENTE/);
+assert.throws(()=>service.finish(store,{interventionId:"i",exit:"2026-11-23T09:01:00"}),/USCITA_PRIMA_ARRIVO/);
+service.finish(store,{interventionId:"i",exit:"2026-11-23T09:42:00"});
+assert.throws(()=>service.finish(store,{interventionId:"i",exit:"2026-11-23T10:00:00"}),/INTERVENTO_NON_IN_CORSO/);
+const d=service.dossier(store.snapshot(),"s");assert.equal(d.equipment.length,1);assert.equal(d.interventions[0].status,"CHIUSO");
+const w=service.workload(store.snapshot());assert.equal(w[0].plannedMinutes,60);assert.equal(w[0].actualMinutes,40);assert.equal(w[0].closed,1);
+console.log("service-233: OK");
