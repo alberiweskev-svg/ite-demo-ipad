@@ -1,0 +1,29 @@
+name: ITE 4.0.249 site lifecycle integrated
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/**'
+      - 'ite-integrated-core-225.js'
+      - '.github/workflows/ite-4-249-site-closeout.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrated:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate syntax and synthetic cross-module flows
+        run: |
+          node --check gestionale4/site-closeout-249.js
+          node gestionale4/test-site-closeout-249.js
+          node gestionale4/test-extras-244.js
+          node gestionale4/test-billing-245.js
+          node gestionale4/test-commercial-audit-246.js
+      - name: Check integrated page wiring
+        run: |
+          node -e "const fs=require('fs'),s=fs.readFileSync('gestionale4/index.html','utf8');for(const x of ['site-closeout-249.js','renderCloseout(s)','data-tab=\\\"closeout\\\"'])if(!s.includes(x))throw Error('Missing UI integration: '+x)"
