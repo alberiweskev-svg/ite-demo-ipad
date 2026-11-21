@@ -1,0 +1,30 @@
+name: ITE 4.0.237 document workspace
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/**'
+      - 'ite-integrated-core-225.js'
+      - 'tests/test-document-workspace-237.js'
+      - '.github/workflows/ite-237-documents.yml'
+  workflow_dispatch:
+jobs:
+  document-workspace:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check gestionale4/document-workspace-237.js
+          node --check gestionale4/document-intake-229.js
+          node --check tests/test-document-workspace-237.js
+      - name: Run document workspace regression
+        env:
+          TZ: ${{ matrix.tz }}
+        run: node tests/test-document-workspace-237.js
