@@ -2,9 +2,14 @@
 (function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;root.ITECommercialAudit246=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){"use strict";
 const integer=x=>Number.isSafeInteger(x)&&x>=0;
 function inspect(state){
- const issues=[],rows=[],seen=new Set(),byId=new Map(state.invoices.map(x=>[x.id,x]));
+ const issues=[],rows=[],seen=new Set(),invoiceIds=new Set(),quoteIds=new Set(),byId=new Map(state.invoices.map(x=>[x.id,x]));
+ for(const q of state.quotes){if(quoteIds.has(q.id))issues.push({severity:"BLOCCANTE",code:"PREVENTIVO_ID_DUPLICATO",id:q.id});quoteIds.add(q.id);}
  const add=(severity,code,id)=>issues.push({severity,code,id});
  for(const inv of state.invoices){
+  if(invoiceIds.has(inv.id))add("BLOCCANTE","DOCUMENTO_ID_DUPLICATO",inv.id);invoiceIds.add(inv.id);
+  if(!String(inv.number||"").trim())add("BLOCCANTE","NUMERO_DOCUMENTO_ASSENTE",inv.id);
+  if(!state.clients.some(c=>c.id===inv.clientId))add("BLOCCANTE","CLIENTE_DOCUMENTO_ASSENTE",inv.id);
+  if(inv.kind==="VENDITA"&&inv.quoteId){const q=state.quotes.find(q=>q.id===inv.quoteId);if(q&&q.clientId!==inv.clientId)add("BLOCCANTE","FATTURA_ALTRO_CLIENTE",inv.id);}
   const key=String(inv.kind)+"|"+String(inv.number||"").trim().toLocaleLowerCase("it");
   if(seen.has(key))add("BLOCCANTE","NUMERO_DUPLICATO_TIPO",inv.id);seen.add(key);
   if(!integer(inv.cents))add("BLOCCANTE","IMPORTO_NON_VALIDO",inv.id);
@@ -14,6 +19,7 @@ function inspect(state){
   }
  }
  for(const q of state.quotes){
+  if(!state.clients.some(c=>c.id===q.clientId))add("BLOCCANTE","CLIENTE_PREVENTIVO_ASSENTE",q.id);
   let supply=0,labor=0,other=0;
   for(const line of q.lines){
    const amount=line.cents*line.qty;
@@ -43,7 +49,7 @@ function inspect(state){
   const credits=state.invoices.filter(x=>x.kind==="TD04"&&salesIds.has(x.originalInvoiceId));
   const invoiced=sales.reduce((n,x)=>n+x.cents,0),credited=credits.reduce((n,x)=>n+x.cents,0);
   const total=supply+labor+other,remaining=total-invoiced+credited;
-  if(![total,invoiced,credited,remaining].every(integer))add("BLOCCANTE","SALDO_PREVENTIVO_INCOERENTE",q.id);
+  if(![total,invoiced,credited,remaining].every(integer)||remaining<0)add("BLOCCANTE","SALDO_PREVENTIVO_INCOERENTE",q.id);
   if(q.status!=="ACCETTATO"&&sales.length)add("REVISIONE","FATTURE_SU_PREVENTIVO_NON_ACCETTATO",q.id);
   rows.push({quoteId:q.id,clientId:q.clientId,status:q.status,supplyCents:supply,laborCents:labor,otherCents:other,totalCents:total,invoicedCents:invoiced,creditedCents:credited,remainingCents:remaining});
  }
