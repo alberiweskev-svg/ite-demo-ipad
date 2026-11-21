@@ -1,0 +1,36 @@
+name: ITE 4.0 integrated smoke and document regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/**'
+      - 'ite-integrated-core-225.js'
+      - 'ite-document-intake.js'
+      - 'ite-document-staging-ui.js'
+      - 'test-document-staging-ui.js'
+      - 'test-document-workflow.js'
+      - 'test-gestionale4-startup.js'
+      - '.github/workflows/ite-integrated-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check integrated demo startup
+        run: node test-gestionale4-startup.js
+      - name: Check document staging lifecycle
+        run: |
+          node test-document-staging-ui.js
+          node test-document-workflow.js
