@@ -29,4 +29,16 @@ assert(audit.inspect(foreign).issues.some(x=>x.code==='DOCUMENTO_ID_DUPLICATO'))
 foreign.quotes[0].clientId='MISSING';
 assert(audit.inspect(foreign).issues.some(x=>x.code==='CLIENTE_PREVENTIVO_ASSENTE'));
 assert.equal(store.exportMetadata(),raw,'audit must never mutate original');
+const broken=structuredClone(store.snapshot());
+broken.quotes[0].lines.push({...broken.quotes[0].lines[0]});
+broken.quotes[0].extraRequests[0].status='APPROVATO';
+broken.invoices.push({id:'ORPHAN',kind:'VENDITA',clientId:'C',number:'ORPHAN',cents:100});
+broken.invoices.push({id:'BAD-CREDIT',kind:'TD04',clientId:'C',number:'BAD-CREDIT',cents:100,originalInvoiceId:'UNKNOWN'});
+const codes=new Set(audit.inspect(broken).issues.map(x=>x.code));
+for(const code of ['RIGA_ID_DUPLICATO','EXTRA_STATO_QUANTITA_INCOERENTE','FATTURA_SENZA_PREVENTIVO','TD04_ORIGINE_NON_VALIDA'])assert(codes.has(code),code);
+const csv=audit.exportCsv(audit.inspect(broken));
+assert(csv.includes('ANOMALIA')&&csv.includes('PREVENTIVO'));
+const formula=structuredClone(store.snapshot());formula.quotes[0].id='=HYPERLINK(1)';
+assert(audit.exportCsv(audit.inspect(formula)).includes("'=HYPERLINK(1)"));
+assert.equal(store.exportMetadata(),raw,'read-only export');
 console.log('PASS 4.0.246 integrated read-only commercial audit');
