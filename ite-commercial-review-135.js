@@ -15,8 +15,8 @@ function classify({filename="",text="",issuerIsITE=false}={}){
 function inspect(state){
  if(!state||state.schema!=="ITE_OPERATIONS_123")throw Error("WORKSPACE_NON_VALIDO");
  const result=root.ITE_Audit124.audit(state);
- if(!result.ok)throw Error("AUDIT_NON_SUPERATO");
- const issues=[],rows=[],invoices=state.commercial.invoices,aps=state.field.catalog.appointments;
+ if(!result.ok&&result.errors.some(e=>e==="SCHEMA_NON_VALIDO"||e.startsWith("CAMPO:")))throw Error("AUDIT_NON_SUPERATO");
+ const issues=result.errors.map(code=>({id:"AUDIT",code:"AUDIT:"+code,severity:"ERROR"})),rows=[],invoices=state.commercial.invoices,aps=state.field.catalog.appointments;
  const byId=new Map(invoices.map(i=>[i.id,i]));
  const sums={sales:0,purchases:0,proforma:0,credits:0,netSales:0};
  for(const d of invoices){
