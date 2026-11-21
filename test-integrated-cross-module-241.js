@@ -16,6 +16,7 @@ const valid=()=>C.validate(s);
 assert.equal(valid(),true);
 const store=C.createStore(s);
 A.openFromAppointment(store,'A1','I1');
+store.transact(store.snapshot().revision,v=>{v.interventions[0].equipmentId='E1';});
 A.arrival(store,'I1','2026-11-23T09:05');
 A.close(store,'I1','2026-11-23T09:55');
 assert.equal(store.snapshot().interventions[0].status,'CHIUSO');
