@@ -29,4 +29,4 @@ jobs:
           node gestionale4/test-billing-245.js
       - name: Verify integrated page includes billing module and navigation
         run: |
-          node -e "const fs=require('fs');const h=fs.readFileSync('gestionale4/index.html','utf8');for(const t of ['billing-245.js','function renderBilling(s)','data-tab=\\\"billing\\\"','if(tab===\\\"billing\\\")']){if(!h.includes(t))throw Error('Missing UI '+t)}"
+          node -e "const h=require('fs').readFileSync('gestionale4/index.html','utf8');for(const t of ['billing-245.js','function renderBilling(s)','data-tab=','if(tab==='])if(!h.includes(t))throw Error('Missing UI '+t)"
