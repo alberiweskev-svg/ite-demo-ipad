@@ -11,3 +11,13 @@ test('broken hierarchy, missing technician and closure time are reported',()=>{c
 test('proforma and TD04 classification warnings',()=>{const f=fixture();f.commerce.documents.push({id:'51',type:'Proforma',status:'Pagato'},{id:'52',type:'Nota di credito',status:'Da pagare'});const r=inspect(f.core,f.commerce);assert(r.issues.some(x=>x.code==='PROFORMA_PAGATA'));assert(r.issues.some(x=>x.code==='TD04_DA_PAGARE'));});
 test('duplicate identifiers and missing references are blocking',()=>{const f=fixture();f.core.immobili.push({...f.core.immobili[0]});f.core.interventi[0].apparecchiatura_id='999';const r=inspect(f.core,f.commerce);assert(r.issues.some(x=>x.code==='ID_DUPLICATO'));assert(r.issues.some(x=>x.code==='APPARECCHIATURA_ASSENTE'));});
 test('read-only inspection and formula-safe CSV',()=>{const f=fixture();f.core.interventi[0].id='=HYPERLINK(1)';f.core.interventi[0].technician_id='missing';const before=JSON.stringify(f);const r=inspect(f.core,f.commerce);assert.equal(JSON.stringify(f),before);assert(csv(r).includes("'=HYPERLINK(1)"));});
+
+test('legacy employee fallback and explicit operator registry both flag missing technicians',()=>{
+ const f=fixture();
+ f.core.interventi[0].technician_id='unknown';
+ assert(inspect(f.core,f.commerce).issues.some(x=>x.code==='OPERATORE_ASSENTE'));
+ f.core.operatori=[{id:'9',name:'Tecnico TEST'}];
+ assert(inspect(f.core,f.commerce).issues.some(x=>x.code==='OPERATORE_ASSENTE'));
+ f.core.interventi[0].technician_id='9';
+ assert(!inspect(f.core,f.commerce).issues.some(x=>x.code==='OPERATORE_ASSENTE'));
+});
