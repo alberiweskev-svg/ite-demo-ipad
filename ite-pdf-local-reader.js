@@ -5,10 +5,10 @@ function validate(file){if(!file||typeof file.arrayBuffer!=='function')throw Err
 async function extract(file,options={}){
  validate(file);
  const load=options.loadPdf||(()=>import('./vendor/pdf.mjs'));
- const pdfjs=await load();
- if(!pdfjs||typeof pdfjs.getDocument!=='function')throw Error('LETTORE_PDF_NON_DISPONIBILE');
  const bytes=new Uint8Array(await file.arrayBuffer());
  if(bytes.length!==file.size||String.fromCharCode(...bytes.slice(0,5))!=='%PDF-')throw Error('PDF_NON_VALIDO');
+ const pdfjs=await load();
+ if(!pdfjs||typeof pdfjs.getDocument!=='function')throw Error('LETTORE_PDF_NON_DISPONIBILE');
  const task=pdfjs.getDocument({data:bytes,disableFontFace:true,useSystemFonts:false});
  let pdf;
  try{
