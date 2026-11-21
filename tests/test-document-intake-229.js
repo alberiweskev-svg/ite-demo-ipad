@@ -15,6 +15,6 @@ assert.deepEqual(Object.keys(m),['kind','filename','mime','bytes','clientId','si
 const store=core.createStore();store.transact(0,s=>{s.clients.push({id:'c',name:'Demo'});s.sites.push({id:'s',clientId:'c',address:'Via Esempio'});s.documents.push({id:'d',...m});});
 assert.equal(store.snapshot().documents[0].bytes,123);
 assert(!('payload' in store.snapshot().documents[0]));
-const html=fs.readFileSync('gestionale4/index.html','utf8');assert.match(html,/document-intake-229\.js/);assert.match(html,/inspectFile\(/);
+const html=fs.readFileSync('gestionale4/index.html','utf8');assert.match(html,/document-intake-229\.js/);assert.match(html,/workspace\.inspectBatch\(/);assert.match(html,/workspace\.previewBatch\(/);assert.match(html,/workspace\.addBatch\(/);
 const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).filter(Boolean);assert.equal(scripts.length,1);new vm.Script(scripts[0]);
 console.log('4.0.229 PDF signature, size, classification, metadata and UI syntax OK');
