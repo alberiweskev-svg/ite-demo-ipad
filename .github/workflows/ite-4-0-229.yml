@@ -1,0 +1,22 @@
+name: ITE 4.0.229 integrated checks
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Integrated domain, calendar, operations and PDF metadata
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node tests/test-document-intake-229.js
+          node tests/test-operations-228.js
