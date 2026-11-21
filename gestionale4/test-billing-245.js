@@ -1,0 +1,36 @@
+'use strict';
+const assert=require('node:assert/strict');
+const core=require('../ite-integrated-core-225.js');
+const extras=require('./extras-244.js');
+const billing=require('./billing-245.js');
+const finance=require('./finance-230.js');
+const commercial=require('./commercial-240.js');
+const s=core.createStore();
+core.add(s,'clients',{id:'C-TEST',name:'Cliente fittizio'});
+core.add(s,'quotes',{id:'Q-TEST',clientId:'C-TEST',status:'BOZZA',lines:[
+ {id:'F',kind:'FORNITURA',description:'Materiale fittizio',cents:10000,qty:1},
+ {id:'P',kind:'POSA',description:'Installazione fittizia',cents:5000,qty:1}]});
+extras.propose(s,{quoteId:'Q-TEST',id:'EX1',description:'Extra fittizio',supplyCents:2000,laborCents:3000,qty:3});
+assert.equal(billing.plan(s.snapshot(),'Q-TEST').totalCents,15000);
+const rev=()=>s.snapshot().revision;
+const denied=(fn,code)=>{const before=rev(),snapshot=s.exportMetadata();assert.throws(fn,new RegExp(code));assert.equal(rev(),before);assert.equal(s.exportMetadata(),snapshot);};
+denied(()=>billing.issue(s,{quoteId:'Q-TEST',id:'I1',number:'TEST/1',cents:10000}),'PREVENTIVO_NON_ACCETTATO');
+s.transact(rev(),x=>{x.quotes[0].status='ACCETTATO'});
+denied(()=>billing.issue(s,{quoteId:'Q-TEST',id:'I1',number:'TEST/1',cents:10000}),'EXTRA_IN_ATTESA');
+extras.decide(s,'Q-TEST','EX1',2);
+const p=billing.plan(s.snapshot(),'Q-TEST');
+assert.deepEqual([p.totalCents,p.supplyCents,p.laborCents,p.remainingCents],[25000,14000,11000,25000]);
+billing.issue(s,{quoteId:'Q-TEST',id:'I1',number:'TEST/1',cents:10000});
+billing.issue(s,{quoteId:'Q-TEST',id:'I2',number:'TEST/2',cents:15000});
+assert.equal(billing.plan(s.snapshot(),'Q-TEST').remainingCents,0);
+denied(()=>billing.issue(s,{quoteId:'Q-TEST',id:'I3',number:'TEST/3',cents:1}),'FATTURA_SUPERA_RESIDUO');
+denied(()=>billing.credit(s,{invoiceId:'I1',id:'N1',number:'NC/1',cents:10001}),'CREDITO_ECCESSIVO');
+billing.credit(s,{invoiceId:'I1',id:'N1',number:'NC/1',cents:4000});
+assert.equal(billing.plan(s.snapshot(),'Q-TEST').remainingCents,4000);
+denied(()=>billing.credit(s,{invoiceId:'I1',id:'N2',number:'NC/2',cents:6001}),'CREDITO_ECCESSIVO');
+billing.issue(s,{quoteId:'Q-TEST',id:'I3',number:'TEST/3',cents:4000});
+denied(()=>billing.issue(s,{quoteId:'Q-TEST',id:'I4',number:'TEST/3',cents:1}),'FATTURA_SUPERA_RESIDUO');
+assert.equal(finance.audit(s.snapshot()).ok,true);
+assert.equal(commercial.reconcile(s.snapshot()).rows[0].balance,0);
+assert.equal(billing.overview(s.snapshot()).length,1);
+console.log('PASS 4.0.245 quote -> partial extras -> partial invoices -> TD04 -> reinvoice, rollback and finance reconciliation');
