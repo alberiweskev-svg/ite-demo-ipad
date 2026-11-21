@@ -7,7 +7,7 @@ const html=fs.readFileSync(path.join(__dirname,'../gestionale4/index.html'),'utf
 const inline=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).filter(x=>x.trim());
 assert.ok(inline.length,'missing inline application script');
 for(const js of inline)new vm.Script(js,{filename:'gestionale4/index.html'});
-for(const expected of ['id="pdf-preview"','workspace.previewBatch(store,items)','const {items}=await inspectSelected()','bytes:128','Demo integrata di collaudo 4.0.239'])assert.ok(html.includes(expected),'missing '+expected);
+for(const expected of ['id="pdf-preview"','workspace.previewBatch(store,items)','const {items}=await inspectSelected()','bytes:128','Demo integrata di collaudo 4.0.240'])assert.ok(html.includes(expected),'missing '+expected);
 assert.ok(!html.includes("filename:'esempio-non-esistente.pdf',mime:'application/pdf',bytes:0"));
 const core=require('../ite-integrated-core-225.js'),docs=require('../gestionale4/document-workspace-237.js');
 const state=core.blank();state.clients.push({id:'demo',name:'Cliente Demo'});state.sites.push({id:'sede',clientId:'demo',address:'Via Fittizia 1'});const store=core.createStore(state);
