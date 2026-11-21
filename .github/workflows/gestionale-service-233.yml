@@ -1,0 +1,28 @@
+name: Gestionale ITE 4.0.233 service regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/**'
+      - 'ite-integrated-core-225.js'
+      - 'tests/test-service-233.js'
+      - '.github/workflows/gestionale-service-233.yml'
+  workflow_dispatch:
+jobs:
+  service:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax and service workflow
+        env:
+          TZ: ${{ matrix.tz }}
+        run: |
+          node --check gestionale4/service-233.js
+          node --check tests/test-service-233.js
+          node tests/test-service-233.js
