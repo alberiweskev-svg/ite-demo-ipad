@@ -15,7 +15,8 @@ function pdf(text){return {getDocument:()=>({promise:Promise.resolve({numPages:1
  assert.equal(scan.batch.documents[0].status,"DA_VERIFICARE");assert.equal(scan.warnings[0].code,"OCR_REQUIRED");
  const bad=await bridge.preview([file("bad.pdf")],registry,links,{loadPdf:async()=>{throw Error("simulated failure")}});
  assert.equal(bad.batch.documents[0].status,"DA_VERIFICARE");
- const approved=require("./ite-document-batch-117.js").approveBatch(out.batch,[out.batch.documents[0].key],"Tecnico TEST",registry);
+ const distinct=await bridge.preview([file("dico.pdf")],registry,links,{loadPdf:async()=>pdf("Dichiarazione di conformità numero 12 data 01/11/2026")});
+ const approved=require("./ite-document-batch-117.js").approveBatch(distinct.batch,[distinct.batch.documents[0].key],"Tecnico TEST",registry);
  assert.deepEqual(approved.errors,[]);assert.equal(approved.batch.documents[0].status,"CONFERMATO_TEST");
  console.log("PDF bridge 118 synthetic tests passed");
 })().catch(e=>{console.error(e);process.exitCode=1});
