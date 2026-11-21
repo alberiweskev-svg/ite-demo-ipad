@@ -21,6 +21,19 @@ function validate(state){
  state.quotes.forEach(x=>{link("clients",x.clientId,"quotes");if(!Array.isArray(x.lines)||!["BOZZA","INVIATO","ACCETTATO","RIFIUTATO"].includes(x.status))throw Error("PREVENTIVO_NON_VALIDO");let lineIds=new Set();x.lines.forEach(l=>{if(!str(l.id)||lineIds.has(l.id)||!["FORNITURA","POSA","EXTRA_FORNITURA","EXTRA_POSA","SMONTAGGIO","SMALTIMENTO"].includes(l.kind)||!str(l.description,1000)||!Number.isSafeInteger(l.cents)||l.cents<0||!Number.isInteger(l.qty)||l.qty<1)throw Error("RIGA_NON_VALIDA");lineIds.add(l.id);});});
  state.invoices.forEach(x=>{link("clients",x.clientId,"invoices");if(!KINDS.includes(x.kind)||!str(x.number)||!Number.isSafeInteger(x.cents)||x.cents<0)throw Error("FATTURA_NON_VALIDA");if(x.quoteId)link("quotes",x.quoteId,"invoices");if(x.kind==="TD04"&&!str(x.originalInvoiceId))throw Error("NOTA_CREDITO_SENZA_ORIGINE");if(x.originalInvoiceId)link("invoices",x.originalInvoiceId,"invoices");});
  state.documents.forEach(x=>{if(!DOCS.includes(x.kind)||!str(x.filename,255)||!/^application\/pdf$/.test(x.mime)||!Number.isInteger(x.bytes)||x.bytes<0||x.bytes>20000000)throw Error("DOCUMENTO_NON_VALIDO");if(x.clientId)link("clients",x.clientId,"documents");if(x.siteId)link("sites",x.siteId,"documents");if(x.payload||x.base64||x.url)throw Error("CONTENUTO_PDF_NON_AMMESSO");});
+ // Relazioni trasversali: una chiave esistente non basta se appartiene a un'altra sede o cliente.
+ const byId=type=>new Map(state[type].map(item=>[item.id,item]));
+ const sites=byId("sites"),plants=byId("plants"),equipment=byId("equipment"),appointments=byId("appointments"),quotes=byId("quotes"),invoices=byId("invoices");
+ state.interventions.forEach(x=>{
+  if(x.equipmentId&&plants.get(equipment.get(x.equipmentId).plantId).siteId!==x.siteId)throw Error("APPARECCHIO_SEDE_DIVERSA");
+  if(x.appointmentId&&appointments.get(x.appointmentId).operator!==x.operator)throw Error("OPERATORE_APPUNTAMENTO_DIVERSO");
+ });
+ state.invoices.forEach(x=>{
+  if(x.quoteId&&quotes.get(x.quoteId).clientId!==x.clientId)throw Error("CLIENTE_PREVENTIVO_FATTURA_DIVERSO");
+  if(x.kind==="TD04"){const original=invoices.get(x.originalInvoiceId);if(!original||original.kind!=="VENDITA"||original.clientId!==x.clientId)throw Error("TD04_ORIGINALE_NON_VALIDO");}
+ });
+ state.documents.forEach(x=>{if(x.clientId&&x.siteId&&sites.get(x.siteId).clientId!==x.clientId)throw Error("DOCUMENTO_CLIENTE_SEDE_DIVERSI");});
+
  return true;
 }
 function totals(quote){let cents=0;for(const l of quote.lines)cents+=l.cents*l.qty;if(!Number.isSafeInteger(cents))throw Error("TOTALE_NON_VALIDO");return {cents,eur:(cents/100).toFixed(2)};}
