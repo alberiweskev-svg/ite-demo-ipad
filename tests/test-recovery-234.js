@@ -1,0 +1,27 @@
+'use strict';
+const assert=require('node:assert/strict');
+const core=require('../ite-integrated-core-225.js');
+const recovery=require('../gestionale4/recovery-234.js');
+class MemoryStorage {constructor(){this.data=new Map();this.fail=null;}getItem(k){return this.data.has(k)?this.data.get(k):null;}setItem(k,v){if(this.fail===k)throw Error('quota');this.data.set(k,String(v));}removeItem(k){this.data.delete(k);}}
+const key='demo',storage=new MemoryStorage();
+const make=(revision)=>({...core.blank(),revision,clients:[{id:'c',name:'Cliente Demo'}]});
+const raw0=JSON.stringify(make(0)),raw1=JSON.stringify(make(1)),raw2=JSON.stringify(make(2));
+assert.equal(recovery.persist(storage,key,raw0,core.validate).saved,true);
+assert.equal(recovery.persist(storage,key,raw1,core.validate).historySaved,true);
+assert.equal(recovery.inspect(storage,key,core.validate).history.length,1);
+assert.equal(recovery.restore(storage,key,0,core.validate).revision,0);
+assert.equal(JSON.parse(storage.getItem(key)).revision,0);
+assert.throws(()=>recovery.persist(storage,key,'{"schema":"BAD"}',core.validate));
+assert.throws(()=>recovery.unpack(recovery.envelope(raw0).replace('"revision":0','"revision":8'),core.validate));
+storage.fail=key;
+assert.throws(()=>recovery.persist(storage,key,raw2,core.validate),/quota/);
+assert.equal(JSON.parse(storage.getItem(key)).revision,0,'write failure must not erase current');
+assert.equal(recovery.inspect(storage,key,core.validate).interrupted,true);
+storage.fail=null;
+assert.equal(recovery.recoverPending(storage,key,core.validate).revision,2);
+assert.equal(JSON.parse(storage.getItem(key)).revision,2);
+assert.equal(recovery.inspect(storage,key,core.validate).interrupted,false);
+for(let i=3;i<12;i++)recovery.persist(storage,key,JSON.stringify(make(i)),core.validate);
+assert.equal(recovery.inspect(storage,key,core.validate).history.length,5);
+assert.throws(()=>recovery.restore(storage,key,99,core.validate),/VERSIONE/);
+console.log('4.0.234 recovery: PASS');
