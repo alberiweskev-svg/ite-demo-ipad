@@ -7,7 +7,7 @@ const id=v=>String(v??'').trim();
 const index=rows=>new Map(list(rows).map(x=>[id(x.id),x]));
 function inspect(core,commerce={}){
  if(!core||typeof core!=='object')throw Error('Archivio operativo non valido.');
- const clients=index(core.clienti),sites=index(core.immobili),plants=index(core.impianti),devices=index(core.apparecchiature),jobs=index(core.interventi),appointments=index(core.appuntamenti),people=index(core.operatori||core.tecnici||core.dipendenti);
+ const clients=index(core.clienti),sites=index(core.immobili),plants=index(core.impianti),devices=index(core.apparecchiature),jobs=index(core.interventi),appointments=index(core.appuntamenti),people=index(core.operatori||core.tecnici||core.dipendenti||list(core.clienti).filter(x=>['Dipendente','Tecnico','Operatore'].includes(x.kind)));
  const documents=index(commerce.documents),issues=[],counts={clients:clients.size,sites:sites.size,plants:plants.size,devices:devices.size,jobs:jobs.size,documents:documents.size};
  const add=(severity,code,entity,entityId,detail)=>issues.push({severity,code,entity,id:id(entityId),detail});
  const requireUnique=(rows,entity)=>{
