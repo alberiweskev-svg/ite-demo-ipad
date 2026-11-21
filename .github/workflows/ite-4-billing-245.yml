@@ -1,0 +1,32 @@
+name: ITE 4.0.245 integrated billing TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/billing-245.js'
+      - 'gestionale4/test-billing-245.js'
+      - 'gestionale4/index.html'
+      - 'gestionale4/extras-244.js'
+      - 'gestionale4/finance-230.js'
+      - 'gestionale4/commercial-240.js'
+      - '.github/workflows/ite-4-billing-245.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  billing:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and end-to-end synthetic billing
+        run: |
+          node --check gestionale4/billing-245.js
+          node --check gestionale4/extras-244.js
+          node gestionale4/test-extras-244.js
+          node gestionale4/test-billing-245.js
+      - name: Verify integrated page includes billing module and navigation
+        run: |
+          node -e "const fs=require('fs');const h=fs.readFileSync('gestionale4/index.html','utf8');for(const t of ['billing-245.js','function renderBilling(s)','data-tab=\\\"billing\\\"','if(tab===\\\"billing\\\")']){if(!h.includes(t))throw Error('Missing UI '+t)}"
