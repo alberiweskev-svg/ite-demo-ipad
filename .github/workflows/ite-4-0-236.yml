@@ -1,0 +1,29 @@
+name: ITE 4.0.236 integrated rollback regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/**'
+      - 'ite-integrated-core-225.js'
+      - 'tests/**'
+      - '.github/workflows/ite-4-0-236.yml'
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax and integrated tests
+        run: |
+          node --check ite-integrated-core-225.js
+          node --check tests/test-rollback-236.js
+          node tests/test-rollback-236.js
+          for f in tests/test-*.js; do node "$f"; done
