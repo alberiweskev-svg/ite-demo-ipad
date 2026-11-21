@@ -1,0 +1,29 @@
+name: ITE Gestionale 4.0.235 integrated recovery
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/index.html'
+      - 'gestionale4/recovery-234.js'
+      - 'tests/test-integrated-recovery-235.js'
+      - '.github/workflows/gestionale-integrated-recovery-235.yml'
+  workflow_dispatch:
+jobs:
+  integrated-recovery:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run integrated recovery and regression tests
+        env:
+          TZ: ${{ matrix.timezone }}
+        run: |
+          node --check tests/test-integrated-recovery-235.js
+          node tests/test-integrated-recovery-235.js
+          node tests/test-recovery-234.js
+          node tests/test-service-233.js
