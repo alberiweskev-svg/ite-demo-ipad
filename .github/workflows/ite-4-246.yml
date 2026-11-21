@@ -1,0 +1,30 @@
+name: ITE 4.0.246 integrated commercial audit
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/commercial-audit-246.js'
+      - 'gestionale4/test-commercial-audit-246.js'
+      - 'gestionale4/billing-245.js'
+      - 'gestionale4/extras-244.js'
+      - 'gestionale4/index.html'
+      - '.github/workflows/ite-4-246.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-commercial-audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and integrated synthetic regression
+        run: |
+          node --check gestionale4/commercial-audit-246.js
+          node --check gestionale4/billing-245.js
+          node --check gestionale4/extras-244.js
+          node gestionale4/test-commercial-audit-246.js
+          node gestionale4/test-billing-245.js
+          node gestionale4/test-extras-244.js
