@@ -1,0 +1,9 @@
+/* I.T.E. 4.0.229 — local PDF inspection, metadata only; no upload, storage or PDF parsing. */
+(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;root.ITEDocumentIntake229=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){"use strict";
+const kinds=["DICO","DIRI","POS","CAD","GAS","ALLEGATO"],MAX=20000000;
+function classify(filename){const n=String(filename||"").toLowerCase();if(/(?:di[._ -]?co|conformit)/.test(n))return "DICO";if(/(?:di[._ -]?ri|rispondenz)/.test(n))return "DIRI";if(/(?:allegat[io].*gas|gas.*allegat)/.test(n))return "GAS";if(/(?:\bpos\b|piano.sicurezza)/.test(n))return "POS";if(/(?:\bcad\b|disegno|planimetr)/.test(n))return "CAD";return "ALLEGATO";}
+function inspectHeader(bytes){if(!(bytes instanceof Uint8Array)||bytes.length<8)throw Error("PDF_VUOTO_O_TROPPO_CORTO");const header=String.fromCharCode(...bytes.slice(0,8));if(!/^%PDF-[12]\.[0-9]/.test(header))throw Error("FIRMA_PDF_NON_VALIDA");return true;}
+function metadata(filename,size,header,kind,clientId,siteId){if(typeof filename!=="string"||!filename.toLowerCase().endsWith(".pdf")||filename.length>255||!filename.trim())throw Error("NOME_PDF_NON_VALIDO");if(!Number.isSafeInteger(size)||size<8||size>MAX)throw Error("DIMENSIONE_PDF_NON_VALIDA");inspectHeader(header);if(!kinds.includes(kind))throw Error("TIPO_DOCUMENTO_NON_VALIDO");const result={kind,filename,mime:"application/pdf",bytes:size};if(clientId)result.clientId=clientId;if(siteId)result.siteId=siteId;return result;}
+async function inspectFile(file,kind,clientId,siteId){if(!file||typeof file.slice!=="function"||typeof file.size!=="number")throw Error("FILE_NON_VALIDO");if(file.size>MAX)throw Error("PDF_TROPPO_GRANDE");const head=new Uint8Array(await file.slice(0,8).arrayBuffer());return metadata(file.name,file.size,head,kind,clientId,siteId);}
+return Object.freeze({MAX,kinds,classify,inspectHeader,metadata,inspectFile});
+});
