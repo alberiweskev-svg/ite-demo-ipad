@@ -19,6 +19,14 @@ bad.invoices.push({id:'N2',kind:'TD04',clientId:'C',originalInvoiceId:'I',number
 assert(audit.inspect(bad).issues.some(x=>x.code==='TD04_SUPERA_FATTURA'));
 bad.invoices.push({id:'I2',kind:'VENDITA',clientId:'C',quoteId:'Q',number:'1/TEST',cents:15000});
 assert(audit.inspect(bad).issues.some(x=>x.code==='NUMERO_DUPLICATO_TIPO'));
-assert(audit.inspect(bad).issues.some(x=>x.code==='SALDO_PREVENTIVO_INCOERENTE'));
+assert(audit.inspect(bad).issues.some(x=>x.code==='NUMERO_DUPLICATO_TIPO'));
+const over=structuredClone(bad);over.invoices.find(x=>x.id==='I2').cents=30000;
+assert(audit.inspect(over).issues.some(x=>x.code==='SALDO_PREVENTIVO_INCOERENTE'));
+const foreign=structuredClone(store.snapshot());foreign.clients.push({id:'OTHER',name:'Altro TEST'});foreign.invoices[0].clientId='OTHER';
+assert(audit.inspect(foreign).issues.some(x=>x.code==='FATTURA_ALTRO_CLIENTE'));
+foreign.invoices.push({...foreign.invoices[0]});
+assert(audit.inspect(foreign).issues.some(x=>x.code==='DOCUMENTO_ID_DUPLICATO'));
+foreign.quotes[0].clientId='MISSING';
+assert(audit.inspect(foreign).issues.some(x=>x.code==='CLIENTE_PREVENTIVO_ASSENTE'));
 assert.equal(store.exportMetadata(),raw,'audit must never mutate original');
 console.log('PASS 4.0.246 integrated read-only commercial audit');
