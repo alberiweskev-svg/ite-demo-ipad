@@ -1,0 +1,28 @@
+name: ITE 4.0.239 integrated document UI
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrated-document-ui:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check module syntax
+        run: |
+          node --check gestionale4/document-intake-229.js
+          node --check gestionale4/document-workspace-237.js
+      - name: Integrated document workspace and UI
+        run: |
+          node tests/test-document-workspace-237.js
+          node tests/test-document-ui-239.js
