@@ -23,6 +23,25 @@ assert.throws(()=>ops.changeQuote(store,'q','BOZZA'),/TRANSIZIONE/);
 ops.addCreditNote(store,'f','credit1','NC-1',8000);
 assert.throws(()=>ops.addCreditNote(store,'f','credit2','NC-2',8000),/CREDITO_SUPERA/);
 assert.equal(store.snapshot().invoices.length,2);
+
+const request={
+ appointment:{id:'plan-a',siteId:'s',operator:'Tecnico 2',start:'2026-11-24T09:00:00+01:00',end:'2026-11-24T10:00:00+01:00'},
+ intervention:{id:'plan-i',siteId:'s',equipmentId:'e',appointmentId:'plan-a',operator:'Tecnico 2',status:'APERTO'},
+ quote:{id:'plan-q',clientId:'c',status:'BOZZA',lines:[{id:'plan-f',kind:'FORNITURA',description:'Materiale demo',qty:1,cents:2000},{id:'plan-p',kind:'POSA',description:'Posa demo',qty:1,cents:3000}]}
+};
+const rev=store.snapshot().revision;
+ops.planJob(store,request);
+assert.equal(store.snapshot().revision,rev+1);
+assert.equal(store.snapshot().appointments.length,3);
+assert.equal(store.snapshot().interventions.length,2);
+assert.equal(store.snapshot().quotes.length,2);
+const stable=store.snapshot();
+assert.throws(()=>ops.planJob(store,{...request,appointment:{...request.appointment,id:'overlap'},intervention:{...request.intervention,id:'overlap-i',appointmentId:'overlap'},quote:{...request.quote,id:'overlap-q'}}),/OPERATORE_GIA_OCCUPATO/);
+assert.deepEqual(store.snapshot(),stable);
+assert.throws(()=>ops.closeJob(store,'plan-i','2026-11-24T10:00:00+01:00','2026-11-24T09:00:00+01:00','Tecnico 2'),/TEMPI_NON_VALIDI/);
+assert.deepEqual(store.snapshot(),stable);
+ops.closeJob(store,'plan-i','2026-11-24T09:00:00+01:00','2026-11-24T10:00:00+01:00','Tecnico 2');
+assert.equal(store.snapshot().interventions.find(x=>x.id==='plan-i').status,'CHIUSO');
 const html=fs.readFileSync('gestionale4/index.html','utf8');
 assert.match(html,/operations-228\.js/);assert.match(html,/renderOverview\(s\)/);
 const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).filter(Boolean);
