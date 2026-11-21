@@ -6,7 +6,7 @@ function reconcile(s){
  const issues=[],rows=[],totals={quoted:0,accepted:0,invoiced:0,credited:0,proforma:0,purchases:0};
  for(const q of s.quotes){const amount=(q.lines||[]).reduce((sum,l)=>sum+money(l.cents)*Number(l.qty||0),0);if(!Number.isSafeInteger(amount)||amount<0){issues.push({code:"IMPORTO_PREVENTIVO_NON_VALIDO",id:q.id});continue;}
  totals.quoted+=amount;if(q.status==="ACCETTATO")totals.accepted+=amount;
- const docs=s.invoices.filter(i=>i.quoteId===q.id),sales=docs.filter(i=>i.kind==="VENDITA").reduce((v,i)=>v+money(i.cents),0),credits=docs.filter(i=>i.kind==="TD04").reduce((v,i)=>v+money(i.cents),0);
+ const docs=s.invoices.filter(i=>i.quoteId===q.id||i.kind==="TD04"&&s.invoices.some(original=>original.id===i.originalInvoiceId&&original.kind==="VENDITA"&&original.quoteId===q.id)),sales=docs.filter(i=>i.kind==="VENDITA").reduce((v,i)=>v+money(i.cents),0),credits=docs.filter(i=>i.kind==="TD04").reduce((v,i)=>v+money(i.cents),0);
  rows.push({id:q.id,client:clients.get(q.clientId)?.name||q.clientId,status:q.status,quoted:amount,sales,credits,balance:amount-sales+credits,documents:docs.length});
  if(!clients.has(q.clientId))issues.push({code:"CLIENTE_PREVENTIVO_INESISTENTE",id:q.id});
  if(q.status==="ACCETTATO"&&sales-credits<amount)issues.push({code:"PREVENTIVO_ACCETTATO_DA_FATTURARE",id:q.id});
