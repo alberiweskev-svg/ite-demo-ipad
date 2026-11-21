@@ -1,0 +1,29 @@
+name: ITE 4.0 commercial reconciliation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/commercial-240.js'
+      - 'gestionale4/test-commercial-240.js'
+      - 'gestionale4/index.html'
+      - '.github/workflows/ite-commercial-240.yml'
+  workflow_dispatch:
+jobs:
+  commercial:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        timezone: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.timezone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: |
+          node --check gestionale4/commercial-240.js
+          node --check gestionale4/test-commercial-240.js
+      - name: Reconciliation and UI tests
+        run: node gestionale4/test-commercial-240.js
