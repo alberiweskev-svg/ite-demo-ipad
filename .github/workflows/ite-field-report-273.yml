@@ -1,0 +1,24 @@
+name: ITE 4.0.273 field report synthetic tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-field-report-273.js'
+      - 'ite-field-report-ui-273.js'
+      - 'ite-field-report-273.test.js'
+      - '.github/workflows/ite-field-report-273.yml'
+  workflow_dispatch:
+jobs:
+  field-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check ite-field-report-273.js
+          node --check ite-field-report-ui-273.js
+      - name: Synthetic field report tests
+        run: node --test ite-field-report-273.test.js
