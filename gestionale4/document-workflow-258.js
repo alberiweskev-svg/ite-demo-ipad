@@ -11,7 +11,10 @@ function check(s){
    if(p){
     if((d.version||1)!==(p.version||1)+1)issues.push({id:d.id,code:"VERSIONE_NON_SEQUENZIALE"});
     if(d.clientId!==p.clientId)issues.push({id:d.id,code:"REVISIONE_CLIENTE_DIVERSO"});
-    if(d.equipmentId&&p.equipmentId&&d.equipmentId!==p.equipmentId)issues.push({id:d.id,code:"REVISIONE_APPARECCHIATURA_DIVERSA"});
+    if(d.siteId!==p.siteId||d.kind!==p.kind)issues.push({id:d.id,code:"REVISIONE_SERIE_DIVERSA"});
+    if((d.equipmentId||"")!==(p.equipmentId||""))issues.push({id:d.id,code:"REVISIONE_APPARECCHIATURA_DIVERSA"});
+    if((d.interventionId||"")!==(p.interventionId||""))issues.push({id:d.id,code:"REVISIONE_INTERVENTO_DIVERSO"});
+    
    }
   }
   if(d.interventionId&&d.equipmentId){
@@ -31,7 +34,9 @@ function prepare(s,entries){
   if(raw.replacesId){
    const prev=s.documents.find(x=>x.id===raw.replacesId);
    if(!prev||successors.has(prev.id)||prev.siteId!==raw.siteId||prev.kind!==raw.kind)throw Error("REVISIONE_ORIGINE_NON_VALIDA");
-   if(raw.equipmentId&&prev.equipmentId&&raw.equipmentId!==prev.equipmentId)throw Error("REVISIONE_APPARECCHIATURA_DIVERSA");
+   if(raw.clientId&&raw.clientId!==prev.clientId)throw Error("REVISIONE_CLIENTE_DIVERSO");
+   if((raw.equipmentId||"")!==(prev.equipmentId||""))throw Error("REVISIONE_APPARECCHIATURA_DIVERSA");
+   if((raw.interventionId||"")!==(prev.interventionId||""))throw Error("REVISIONE_INTERVENTO_DIVERSO");
    if(raw.version!==undefined&&raw.version!==(prev.version||1)+1)throw Error("VERSIONE_NON_SEQUENZIALE");
    successors.add(prev.id);
   }
@@ -57,5 +62,17 @@ function summary(s,siteId){
  const latest=d.records.filter(x=>x.isCurrent).map(x=>({id:x.id,kind:x.kind,filename:x.filename,version:x.version||1,interventionId:x.interventionId||"",equipmentId:x.equipmentId||""}));
  return {siteId,totalVersions:d.total,current:d.current,latest,issues};
 }
-return Object.freeze({check,prepare,register,summary});
+function siteOverview(s){
+ const rows=s.sites.map(site=>summary(s,site.id));
+ return {sites:rows.length,totalVersions:rows.reduce((n,r)=>n+r.totalVersions,0),current:rows.reduce((n,r)=>n+r.current,0),issues:check(s),rows};
+}
+function preview(s,entries){
+ const ready=prepare(s,entries),draft=clone(s);
+ const sandbox={snapshot:()=>clone(draft),transact:(_revision,fn)=>{fn(draft);return clone(draft)}};
+ registry.registerBatch(sandbox,ready);
+ const issues=check(draft);
+ if(issues.length)throw Error("INTEGRITA_POST_REGISTRAZIONE");
+ return {count:ready.length,overview:siteOverview(draft)};
+}
+return Object.freeze({check,prepare,register,summary,siteOverview,preview});
 });
