@@ -1,0 +1,22 @@
+name: ITE 4.0 document revision integrity 260
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/document-workflow-258.js'
+      - 'gestionale4/index.html'
+      - 'gestionale4/test-document-workflow-258.js'
+      - 'gestionale4/test-document-ui-260.js'
+      - '.github/workflows/ite-4-260-doc-integrity.yml'
+  workflow_dispatch:
+jobs:
+  document-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node gestionale4/test-document-workflow-258.js
+      - run: node gestionale4/test-document-ui-260.js
+      - run: node gestionale4/test-document-registry-255.js
