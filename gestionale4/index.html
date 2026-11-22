@@ -198,7 +198,7 @@ function renderOperations251(s){
   const issues=planning.auditSchedule(s);
   $('#ops-audit').textContent=issues.length?issues.map(x=>x.code+' · '+(x.appointmentId||x.interventionId)).join(' | '):'Nessuna sovrapposizione rilevata';
   $('#ops-batch').onsubmit=e=>{e.preventDefault();try{
-   const lines=String(new FormData(e.currentTarget).get('visits')).trim().split(/\\r?\\n/).filter(Boolean);
+   const lines=String(new FormData(e.currentTarget).get('visits')).trim().split(/\r?\n/).filter(Boolean);
    const visits=lines.map(line=>{const a=line.split(';').map(x=>x.trim());if(a.length!==6)throw Error('RIGA_LOTTO_NON_VALIDA');return {appointmentId:a[0],interventionId:a[1],siteId:a[2],operator:a[3],start:a[4],end:a[5]};});
    const tmp=core.createStore(store.snapshot());planning.batchSchedule(tmp,visits);const next=tmp.snapshot();
    transact(state=>{state.appointments=next.appointments;state.interventions=next.interventions});
