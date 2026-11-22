@@ -12,8 +12,16 @@ assert.throws(()=>flow.register(store,[{...d('D3'),replacesId:'D1'}, {...d('D4')
 assert.equal(store.exportMetadata(),before);
 assert.throws(()=>flow.register(store,[{...d('D3'),replacesId:'D1',equipmentId:'E2'}]),/REVISIONE_APPARECCHIATURA_DIVERSA/);
 assert.throws(()=>flow.register(store,[{...d('D3'),equipmentId:'E2'}]),/INTERVENTO_APPARECCHIATURA_DIVERSA/);
+assert.throws(()=>flow.register(store,[{...d('D3'),replacesId:'D1',interventionId:undefined}]),/REVISIONE_INTERVENTO_DIVERSO/);
+assert.throws(()=>flow.register(store,[{...d('D3'),replacesId:'D1',clientId:'OTHER'}]),/REVISIONE_CLIENTE_DIVERSO/);
+const previewBefore=store.exportMetadata();
+const preview=flow.preview(store.snapshot(),[{...d('D3'),replacesId:'D1',version:2},d('D4','POS')]);
+assert.equal(preview.count,2);
+assert.equal(preview.overview.totalVersions,4);
+assert.equal(store.exportMetadata(),previewBefore);
 flow.register(store,[{...d('D3'),replacesId:'D1',version:2},d('D4','POS')]);
 assert.equal(flow.summary(store.snapshot(),'S1').current,3);
+assert.equal(flow.siteOverview(store.snapshot()).current,3);
 assert.deepEqual(flow.check(store.snapshot()),[]);
 const corrupted=store.snapshot();corrupted.documents.find(x=>x.id==='D3').version=7;
 assert(flow.check(corrupted).some(x=>x.code==='VERSIONE_NON_SEQUENZIALE'));
