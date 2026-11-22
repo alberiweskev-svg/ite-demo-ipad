@@ -17,5 +17,18 @@ reject(()=>registry.registerBatch(store,[{...d('D7'),replacesId:'D1'}]),'REVISIO
 registry.registerBatch(store,[d('=D8','ALLEGATO')]);
 assert(registry.csv(store.snapshot(),'S1').includes("'=D8"));
 assert.deepEqual(registry.audit(store.snapshot()),[]);
+// Existing valid revisions must not be reported as already replaced.
+const good=store.snapshot();
+assert.equal(registry.audit(good).length,0);
+// Imported or recovered inconsistent metadata must be diagnosed without mutation.
+const fork=JSON.parse(JSON.stringify(good));
+fork.documents.push({...fork.documents.find(x=>x.id==='D6'),id:'FORK',replacesId:'D1',version:2});
+assert(registry.audit(fork).some(x=>x.code==='REVISIONE_RAMIFICATA'));
+const cycle=JSON.parse(JSON.stringify(good));
+cycle.documents.find(x=>x.id==='D1').replacesId='D6';
+assert(registry.audit(cycle).some(x=>x.code==='REVISIONE_CICLICA'));
+const missing=JSON.parse(JSON.stringify(good));
+missing.documents.find(x=>x.id==='D6').replacesId='UNKNOWN';
+assert(registry.audit(missing).some(x=>x.code==='REVISIONE_ORIGINE_NON_VALIDA'));
 assert.equal(core.validate(store.snapshot()),true);
 console.log('PASS document registry 255');
