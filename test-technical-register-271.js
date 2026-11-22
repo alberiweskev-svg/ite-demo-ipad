@@ -1,0 +1,15 @@
+const assert=require("node:assert/strict");const d=require("./ite-dossier-269.js"),t=require("./ite-technical-register-271.js");
+let s=d.empty();s=d.insert(s,"clients",{id:"TEST-C1",name:"Cliente TEST"});s=d.insert(s,"sites",{id:"TEST-S1",clientId:"TEST-C1",address:"Via TEST"});s=d.insert(s,"systems",{id:"TEST-I1",siteId:"TEST-S1",kind:"Idrico"});s=d.insert(s,"devices",{id:"TEST-A1",systemId:"TEST-I1",kind:"Caldaia"});
+const base={id:"TEST-DOC-1",type:"DICO",title:"Di.Co. TEST",clientId:"TEST-C1",siteId:"TEST-S1",deviceId:"TEST-A1",filename:"TEST-dico.pdf",size:123,createdAt:"2026-11-22T10:00:00Z"};
+let r=t.add(t.empty(),s,base);assert.equal(r.documents.length,1);assert.equal(r.documents[0].status,"BOZZA");
+assert.throws(()=>t.add(r,s,{...base,id:"TEST-DOC-2",clientId:"TEST-C2"}),/CLIENTE_DOCUMENTO_DIVERSO/);
+assert.throws(()=>t.add(r,s,{...base,id:"TEST-DOC-2",filename:"cliente-reale.pdf"}),/FILE_NON_SINTETICO/);
+assert.throws(()=>t.add(r,s,base),/ID_DOCUMENTO_NON_VALIDO/);
+assert.equal(t.pdfSignature(Uint8Array.from([37,80,68,70,45])),true);assert.equal(t.pdfSignature(Uint8Array.from([0,1,2,3,4])),false);
+const storage={data:new Map(),getItem(k){return this.data.has(k)?this.data.get(k):null},setItem(k,v){this.data.set(k,v)},removeItem(k){this.data.delete(k)}};
+t.persist(storage,t.empty(),r,s);assert.equal(t.load(storage,s).revision,1);
+assert.throws(()=>t.persist(storage,t.empty(),r,s),/CONFLITTO_REVISIONE/);
+let v=t.setStatus(r,s,"TEST-DOC-1","VERIFICATO");assert.throws(()=>t.remove(v,s,"TEST-DOC-1"),/DOCUMENTO_BLOCCATO/);
+let a=t.setStatus(v,s,"TEST-DOC-1","ARCHIVIATO");assert.throws(()=>t.setStatus(a,s,"TEST-DOC-1","BOZZA"),/TRANSIZIONE_NON_CONSENTITA/);
+assert.equal(JSON.parse(t.manifest(a,s)).documents[0].status,"ARCHIVIATO");
+console.log("OK: 4.0.271 technical register, lifecycle, linkage, persistence and PDF signature");
