@@ -1,0 +1,2 @@
+const assert=require("node:assert/strict");const dossier=require("./ite-dossier-269.js"),tech=require("./ite-technical-register-271.js"),batch=require("./ite-document-batch-272.js");
+const s=dossier.example?dossier.example():dossier.empty();console.log("Batch module loaded",Object.keys(batch));assert.equal(batch.MAX_FILES,25);assert.throws(()=>batch.prepare([],{},tech.empty()),/NUMERO_FILE/);assert.equal(batch.readiness(tech.empty(),s).readyForOperationalUse,false);console.log("OK 272 smoke");
