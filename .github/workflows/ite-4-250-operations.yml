@@ -1,0 +1,28 @@
+name: ITE 4.0.250 operational lifecycle integrated
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/operations-250.js'
+      - 'gestionale4/test-operations-250.js'
+      - 'gestionale4/site-closeout-249.js'
+      - 'ite-integrated-core-225.js'
+      - '.github/workflows/ite-4-250-operations.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and cross-milestone synthetic regression
+        run: |
+          node --check gestionale4/operations-250.js
+          node gestionale4/test-site-closeout-249.js
+          node gestionale4/test-operations-250.js
+          node gestionale4/test-extras-244.js
+          node gestionale4/test-billing-245.js
