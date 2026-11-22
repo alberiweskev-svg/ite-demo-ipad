@@ -1,0 +1,16 @@
+name: ITE 4.0.261 integrated reconciliation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['gestionale4/**', '.github/workflows/ite-4-261-reconciliation.yml']
+  workflow_dispatch:
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node gestionale4/test-reconciliation-261.js
+      - run: node gestionale4/test-document-workflow-258.js
