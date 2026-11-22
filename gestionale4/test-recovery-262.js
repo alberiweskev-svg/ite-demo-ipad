@@ -19,7 +19,7 @@ assert.equal(JSON.parse(s.getItem('db')).revision,2);
 const empty=storage();assert.throws(()=>api.persistVerified(empty,'db','{"revision":1}',validate,partial),/QUOTA/);assert.equal(empty.getItem('db'),null);
 const broken=storage();broken.setItem('db','{"revision":1}');let calls=0;
 broken.setItem=(k,v)=>{calls++;if(calls===2)throw Error('RESTORE_FAILED');broken.m.set(k,String(v))};
-const e=assert.throws(()=>api.persistVerified(broken,'db','{"revision":2}',validate,partial));
+let e;try{api.persistVerified(broken,'db','{"revision":2}',validate,partial)}catch(err){e=err}assert.ok(e);
 assert.equal(e.restoreFailed,true);assert.match(e.message,/RIPRISTINO_NON_VERIFICATO/);
 assert.equal(api.diagnose(storage(),'db',validate,{inspect(){throw Error('NO_STORAGE')}}).currentValid,false);
 console.log('PASS recovery 263');
