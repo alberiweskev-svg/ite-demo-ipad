@@ -1,0 +1,15 @@
+name: ITE 4.0.270 operational editor tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-dossier-270.js', 'ite-dossier-ui-270.js', 'test-dossier-270.js', 'index.html']
+  workflow_dispatch:
+jobs:
+  synthetic-editor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-dossier-270.js && node --check ite-dossier-ui-270.js && node test-dossier-270.js && node test-dossier-269.js
