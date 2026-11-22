@@ -1,0 +1,33 @@
+name: ITE 4.0.259 Document Integration
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/document-workflow-258.js'
+      - 'gestionale4/document-registry-255.js'
+      - 'gestionale4/index.html'
+      - 'gestionale4/test-document-ui-259.js'
+      - '.github/workflows/ite-4-259-documents.yml'
+  workflow_dispatch:
+jobs:
+  document-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Atomic revision preflight
+        run: node gestionale4/test-document-ui-259.js
+      - name: Previous document regressions
+        run: |
+          node gestionale4/test-document-workflow-258.js
+          node gestionale4/test-document-registry-255.js
+      - name: Unified browser entrypoint wiring
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),assert=require('assert');
+          const html=fs.readFileSync('gestionale4/index.html','utf8');
+          for(const token of ['document-workflow-258.js','doc-multi-revision','docFlow.register(store,entries)','docFlow.check(s)']) assert(html.includes(token),token);
+          console.log('Document workflow wired into unified entrypoint');
+          NODE
