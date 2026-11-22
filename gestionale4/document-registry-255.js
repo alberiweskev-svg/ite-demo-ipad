@@ -4,7 +4,7 @@ const TYPES=new Set(["DICO","DIRI","POS","CAD","GAS","ALLEGATO"]);
 const str=(x,n)=>typeof x==="string"&&x.trim().length>0&&x.length<=n;
 const safeName=x=>str(x,255)&&/\.pdf$/i.test(x)&&!/[\\/\x00-\x1f]/.test(x);
 const copy=x=>JSON.parse(JSON.stringify(x));
-function normalize(s,input){
+function normalize(s,input,forAudit=false){
  if(!input||typeof input!=="object"||!str(input.id,64)||!TYPES.has(input.kind)||!safeName(input.filename)||input.mime!=="application/pdf"||!Number.isSafeInteger(input.bytes)||input.bytes<0||input.bytes>20000000)throw Error("DOCUMENTO_NON_VALIDO");
  if(Object.keys(input).some(k=>["payload","base64","url","data","content","blob","file"].includes(k)))throw Error("CONTENUTO_PDF_NON_AMMESSO");
  if(!str(input.siteId,64))throw Error("SEDE_OBBLIGATORIA");
@@ -19,7 +19,7 @@ function normalize(s,input){
  if(input.replacesId){
   const prev=s.documents.find(x=>x.id===input.replacesId);
   if(!prev||prev.siteId!==site.id||prev.kind!==input.kind||prev.id===item.id)throw Error("REVISIONE_ORIGINE_NON_VALIDA");
-  if(s.documents.some(x=>x.replacesId===prev.id))throw Error("REVISIONE_GIA_PRESENTE");
+  if(!forAudit&&s.documents.some(x=>x.replacesId===prev.id))throw Error("REVISIONE_GIA_PRESENTE");
   if(item.version!==undefined&&item.version!==(prev.version||1)+1)throw Error("VERSIONE_NON_SEQUENZIALE");
   item.replacesId=prev.id;item.version=item.version||((prev.version||1)+1);
  }
@@ -44,7 +44,20 @@ function audit(s){
  const issues=[],ids=new Set();
  for(const d of s.documents){
   if(ids.has(d.id))issues.push({id:d.id,code:"ID_DUPLICATO"});ids.add(d.id);
-  try{normalize(s,d);}catch(e){issues.push({id:d.id,code:e.message});}
+  try{normalize(s,d,true);}catch(e){issues.push({id:d.id,code:e.message});}
+ }
+ const successors=new Map();const byId=new Map(s.documents.map(x=>[x.id,x]));
+ for(const d of s.documents){
+  if(!d.replacesId)continue;
+  const prior=successors.get(d.replacesId);
+  if(prior)issues.push({id:d.id,code:"REVISIONE_RAMIFICATA"});
+  else successors.set(d.replacesId,d.id);
+  const seen=new Set([d.id]);let cursor=d;
+  while(cursor.replacesId){
+   if(seen.has(cursor.replacesId)){issues.push({id:d.id,code:"REVISIONE_CICLICA"});break;}
+   seen.add(cursor.replacesId);cursor=byId.get(cursor.replacesId);
+   if(!cursor)break;
+  }
  }
  return issues;
 }
