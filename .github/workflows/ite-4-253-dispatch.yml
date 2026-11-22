@@ -1,0 +1,34 @@
+name: ITE 4.0.253 Dispatch and integrated UI
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/**'
+      - '.github/workflows/ite-4-253-dispatch.yml'
+  workflow_dispatch:
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and operational regressions
+        run: |
+          node --check gestionale4/dispatch-253.js
+          node --check gestionale4/planning-252.js
+          node gestionale4/test-dispatch-253.js
+          node gestionale4/test-planning-252.js
+          node gestionale4/test-operations-250.js
+      - name: Verify integrated UI wiring
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),assert=require('assert');
+          const html=fs.readFileSync('gestionale4/index.html','utf8');
+          for(const fragment of ['src="dispatch-253.js"','id="ops-batch-move"','planning.batchReschedule(tmp,moves)','dispatch.workload(store.snapshot()','dispatch.audit(s)']) assert(html.includes(fragment),fragment);
+          const script=html.match(/<script>\s*([\s\S]*?)<\/script>/);
+          assert(script,'inline script');
+          new Function(script[1]);
+          console.log('PASS integrated UI syntax and dispatch wiring');
+          NODE
