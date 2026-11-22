@@ -6,7 +6,7 @@ function validate(reg,state){dossier.validate(state);if(!reg||reg.schema!==SCHEM
 const ids=new Set();for(const d of reg.documents){if(!d||typeof d.id!=="string"||!/^TEST-DOC-[A-Z0-9-]{1,32}$/.test(d.id)||ids.has(d.id))throw Error("ID_DOCUMENTO_NON_VALIDO");ids.add(d.id);
 if(!TYPES.includes(d.type)||!["BOZZA","VERIFICATO","ARCHIVIATO"].includes(d.status))throw Error("TIPO_O_STATO_NON_VALIDO");
 if(typeof d.title!=="string"||!d.title.trim()||d.title.length>160)throw Error("TITOLO_NON_VALIDO");
-if(d.filename!==null&&(typeof d.filename!=="string"||d.filename.length>180||!/^TEST-[a-zA-Z0-9_.-]+\\.pdf$/i.test(d.filename)))throw Error("FILE_NON_SINTETICO");
+if(d.filename!==null&&(typeof d.filename!=="string"||d.filename.length>180||!/^TEST-[a-zA-Z0-9_.-]+\.pdf$/i.test(d.filename)))throw Error("FILE_NON_SINTETICO");
 if(!Number.isSafeInteger(d.size)||d.size<0||d.size>50000000)throw Error("DIMENSIONE_NON_VALIDA");
 if(d.filename===null&&d.size!==0)throw Error("FILE_NON_COHERENTE");
 if(!d.siteId||!state.sites.some(x=>x.id===d.siteId))throw Error("SEDE_DOCUMENTO_MANCANTE");
