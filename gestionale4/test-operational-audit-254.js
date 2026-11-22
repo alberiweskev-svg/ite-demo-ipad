@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict'),core=require('../ite-integrated-core-225.js'),planning=require('./planning-252.js'),audit=require('./operational-audit-254.js');
+const store=core.createStore();
+core.add(store,'clients',{id:'C1',name:'Cliente fittizio'});
+core.add(store,'sites',{id:'S1',clientId:'C1',address:'Via Demo 1'});
+core.add(store,'plants',{id:'P1',siteId:'S1',type:'Termico'});
+core.add(store,'equipment',{id:'E1',plantId:'P1',type:'Caldaia'});
+planning.batchSchedule(store,[{appointmentId:'A1',interventionId:'I1',siteId:'S1',equipmentId:'E1',operator:'Tecnico A',start:'2026-11-25T09:00',end:'2026-11-25T11:00'},{appointmentId:'A2',interventionId:'I2',siteId:'S1',operator:'Tecnico B',start:'2026-11-25T10:00',end:'2026-11-25T12:00'}]);
+let r=audit.report(store.snapshot());assert.equal(r.totals.errors,0);assert.equal(r.totals.minutes,240);assert.equal(r.totals.open,2);
+let broken=store.snapshot();broken.appointments[1].operator='Tecnico A';broken.interventions[1].operator='Tecnico A';broken.interventions[0].equipmentId='MISSING';broken.sites[0].clientId='MISSING';
+r=audit.report(broken);assert(r.issues.some(x=>x.code==='SOVRAPPOSIZIONE_OPERATORE'));assert(r.issues.some(x=>x.code==='APPARECCHIATURA_SEDE_DIVERSA'));assert(r.issues.some(x=>x.code==='CLIENTE_SEDE_ASSENTE'));
+broken.interventions[0].id='=2+2';r=audit.report(broken);assert(audit.csv(r).includes("'=2+2"));
+assert.equal(core.validate(store.snapshot()),true);
+console.log('PASS 4.0.254 operational audit, totals, conflicts, relations and safe CSV');
