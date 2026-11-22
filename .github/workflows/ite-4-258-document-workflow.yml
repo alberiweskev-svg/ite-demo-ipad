@@ -1,0 +1,21 @@
+name: ITE 4.0.258 document workflow
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/document-workflow-258.js'
+      - 'gestionale4/test-document-workflow-258.js'
+      - 'gestionale4/document-registry-255.js'
+      - '.github/workflows/ite-4-258-document-workflow.yml'
+  workflow_dispatch:
+jobs:
+  document-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check gestionale4/document-workflow-258.js
+      - run: node gestionale4/test-document-registry-255.js
+      - run: node gestionale4/test-document-workflow-258.js
