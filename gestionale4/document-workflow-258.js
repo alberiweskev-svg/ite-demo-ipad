@@ -45,10 +45,12 @@ function prepare(s,entries){
 }
 function register(store,entries){
  const before=store.snapshot(),ready=prepare(before,entries);
- const result=registry.registerBatch(store,ready);
- const after=store.snapshot(),issues=check(after);
- if(issues.length)throw Error("INTEGRITA_POST_REGISTRAZIONE");
- return result;
+ // Preflight the entire mutation on a detached copy; never commit an invalid dossier.
+ const draft=clone(before);
+ const sandbox={snapshot:()=>clone(draft),transact:(_revision,fn)=>{fn(draft);return clone(draft)}};
+ registry.registerBatch(sandbox,ready);
+ if(check(draft).length)throw Error("INTEGRITA_POST_REGISTRAZIONE");
+ return registry.registerBatch(store,ready);
 }
 function summary(s,siteId){
  const d=registry.dossier(s,siteId),issues=check(s).filter(x=>d.records.some(r=>r.id===x.id));
