@@ -5,7 +5,7 @@ const path=require('node:path');
 const html=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
 const api=require('./operations-250.js');
 assert.match(html,/<script src="operations-250\.js"><\/script>/);
-assert.match(html,/data-tab=\\"operations\\"/);
+assert.ok(html.includes('data-tab="operations"'));
 assert.match(html,/function renderOperations251\(s\)/);
 for(const method of ['reschedule','closeWithoutQuote','siteLedger','siteLedgerCSV']){
  assert.equal(typeof api[method],'function',method+' exported');
