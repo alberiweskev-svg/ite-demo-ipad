@@ -1,0 +1,28 @@
+name: ITE 4.0.255 document registry
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/document-registry-255.js'
+      - 'gestionale4/test-document-registry-255.js'
+      - 'gestionale4/site-closeout-249.js'
+      - 'ite-integrated-core-225.js'
+      - '.github/workflows/ite-4-255-document-registry.yml'
+  workflow_dispatch:
+jobs:
+  document-registry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check gestionale4/document-registry-255.js
+          node --check gestionale4/test-document-registry-255.js
+      - name: Synthetic document and operational regressions
+        run: |
+          node gestionale4/test-document-registry-255.js
+          node gestionale4/test-operations-250.js
+          node gestionale4/test-operational-audit-254.js
