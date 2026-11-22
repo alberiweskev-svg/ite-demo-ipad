@@ -1,0 +1,12 @@
+const assert=require("node:assert/strict"),m=require("./ite-dossier-269.js");let s=m.empty();const add=(k,x)=>s=m.insert(s,k,x);
+add("clients",{id:"TEST-C1",name:"Cliente sintetico"});add("sites",{id:"TEST-S1",clientId:"TEST-C1",address:"Via Demo 1"});add("systems",{id:"TEST-I1",siteId:"TEST-S1",kind:"TERMICO"});add("devices",{id:"TEST-D1",systemId:"TEST-I1",kind:"CALDAIA"});
+add("appointments",{id:"TEST-A1",siteId:"TEST-S1",deviceId:"TEST-D1",operator:"TECNICO TEST",start:"2026-11-23T08:00:00+01:00",end:"2026-11-23T09:00:00+01:00"});
+assert.throws(()=>m.insert(s,"appointments",{id:"TEST-A2",siteId:"TEST-S1",deviceId:"TEST-D1",operator:"TECNICO TEST",start:"2026-11-23T08:30:00+01:00",end:"2026-11-23T09:30:00+01:00"}),/SOVRAPPOSIZIONE/);
+add("interventions",{id:"TEST-W1",appointmentId:"TEST-A1",siteId:"TEST-S1",deviceId:"TEST-D1",operator:"TECNICO TEST",start:"2026-11-23T08:00:00+01:00",end:"2026-11-23T09:00:00+01:00"});
+s=m.saveQuote(s,{clientId:"TEST-C1",siteId:"TEST-S1",interventionId:"TEST-W1",lines:[{kind:"FORNITURA",description:"Ricambio TEST",quantity:1,unitCents:5000},{kind:"POSA",description:"Posa TEST",quantity:1,unitCents:4000}]},["L1","L2"]);
+s=m.draft(s,s.commercial.quotes[0].id,"VENDITA");s=m.credit(s,s.commercial.documents[0].id,2000);
+assert.equal(s.commercial.documents.length,2);assert.throws(()=>m.credit(s,s.commercial.documents[0].id,8000),/CREDITO_SUPERA_RESIDUO/);
+const mem=new Map(),storage={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,v),removeItem:k=>mem.delete(k)};
+let previous=m.empty();for(const [k,x] of [["clients",{id:"TEST-C1"}],["sites",{id:"TEST-S1",clientId:"TEST-C1"}]]){const next=m.insert(previous,k,x);previous=m.persist(storage,previous,next);}assert.equal(m.load(storage).sites.length,1);assert.throws(()=>m.persist(storage,m.empty(),m.insert(m.empty(),"clients",{id:"TEST-X"})),/CONFLITTO/);
+assert.throws(()=>m.insert(s,"sites",{id:"TEST-BAD",clientId:"TEST-NO"}),/CLIENTE_MANCANTE/);
+console.log("ITE 4.0.269 dossier: PASS");
