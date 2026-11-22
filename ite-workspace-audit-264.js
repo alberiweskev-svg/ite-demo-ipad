@@ -36,6 +36,6 @@ function audit(field,commercial,fiscal=[],documents=[]){
  issues.sort((a,b)=>a.code.localeCompare(b.code)||a.id.localeCompare(b.id));
  return {schema:"ITE_AUDIT_264",valid:issues.length===0,counts,issues,readOnly:true};
 }
-function csv(report){if(!report||report.schema!=="ITE_AUDIT_264")throw Error("REPORT_NON_VALIDO");const cell=v=>{let s=String(v??"");if(/^\\s*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};return "\uFEFF"+[["Codice","Riferimento"],...report.issues.map(i=>[i.code,i.id])].map(r=>r.map(cell).join(";")).join("\r\n")+"\r\n";}
+function csv(report){if(!report||report.schema!=="ITE_AUDIT_264")throw Error("REPORT_NON_VALIDO");const cell=v=>{let s=String(v??"");if(/^\s*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};return "\uFEFF"+[["Codice","Riferimento"],...report.issues.map(i=>[i.code,i.id])].map(r=>r.map(cell).join(";")).join("\r\n")+"\r\n";}
 return Object.freeze({audit,csv});
 });
