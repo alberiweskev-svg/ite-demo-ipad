@@ -1,0 +1,20 @@
+name: ITE 4.0.272 document batch synthetic tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-document-batch-272.js'
+      - 'ite-document-batch-ui-272.js'
+      - 'ite-technical-register-271.js'
+      - 'test-document-batch-272.js'
+      - '.github/workflows/ite-4-272-document-batch.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-batch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test-document-batch-272.js
