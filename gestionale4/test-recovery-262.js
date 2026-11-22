@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const api=require('./recovery-262.js');
+const recovery={persist(s,k,raw){s.setItem(k+':pending',raw);s.setItem(k,raw);return {saved:true}},inspect(s,k,validate){const raw=s.getItem(k);let valid=false;try{validate(JSON.parse(raw));valid=true}catch(_){}return {valid,interrupted:!!s.getItem(k+':pending'),history:[],problem:null}}};
+const validate=x=>{if(!x||!Number.isInteger(x.revision))throw Error('INVALID')};
+function storage(){const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),m}};
+const s=storage();s.setItem('db',JSON.stringify({revision:1}));
+assert.equal(api.persistVerified(s,'db',JSON.stringify({revision:2}),validate,recovery).saved,true);
+assert.equal(JSON.parse(s.getItem('db')).revision,2);
+assert.deepEqual(api.diagnose(s,'db',validate,recovery),{currentValid:true,pending:true,historyCount:0,problem:null,hasCurrent:true});
+const corrupt=storage();corrupt.setItem('db',JSON.stringify({revision:1}));const broken={...recovery,persist(st,k,raw){st.setItem(k,raw);return {saved:true}}};
+assert.throws(()=>api.persistVerified(corrupt,'db','{"revision":"bad"}',validate,broken),/ARCHIVIO_SALVATO_NON_VALIDO/);
+assert.equal(JSON.parse(corrupt.getItem('db')).revision,1);
+const lying={...recovery,persist(st,k,raw){st.setItem(k,raw+' ');return {saved:true}}};
+assert.throws(()=>api.persistVerified(corrupt,'db','{"revision":3}',validate,lying),/SCRITTURA_NON_VERIFICATA/);
+assert.equal(JSON.parse(corrupt.getItem('db')).revision,1);
+console.log('PASS recovery 262');
