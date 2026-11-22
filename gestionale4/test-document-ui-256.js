@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync(require('node:path').join(__dirname,'index.html'),'utf8');
+for(const token of ['document-registry-255.js','doc-registry-form','doc-dossier-site','doc-dossier-export','registry.registerBatch(store,[item])','registry.dossier(store.snapshot(),id)','registry.csv(store.snapshot(),dossierSelect.value)','registry.audit(s)'])assert(html.includes(token),'Missing document integration: '+token);
+const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);
+const vm=require('node:vm');
+for(const js of scripts)new vm.Script(js,{filename:'gestionale4/index.html'});
+const core=require('../ite-integrated-core-225.js'),registry=require('./document-registry-255.js');
+const store=core.createStore();
+core.add(store,'clients',{id:'C',name:'Cliente fittizio'});
+core.add(store,'sites',{id:'S',clientId:'C',address:'Via Esempio 1'});
+registry.registerBatch(store,[{id:'A',kind:'DICO',filename:'demo.pdf',mime:'application/pdf',bytes:10,siteId:'S'}]);
+registry.registerBatch(store,[{id:'B',kind:'DICO',filename:'demo-v2.pdf',mime:'application/pdf',bytes:12,siteId:'S',replacesId:'A'}]);
+const d=registry.dossier(store.snapshot(),'S');
+assert.equal(d.total,2);assert.equal(d.current,1);
+assert.equal(d.records.find(x=>x.id==='B').version,2);
+assert(registry.csv(store.snapshot(),'S').includes('demo-v2.pdf'));
+console.log('PASS document dossier UI 256 and synthetic revision lifecycle');
