@@ -4,6 +4,7 @@ on:
     branches: [sviluppo-4.0.0-base]
     paths:
       - 'gestionale4/planning-252.js'
+      - 'gestionale4/index.html'
       - 'gestionale4/test-planning-252.js'
       - 'gestionale4/operations-250.js'
       - '.github/workflows/ite-4-252-planning.yml'
