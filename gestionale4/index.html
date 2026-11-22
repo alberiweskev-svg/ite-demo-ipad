@@ -3,7 +3,7 @@
 <style>
 :root{font-family:system-ui,-apple-system,sans-serif;color:#162638;background:#f2f5f8}*{box-sizing:border-box}body{margin:0}header{background:#123c57;color:white;padding:18px 22px}header h1{font-size:1.35rem;margin:0}header small{opacity:.85}nav{display:flex;gap:7px;overflow:auto;padding:12px;background:white;position:sticky;top:0;z-index:2;border-bottom:1px solid #d9e1e8}button{font:inherit;cursor:pointer;border:1px solid #b9c8d4;border-radius:8px;background:white;padding:10px 13px}button.primary{background:#136b8b;color:white;border-color:#136b8b}button.active{background:#123c57;color:white}main{max-width:1200px;margin:auto;padding:18px}.panel{background:white;border:1px solid #dae2e9;border-radius:12px;padding:18px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:5px}label{font-weight:600;font-size:.9rem}input,select,textarea{width:100%;font:inherit;padding:10px;border:1px solid #adbdcb;border-radius:7px;min-height:42px}textarea{min-height:70px}table{border-collapse:collapse;width:100%;font-size:.91rem}th,td{text-align:left;padding:10px;border-bottom:1px solid #e0e6eb;vertical-align:top}th{background:#edf3f7}section{overflow-x:auto}.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.muted{color:#566779}.notice{background:#eaf5f9;padding:12px;border-radius:8px}.error{background:#fff0ec;color:#9c2715;padding:12px;border-radius:8px}#status{min-height:22px} .tag{font-size:.75rem;background:#e4eff5;border-radius:5px;padding:3px 6px} @media(max-width:600px){main{padding:10px}.panel{padding:12px}th,td{padding:7px}header{padding:14px}}
 </style></head><body>
-<header><h1>I.T.E. — Gestionale 4.0</h1><small>Demo integrata di collaudo 4.0.257 · solo dati sintetici · archivio locale al dispositivo</small></header>
+<header><h1>I.T.E. — Gestionale 4.0</h1><small>Demo integrata di collaudo 4.0.262 · solo dati sintetici · archivio locale al dispositivo</small></header>
 <nav id="nav" aria-label="Moduli"></nav><main><div id="status" role="status" aria-live="polite"></div><div id="view"></div></main>
 <script src="../ite-integrated-core-225.js"></script>
 <script src="agenda-227.js"></script>
@@ -27,6 +27,7 @@
 <script src="document-workflow-258.js"></script>
 <script src="reconciliation-261.js"></script>
 <script src="recovery-234.js"></script>
+<script src="recovery-262.js"></script>
 <script>
 (()=>{'use strict';
 const core=window.ITEIntegratedCore225,KEY='ITE_4_0_226_DEMO_SYNTHETIC',types=['clients','sites','plants','equipment','appointments','interventions','quotes','invoices','documents'];
@@ -46,7 +47,7 @@ function initial(){try{const raw=localStorage.getItem(KEY);return raw?JSON.parse
 try{store=core.createStore(initial())}catch(e){store=core.createStore();message('Archivio locale non valido: avvio con dati vuoti. '+e.message,true)}
 function message(s,bad=false){$('#status').innerHTML='<p class="'+(bad?'error':'notice')+'">'+esc(s)+'</p>'}
 let committedSnapshot=store.snapshot();
-function save(){try{const result=ITERecovery234.persist(localStorage,KEY,store.exportMetadata(),core.validate);committedSnapshot=store.snapshot();if(result.historySaved===false)message('Archivio salvato, ma cronologia non aggiornata: '+result.warning,true);return true}catch(e){store=core.createStore(committedSnapshot);render();message('Operazione annullata: salvataggio locale non riuscito ('+e.message+'). Archivio precedente ripristinato; esportare JSON.',true);return false}}
+function save(){try{const result=ITERecovery262.persistVerified(localStorage,KEY,store.exportMetadata(),core.validate,ITERecovery234);committedSnapshot=store.snapshot();if(result.historySaved===false)message('Archivio salvato, ma cronologia non aggiornata: '+result.warning,true);return true}catch(e){store=core.createStore(committedSnapshot);render();message('Operazione annullata: salvataggio locale non riuscito ('+e.message+'). Archivio precedente ripristinato; esportare JSON.',true);return false}}
 function transact(fn){const before=store.snapshot();try{store.transact(before.revision,fn);if(!save()){store=core.createStore(committedSnapshot);render();message('Modifica annullata: salvataggio locale non riuscito. Esportare un backup JSON.',true);return false}render();message('Operazione completata e archivio aggiornato.');return true}catch(e){store=core.createStore(before);message('Operazione rifiutata: '+e.message,true);return false}}
 function name(type,item){return item.name||item.address||item.type||item.number||item.filename||item.operator||item.id}
 function control(f,state){const [key,label,kind]=f,optional=/facoltativ/i.test(label),value=kind==='application/pdf'?'application/pdf':(key==='status'?'BOZZA':'');
