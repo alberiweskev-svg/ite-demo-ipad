@@ -3,7 +3,7 @@
 <style>
 :root{font-family:system-ui,-apple-system,sans-serif;color:#162638;background:#f2f5f8}*{box-sizing:border-box}body{margin:0}header{background:#123c57;color:white;padding:18px 22px}header h1{font-size:1.35rem;margin:0}header small{opacity:.85}nav{display:flex;gap:7px;overflow:auto;padding:12px;background:white;position:sticky;top:0;z-index:2;border-bottom:1px solid #d9e1e8}button{font:inherit;cursor:pointer;border:1px solid #b9c8d4;border-radius:8px;background:white;padding:10px 13px}button.primary{background:#136b8b;color:white;border-color:#136b8b}button.active{background:#123c57;color:white}main{max-width:1200px;margin:auto;padding:18px}.panel{background:white;border:1px solid #dae2e9;border-radius:12px;padding:18px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:5px}label{font-weight:600;font-size:.9rem}input,select,textarea{width:100%;font:inherit;padding:10px;border:1px solid #adbdcb;border-radius:7px;min-height:42px}textarea{min-height:70px}table{border-collapse:collapse;width:100%;font-size:.91rem}th,td{text-align:left;padding:10px;border-bottom:1px solid #e0e6eb;vertical-align:top}th{background:#edf3f7}section{overflow-x:auto}.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.muted{color:#566779}.notice{background:#eaf5f9;padding:12px;border-radius:8px}.error{background:#fff0ec;color:#9c2715;padding:12px;border-radius:8px}#status{min-height:22px} .tag{font-size:.75rem;background:#e4eff5;border-radius:5px;padding:3px 6px} @media(max-width:600px){main{padding:10px}.panel{padding:12px}th,td{padding:7px}header{padding:14px}}
 </style></head><body>
-<header><h1>I.T.E. — Gestionale 4.0</h1><small>Demo integrata di collaudo 4.0.252 · solo dati sintetici · archivio locale al dispositivo</small></header>
+<header><h1>I.T.E. — Gestionale 4.0</h1><small>Demo integrata di collaudo 4.0.253 · solo dati sintetici · archivio locale al dispositivo</small></header>
 <nav id="nav" aria-label="Moduli"></nav><main><div id="status" role="status" aria-live="polite"></div><div id="view"></div></main>
 <script src="../ite-integrated-core-225.js"></script>
 <script src="agenda-227.js"></script>
@@ -21,6 +21,7 @@
 <script src="site-closeout-249.js"></script>
 <script src="operations-250.js"></script>
 <script src="planning-252.js"></script>
+<script src="dispatch-253.js"></script>
 <script src="recovery-234.js"></script>
 <script>
 (()=>{'use strict';
@@ -194,15 +195,32 @@ function renderOperations251(s){
  if(planning){
   const box=document.createElement('div');box.className='panel';
   box.innerHTML='<h3>Pianificazione multipla · 4.0.252</h3><p class="muted">Una visita per riga: ID appuntamento; ID intervento; ID sede; operatore; inizio; fine. Orari nel formato AAAA-MM-GGTHH:MM. Il lotto viene registrato interamente oppure annullato.</p><form id="ops-batch"><label>Visite da pianificare<textarea name="visits" rows="5" required placeholder="A100; I100; S1; Tecnico TEST; 2026-11-25T09:00; 2026-11-25T10:00"></textarea></label><button class="primary">Verifica e pianifica tutte</button></form><h3>Controllo conflitti agenda</h3><div id="ops-audit"></div>';
+  box.innerHTML+='<h3>Riprogrammazione multipla</h3><p class="muted">Una riga per spostamento: ID appuntamento; operatore; nuovo inizio; nuova fine. Tutti gli spostamenti sono applicati insieme solo se validi.</p><form id="ops-batch-move"><label>Spostamenti<textarea name="moves" rows="4" required placeholder="A100; Tecnico TEST; 2026-11-26T09:00; 2026-11-26T10:00"></textarea></label><button class="primary">Verifica e riprogramma lotto</button></form>';
   $('#view').prepend(box);
   const issues=planning.auditSchedule(s);
   $('#ops-audit').textContent=issues.length?issues.map(x=>x.code+' · '+(x.appointmentId||x.interventionId)).join(' | '):'Nessuna sovrapposizione rilevata';
+  $('#ops-batch-move').onsubmit=e=>{e.preventDefault();try{
+   const lines=String(new FormData(e.currentTarget).get('moves')).trim().split(/\\r?\\n/).filter(Boolean);
+   const moves=lines.map(line=>{const a=line.split(';').map(x=>x.trim());if(a.length!==4)throw Error('RIGA_SPOSTAMENTO_NON_VALIDA');return {appointmentId:a[0],operator:a[1],start:a[2],end:a[3]};});
+   const tmp=core.createStore(store.snapshot());planning.batchReschedule(tmp,moves);const next=tmp.snapshot();
+   transact(state=>{state.appointments=next.appointments;state.interventions=next.interventions});
+  }catch(err){message(err.message,true)}};
   $('#ops-batch').onsubmit=e=>{e.preventDefault();try{
    const lines=String(new FormData(e.currentTarget).get('visits')).trim().split(/\r?\n/).filter(Boolean);
    const visits=lines.map(line=>{const a=line.split(';').map(x=>x.trim());if(a.length!==6)throw Error('RIGA_LOTTO_NON_VALIDA');return {appointmentId:a[0],interventionId:a[1],siteId:a[2],operator:a[3],start:a[4],end:a[5]};});
    const tmp=core.createStore(store.snapshot());planning.batchSchedule(tmp,visits);const next=tmp.snapshot();
    transact(state=>{state.appointments=next.appointments;state.interventions=next.interventions});
   }catch(err){message(err.message,true)}};
+ }
+ const dispatch=window.ITEDispatch253;
+ if(dispatch){
+  const box=document.createElement('div');box.className='panel';
+  const issues=dispatch.audit(s),operators=[...new Set(s.appointments.map(a=>a.operator))].sort();
+  const date=s.appointments.length?s.appointments.map(a=>a.start.slice(0,10)).sort()[0]:new Date().toISOString().slice(0,10);
+  box.innerHTML='<h3>Quadro operatori e integrità interventi · 4.0.253</h3><p class="muted">Carico orario pianificato nel giorno selezionato, non ore lavorate. Verifica incrociata di sede, apparecchiatura, operatore e appuntamento.</p><label>Giorno<input id="ops-dispatch-date" type="date" value="'+esc(date)+'"></label><div id="ops-dispatch-result"></div><h4>Anomalie operative ('+issues.length+')</h4>'+(issues.length?issues.map(x=>'<p class="error">'+esc(x.code)+' — '+esc(x.id)+'</p>').join(''):'<p class="notice">Nessuna anomalia rilevata.</p>');
+  $('#view').append(box);
+  const show=()=>{try{const d=$('#ops-dispatch-date').value,rows=dispatch.workload(store.snapshot(),{from:d+'T00:00',to:d+'T23:59'});$('#ops-dispatch-result').innerHTML='<section><table><thead><tr><th>Operatore</th><th>Appuntamenti</th><th>Minuti pianificati</th><th>Aperti / In corso / Chiusi</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.operator)+'</td><td>'+x.appointments+'</td><td>'+x.minutes+'</td><td>'+x.open+' / '+x.inProgress+' / '+x.closed+'</td></tr>').join('')+'</tbody></table></section>'}catch(err){message(err.message,true)}};
+  $('#ops-dispatch-date').onchange=show;show();
  }
  const reschedule=$('#ops-reschedule');
  reschedule.onsubmit=e=>{e.preventDefault();const f=new FormData(reschedule);try{const tmp=core.createStore(store.snapshot());api.reschedule(tmp,{appointmentId:f.get('appointmentId'),operator:f.get('operator'),start:f.get('start'),end:f.get('end')});const next=tmp.snapshot();transact(state=>{state.appointments=next.appointments;state.interventions=next.interventions})}catch(err){message(err.message,true)}};
