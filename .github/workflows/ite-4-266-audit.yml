@@ -1,0 +1,26 @@
+name: ITE 4.0.266 integrated audit regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workspace-audit-264.js'
+      - 'ite-workspace-audit-265.js'
+      - 'ite-workspace-audit-266.js'
+      - 'ite-workspace-audit-ui-264.js'
+      - 'test-workspace-audit-265.js'
+      - 'test-workspace-audit-266.js'
+      - 'index.html'
+      - '.github/workflows/ite-4-266-audit.yml'
+  workflow_dispatch:
+jobs:
+  integrated-synthetic-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-workspace-audit-266.js
+      - run: node --check ite-workspace-audit-ui-264.js
+      - run: node test-workspace-audit-265.js
+      - run: node test-workspace-audit-266.js
