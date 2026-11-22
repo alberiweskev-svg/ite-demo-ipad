@@ -1,0 +1,24 @@
+name: ITE 4.0.262 integrated persistence and reconciliation
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/**'
+      - '.github/workflows/ite-4-262-integrity.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Persistence verification and rollback
+        run: node gestionale4/test-recovery-262.js
+      - name: Integrated reconciliation
+        run: node gestionale4/test-reconciliation-261.js
+      - name: JavaScript syntax
+        run: |
+          node --check gestionale4/recovery-262.js
+          node --check gestionale4/reconciliation-261.js
