@@ -1,0 +1,15 @@
+/* I.T.E. 4.0.272 — batch controls inside the existing technical register. */
+(function(root){"use strict";if(typeof document==="undefined")return;
+function boot(){const host=document.getElementById("ite-technical-271"),batch=root.ITEBatch272,tech=root.ITETechnical271,dossier=root.ITEDossier269;if(!host||!batch||!tech||!dossier||document.getElementById("ite-batch-272"))return;
+const el=document.createElement("div");el.id="ite-batch-272";el.className="item";el.innerHTML='<h4>Importazione multipla PDF TEST — 4.0.272</h4><p class="hint">Massimo 25 file TEST-*.pdf, 50 MB ciascuno. Solo intestazione e metadati: nessun contenuto PDF viene salvato o inviato. Tutto il lotto viene registrato oppure annullato.</p><div class="grid"><label>PDF sintetici<input type="file" id="b272-files" accept=".pdf,application/pdf" multiple></label><label>Identificativo lotto<input id="b272-batch" value="LOTTO-001" maxlength="20"></label><label>Prefisso titolo<input id="b272-title" value="Allegato dimostrativo" maxlength="100"></label></div><div class="actions"><button type="button" id="b272-add">Registra lotto TEST</button><button type="button" id="b272-report">Verifica completezza documenti</button><button type="button" id="b272-export">Esporta rapporto JSON</button></div><pre id="b272-output" role="status" aria-live="polite" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>';host.appendChild(el);
+const $=id=>document.getElementById(id),out=$("b272-output");
+function report(){return batch.readiness(tech.load(localStorage,dossier.load(localStorage)),dossier.load(localStorage));}
+$("b272-add").onclick=async()=>{try{const fs=Array.from($("b272-files").files);if(!fs.length||fs.length>batch.MAX_FILES)throw Error("SELEZIONARE_DA_1_A_25_FILE");
+const files=[];for(const f of fs){files.push({name:f.name,size:f.size,header:new Uint8Array(await f.slice(0,5).arrayBuffer())});}
+const state=dossier.load(localStorage),reg=tech.load(localStorage,state),items=batch.prepare(files,{batchId:$("b272-batch").value.toUpperCase(),titlePrefix:$("b272-title").value.trim(),type:$("t271-type").value,clientId:$("t271-client").value,siteId:$("t271-site").value,deviceId:$("t271-device").value,interventionId:$("t271-work").value},reg);
+batch.commit(localStorage,state,items);out.textContent="Lotto registrato: "+items.length+" metadati TEST. Ricaricare la pagina per aggiornare l'elenco documenti.";}catch(e){out.textContent="Lotto annullato: "+e.message;}};
+$("b272-report").onclick=()=>{try{out.textContent=JSON.stringify(report(),null,2);}catch(e){out.textContent=e.message;}};
+$("b272-export").onclick=()=>{try{const data=JSON.stringify(report(),null,2),blob=new Blob([data],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="ITE-TEST-rapporto-documenti-272.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(e){out.textContent=e.message;}};
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
+})(typeof globalThis!=="undefined"?globalThis:this);
