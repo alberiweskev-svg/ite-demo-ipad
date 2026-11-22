@@ -1,0 +1,21 @@
+name: ITE 4.0.264 integrated audit
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-workspace-audit-264.js'
+      - 'ite-workspace-audit-ui-264.js'
+      - 'test-workspace-audit-264.js'
+      - 'index.html'
+      - '.github/workflows/ite-4-264-audit.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node test-workspace-audit-264.js
+      - run: node --check ite-workspace-audit-ui-264.js
