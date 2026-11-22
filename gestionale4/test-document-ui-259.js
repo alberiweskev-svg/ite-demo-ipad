@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const workflow=require('./document-workflow-258.js');
+const seed={revision:0,clients:[{id:'c1',name:'Cliente demo'}],sites:[{id:'s1',clientId:'c1',address:'Sede demo'}],plants:[],equipment:[],appointments:[],interventions:[],quotes:[],invoices:[],documents:[{id:'d1',kind:'DICO',filename:'originale.pdf',mime:'application/pdf',bytes:100,siteId:'s1',clientId:'c1',version:1},{id:'d2',kind:'POS',filename:'pos.pdf',mime:'application/pdf',bytes:100,siteId:'s1',clientId:'c1',version:1}]};
+const clone=x=>JSON.parse(JSON.stringify(x));
+let state=clone(seed);
+const store={snapshot:()=>clone(state),transact:(revision,fn)=>{assert.equal(revision,state.revision);const next=clone(state);fn(next);next.revision++;state=next;return clone(state)}};
+const revision=(id,source,kind,file)=>({id,replacesId:source,kind,filename:file,mime:'application/pdf',bytes:200,siteId:'s1',clientId:'c1',version:2});
+assert.equal(workflow.check(store.snapshot()).length,0);
+assert.throws(()=>workflow.register(store,[revision('r1','d1','DICO','ok.pdf'),revision('r2','d1','DICO','duplicate.pdf')]),/REVISIONE_ORIGINE_NON_VALIDA/);
+assert.equal(store.snapshot().documents.length,2,'duplicate revision must not mutate');
+assert.throws(()=>workflow.register(store,[revision('r1','d1','DICO','ok.pdf'),revision('r2','d2','POS','bad.txt')]),/DOCUMENTO_NON_VALIDO/);
+assert.equal(store.snapshot().documents.length,2,'post-preflight validation must not mutate');
+workflow.register(store,[revision('r1','d1','DICO','ok.pdf'),revision('r2','d2','POS','new-pos.pdf')]);
+assert.equal(store.snapshot().documents.length,4);
+assert.equal(workflow.check(store.snapshot()).length,0);
+assert.equal(workflow.summary(store.snapshot(),'s1').current,2);
+console.log('4.0.259 document workflow: atomic preflight and multi-revision tests passed');
