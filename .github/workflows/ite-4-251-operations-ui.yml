@@ -1,0 +1,21 @@
+name: ITE 4.0.251 integrated operations
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/index.html'
+      - 'gestionale4/operations-250.js'
+      - 'gestionale4/test-operations-250.js'
+      - 'gestionale4/test-ui-251.js'
+      - '.github/workflows/ite-4-251-operations-ui.yml'
+  workflow_dispatch:
+jobs:
+  operations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node gestionale4/test-operations-250.js
+      - run: node gestionale4/test-ui-251.js
