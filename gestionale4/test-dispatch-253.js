@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),core=require('../ite-integrated-core-225.js'),planning=require('./planning-252.js'),dispatch=require('./dispatch-253.js');
+const store=core.createStore();
+core.add(store,'clients',{id:'C1',name:'Cliente TEST'});
+core.add(store,'sites',{id:'S1',clientId:'C1',address:'Via Fittizia'});
+core.add(store,'plants',{id:'P1',siteId:'S1',type:'Termico'});
+core.add(store,'equipment',{id:'E1',plantId:'P1',type:'Caldaia'});
+planning.batchSchedule(store,[{appointmentId:'A1',interventionId:'I1',siteId:'S1',equipmentId:'E1',operator:'Tecnico TEST',start:'2026-11-25T09:00',end:'2026-11-25T11:00'},{appointmentId:'A2',interventionId:'I2',siteId:'S1',operator:'Altro TEST',start:'2026-11-25T10:00',end:'2026-11-25T12:00'}]);
+assert.deepEqual(dispatch.audit(store.snapshot()),[]);
+let w=dispatch.workload(store.snapshot(),{from:'2026-11-25T10:00',to:'2026-11-25T11:00'});
+assert.equal(w.length,2);assert.equal(w[0].minutes,60);assert.equal(w[1].appointments,1);
+planning.batchReschedule(store,[{appointmentId:'A1',operator:'Altro TEST',start:'2026-11-25T08:00',end:'2026-11-25T09:00'},{appointmentId:'A2',operator:'Tecnico TEST',start:'2026-11-25T10:00',end:'2026-11-25T12:00'}]);
+assert.deepEqual(dispatch.audit(store.snapshot()),[]);
+const broken=store.snapshot();broken.interventions[0].operator='Operatore errato';broken.interventions[0].equipmentId='MISSING';broken.interventions[1].siteId='ALTRO';
+const codes=dispatch.audit(broken).map(x=>x.code);assert(codes.includes('OPERATORE_INTERVENTO_DIVERSO'));assert(codes.includes('APPARECCHIATURA_SEDE_DIVERSA'));assert(codes.includes('SEDE_INTERVENTO_DIVERSA'));
+assert.throws(()=>dispatch.workload(store.snapshot(),{from:'2026-11-25T12:00',to:'2026-11-25T11:00'}),/PERIODO_NON_VALIDO/);
+assert.equal(core.validate(store.snapshot()),true);
+console.log('PASS 4.0.253 dispatch audit, workload and batch reschedule');
