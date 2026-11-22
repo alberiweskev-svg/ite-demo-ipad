@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync(require('node:path').join(__dirname,'index.html'),'utf8');
 for(const token of ['document-registry-255.js','doc-registry-form','doc-dossier-site','doc-dossier-export','registry.registerBatch(store,[item])','registry.dossier(store.snapshot(),id)','registry.csv(store.snapshot(),dossierSelect.value)','registry.audit(s)'])assert(html.includes(token),'Missing document integration: '+token);
+for(const token of ["supersededDocs.has(x.id)","DOCUMENTO_CON_REVISIONI","st.documents.some(d=>d.replacesId===b.dataset.docDelete)"])assert(html.includes(token),'Missing revision-history protection: '+token);
 const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);
 const vm=require('node:vm');
 for(const js of scripts)new vm.Script(js,{filename:'gestionale4/index.html'});
