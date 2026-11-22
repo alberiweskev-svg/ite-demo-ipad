@@ -1,0 +1,26 @@
+name: ITE 4.0.256 integrated technical dossier
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/index.html'
+      - 'gestionale4/document-registry-255.js'
+      - 'gestionale4/test-document-registry-255.js'
+      - 'gestionale4/test-document-ui-256.js'
+      - '.github/workflows/ite-4-256-document-ui.yml'
+  workflow_dispatch:
+jobs:
+  integrated-document-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and integrated document regressions
+        run: |
+          node --check gestionale4/test-document-ui-256.js
+          node gestionale4/test-document-ui-256.js
+          node gestionale4/test-document-registry-255.js
+          node gestionale4/test-operations-250.js
+          node gestionale4/test-operational-audit-254.js
