@@ -1,0 +1,15 @@
+name: ITE 4.0.269 integrated dossier tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-dossier-269.js', 'ite-dossier-ui-269.js', 'test-dossier-269.js', 'ite-commercial-ledger-268.js', 'ite-commercial-workflow-267.js', 'index.html']
+  workflow_dispatch:
+jobs:
+  synthetic-dossier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-dossier-269.js && node --check ite-dossier-ui-269.js && node test-dossier-269.js && node test-commercial-ledger-268.js
