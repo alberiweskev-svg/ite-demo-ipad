@@ -1,0 +1,10 @@
+"use strict";const assert=require("node:assert/strict");const A=require("./ite-workspace-audit-264.js");
+const field={clients:[{id:"C"}],sites:[{id:"S",clientId:"C"}],systems:[{id:"Y",siteId:"S"}],equipment:[{id:"E",systemId:"Y"}],operators:[{id:"O"}],appointments:[{id:"A",clientId:"C",siteId:"S",equipmentId:"E",operatorId:"O",start:"2026-11-22T09:00:00",end:"2026-11-22T10:00:00"}],interventions:[{id:"I",appointmentId:"A",operatorId:"O"}]};
+const commercial={extras:[{id:"X",interventionId:"I",kind:"FORNITURA",priceCents:1000}],quotes:[{id:"Q",interventionId:"I",extraIds:["X"]}]};
+assert.equal(A.audit(field,commercial).valid,true);
+const clone=x=>JSON.parse(JSON.stringify(x));
+const bad=clone(field);bad.appointments.push({...bad.appointments[0],id:"B",start:"2026-11-22T09:30:00",end:"2026-11-22T11:00:00"});assert(A.audit(bad,commercial).issues.some(x=>x.code==="OPERATORE_SOVRAPPOSTO"));
+const broken=clone(commercial);broken.quotes[0].extraIds=["missing"];assert(A.audit(field,broken).issues.some(x=>x.code==="PREVENTIVO_EXTRA"));
+const doc=[{id:"D",clientId:"C",siteId:"S"},{id:"D",clientId:"wrong",siteId:"S"}];assert(A.audit(field,commercial,[],doc).issues.some(x=>x.code==="ID_DUPLICATO"));
+assert(A.csv({schema:"ITE_AUDIT_264",issues:[{code:"TEST",id:"=SUM(1,1)"}]}).includes("'=SUM"));
+assert.equal(A.audit(field,commercial).readOnly,true);console.log("4.0.264 integrated audit tests OK");
