@@ -1,0 +1,19 @@
+name: ITE 4.0.274 report dossier commercial bridge
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-report-bridge-274.js'
+      - 'ite-report-bridge-274.test.js'
+      - '.github/workflows/ite-report-bridge-274.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-report-bridge-274.js
+      - run: node --test ite-report-bridge-274.test.js ite-field-report-273.test.js
