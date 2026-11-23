@@ -9,8 +9,8 @@ const out=section.querySelector("#ite-preflight-result"),exportBtn=section.query
 section.querySelector("#ite-preflight-run").addEventListener("click",()=>{
 try{
 const dossier=root.ITEDossier269.load(localStorage),sales=root.ITESales281.load(localStorage,dossier),purchases=root.ITEPurchases279.load(localStorage,dossier);
-const cash=root.ITECashflow282;const receivables=cash.loadReceivables?cash.loadReceivables(localStorage,dossier,sales):null;
-const payables=root.ITEPayables280?.load?.(localStorage,dossier,purchases);
+const cash=root.ITECashflow282;const receivables=cash.load(localStorage,sales,dossier);
+const payables=root.ITEPayables280?.load?.(localStorage,purchases,dossier);
 if(!receivables||!payables)throw Error("ARCHIVI_SCADENZE_NON_DISPONIBILI");
 report=api.inspect({dossier,sales,purchases,receivables,payables,today:new Date().toISOString().slice(0,10)});
 out.textContent=JSON.stringify({totals:report.totals,blocked:report.blocked,issues:report.issues},null,2);exportBtn.disabled=false;
