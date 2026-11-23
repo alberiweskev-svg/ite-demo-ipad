@@ -7,7 +7,7 @@ function dependencies(root){return {dossier:root.ITEDossier269,sales:root.ITESal
 function verifySet(data,apis){if(!data||typeof data!=="object"||Array.isArray(data))throw Error("ARCHIVIO_MANCANTE");
 for(const n of names)if(!apis[n]||typeof apis[n].validate!=="function"||typeof apis[n].KEY!=="string")throw Error("MODULO_NON_DISPONIBILE_"+n);
 const d=apis.dossier.validate(data.dossier);
-for(const n of names.slice(1))apis[n].validate(data[n],d);
+apis.sales.validate(data.sales,d);apis.purchases.validate(data.purchases,d);apis.receivables.validate(data.receivables,data.sales,d);apis.payables.validate(data.payables,data.purchases,d);
 return clone(data);}
 function read(storage,apis){const d=apis.dossier.load(storage);return verifySet({dossier:d,sales:apis.sales.load(storage,d),purchases:apis.purchases.load(storage,d),receivables:apis.receivables.load(storage,apis.sales.load(storage,d),d),payables:apis.payables.load(storage,apis.purchases.load(storage,d),d)},apis);}
 function digest(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(16).padStart(8,"0");}
