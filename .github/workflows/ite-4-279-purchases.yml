@@ -1,0 +1,30 @@
+name: ITE 4.0.279 Purchase lifecycle regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-purchases-279.js'
+      - 'ite-purchases-ui-279.js'
+      - 'test-purchases-279.js'
+      - 'ite-dossier-269.js'
+      - 'ite-commercial-ledger-268.js'
+      - 'index.html'
+      - '.github/workflows/ite-4-279-purchases.yml'
+  workflow_dispatch:
+jobs:
+  purchase-lifecycle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check ite-purchases-279.js
+          node --check ite-purchases-ui-279.js
+          node --check test-purchases-279.js
+      - name: Purchase, credit and payment regression
+        run: node test-purchases-279.js
+      - name: Commercial ledger regression
+        run: node test-commercial-ledger-268.js
