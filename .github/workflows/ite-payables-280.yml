@@ -1,0 +1,23 @@
+name: ITE 4.0.280 Payables regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-payables-280.js'
+      - 'ite-payables-ui-280.js'
+      - 'test-payables-280.test.js'
+      - 'ite-purchases-279.js'
+      - 'ite-dossier-269.js'
+      - '.github/workflows/ite-payables-280.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-payables-280.js
+      - run: node --check ite-payables-ui-280.js
+      - run: node --test test-payables-280.test.js
