@@ -1,0 +1,21 @@
+name: ITE 4.0.296 workflow TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/workflow296.js'
+      - 'gestionale4/workflow296-ui.js'
+      - 'gestionale4/tests/workflow296.test.cjs'
+      - '.github/workflows/ite-workflow296.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check gestionale4/workflow296.js
+      - run: node --check gestionale4/workflow296-ui.js
+      - run: node --test gestionale4/tests/workflow296.test.cjs
