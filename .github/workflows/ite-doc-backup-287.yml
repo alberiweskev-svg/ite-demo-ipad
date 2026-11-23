@@ -1,0 +1,19 @@
+name: ITE 4.0.287 PDF backup tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-doc-286.js'
+      - 'ite-doc-backup-287.js'
+      - 'test-doc-backup-287.cjs'
+      - '.github/workflows/ite-doc-backup-287.yml'
+  workflow_dispatch:
+jobs:
+  pdf-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test-doc-backup-287.cjs
