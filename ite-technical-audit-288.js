@@ -1,0 +1,17 @@
+/* ITE 4.0.288 - technical document readiness and verified export; TEST only. */
+(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;root.ITETechnicalAudit288=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){"use strict";
+const TYPES=["DICO","DIRI","GAS","POS","CAD","ALLEGATO","LIBRETTO","RAPPORTO"], fail=s=>{throw Error(s);};
+function inspect(state,graph){if(!globalThis.ITEDoc286)fail("MODULO_DOCUMENTALE_ASSENTE");const docs=globalThis.ITEDoc286.validate(state),issues=[],rows=[],ids=new Set();const clients=graph?.clients||[],sites=graph?.sites||[],systems=graph?.systems||[],devices=graph?.devices||[],interventions=graph?.interventions||[];
+for(const d of docs.documents){const errors=[];if(ids.has(d.id))errors.push("ID_DUPLICATO");ids.add(d.id);
+const client=clients.find(x=>x.id===d.clientId),site=sites.find(x=>x.id===d.siteId);
+if(!client||!site||site.clientId!==client.id)errors.push("CLIENTE_SEDE_NON_VALIDI");
+if(d.systemId&&!systems.some(x=>x.id===d.systemId&&x.siteId===d.siteId))errors.push("IMPIANTO_NON_VALIDO");
+if(d.equipmentId&&!devices.some(x=>x.id===d.equipmentId&&x.systemId===d.systemId))errors.push("APPARECCHIATURA_NON_VALIDA");
+if(d.interventionId&&!interventions.some(x=>x.id===d.interventionId&&x.siteId===d.siteId))errors.push("INTERVENTO_NON_VALIDO");
+if(!d.pdf)errors.push("PDF_ASSENTE");if(d.status!=="archiviato")errors.push("DA_ARCHIVIARE");
+const row={id:d.id,type:d.type,title:d.title,clientId:d.clientId,siteId:d.siteId,status:d.status,pdf:d.pdf?{key:d.pdf.key,sha256:d.pdf.sha256,size:d.pdf.size}:null,errors};rows.push(row);errors.forEach(code=>issues.push({id:d.id,code}));}
+const bySite={};for(const r of rows){const s=bySite[r.siteId]||(bySite[r.siteId]={total:0,ready:0,blocked:0});s.total++;if(!r.errors.length)s.ready++;else s.blocked++;}
+return {schema:"ITE_TECH_AUDIT_288",revision:docs.revision,summary:{total:rows.length,ready:rows.filter(x=>!x.errors.length).length,blocked:rows.filter(x=>x.errors.length).length},bySite,rows,issues};}
+async function verify(state,graph,adapter,cryptoApi){const report=inspect(state,graph),api=globalThis.ITEDoc286;for(const row of report.rows){if(!row.pdf)continue;try{await api.verifyStored(state,row.id,adapter,cryptoApi);}catch(e){row.errors.push("PDF_INTEGRITA_FALLITA");report.issues.push({id:row.id,code:"PDF_INTEGRITA_FALLITA"});}}report.summary.ready=report.rows.filter(x=>!x.errors.length).length;report.summary.blocked=report.rows.length-report.summary.ready;for(const site of Object.keys(report.bySite)){const rows=report.rows.filter(x=>x.siteId===site);report.bySite[site].ready=rows.filter(x=>!x.errors.length).length;report.bySite[site].blocked=rows.length-report.bySite[site].ready;}return report;}
+function handover(report,siteId){if(report?.schema!=="ITE_TECH_AUDIT_288"||!siteId)fail("RAPPORTO_NON_VALIDO");const rows=report.rows.filter(x=>x.siteId===siteId);if(!rows.length)fail("SEDE_SENZA_DOCUMENTI");return {schema:"ITE_TECH_HANDOVER_288",mode:"TEST_ONLY",siteId,revision:report.revision,ready:rows.every(x=>x.errors.length===0),documents:rows.map(x=>({id:x.id,type:x.type,title:x.title,status:x.status,sha256:x.pdf?.sha256||null,errors:x.errors.slice()})),warnings:report.issues.filter(x=>rows.some(r=>r.id===x.id))};}
+return Object.freeze({TYPES,inspect,verify,handover});});
