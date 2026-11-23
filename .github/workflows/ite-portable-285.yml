@@ -1,0 +1,23 @@
+name: ITE 4.0.285 portable archive regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-portable-285.js'
+      - 'ite-portable-ui-285.js'
+      - 'tests/ite-portable-285.test.js'
+      - '.github/workflows/ite-portable-285.yml'
+  workflow_dispatch:
+jobs:
+  portable:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-portable-285.js
+      - run: node --check ite-portable-ui-285.js
+      - run: node --test tests/ite-portable-285.test.js
