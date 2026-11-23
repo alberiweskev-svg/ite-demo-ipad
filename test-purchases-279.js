@@ -1,0 +1,15 @@
+const assert=require("node:assert/strict"),d=require("./ite-dossier-269.js"),m=require("./ite-purchases-279.js");
+let operational=d.empty(),s=m.empty();operational=d.insert(operational,"clients",{id:"TEST-C1"});operational=d.insert(operational,"sites",{id:"TEST-S1",clientId:"TEST-C1"});
+const invoice={supplierId:"TEST-F1",number:"A-1",date:"2026-11-23",siteId:"TEST-S1",category:"MATERIALI",netCents:10000};
+s=m.addInvoice(s,operational,invoice);assert.equal(s.documents.length,1);assert.throws(()=>m.addInvoice(s,operational,invoice),/NUMERO_DUPLICATO/);
+assert.throws(()=>m.addInvoice(s,operational,{...invoice,number:"A-2",siteId:"TEST-NO"}),/SEDE_NON_TROVATA/);
+s=m.addCredit(s,operational,{referenceId:s.documents[0].id,number:"NC-1",date:"2026-11-23",netCents:2000});
+assert.throws(()=>m.addCredit(s,operational,{referenceId:s.documents[0].id,number:"NC-2",date:"2026-11-23",netCents:9000}),/CREDITO_SUPERA_FATTURA/);
+s=m.addPayment(s,operational,{documentId:s.documents[0].id,date:"2026-11-23",amountCents:3000});
+assert.equal(m.summary(s,operational).totals.residualCents,5000);
+assert.throws(()=>m.addPayment(s,operational,{documentId:s.documents[0].id,date:"2026-11-23",amountCents:6000}),/SALDO_NEGATIVO/);
+const map=new Map(),storage={getItem:k=>map.has(k)?map.get(k):null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};
+let before=m.empty(),after=m.addInvoice(before,operational,invoice);m.persist(storage,before,after,operational);assert.equal(m.load(storage,operational).revision,1);
+assert.throws(()=>m.persist(storage,before,after,operational),/CONFLITTO_REVISIONE/);
+const corrupt={...after,revision:2};assert.throws(()=>m.validate(corrupt,d.empty()),/SEDE_NON_TROVATA/);
+console.log("ITE 4.0.279 purchases, credits, payments and persistence: PASS");
