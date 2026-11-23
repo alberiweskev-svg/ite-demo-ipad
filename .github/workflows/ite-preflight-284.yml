@@ -1,0 +1,16 @@
+name: ITE 4.0.284 preflight
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-preflight-284.js','tests/ite-preflight-284.test.cjs','.github/workflows/ite-preflight-284.yml']
+  workflow_dispatch:
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-preflight-284.js
+      - run: node --test tests/ite-preflight-284.test.cjs
