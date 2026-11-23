@@ -1,0 +1,10 @@
+/* 4.0.290 verified technical handover, synthetic data only. */
+const test=require("node:test"),assert=require("node:assert/strict");
+const crypto=require("node:crypto").webcrypto;
+const dossier=require("./ite-dossier-269.js"),docs=require("./ite-doc-286.js"),audit=require("./ite-technical-audit-288.js");
+function fixture(){const g=dossier.empty();g.clients.push({id:"TEST-C1",name:"Test"});g.sites.push({id:"TEST-S1",clientId:"TEST-C1"});return g;}
+async function setup(){const graph=fixture();let state=docs.add(docs.empty(),0,{id:"TEST-DOC",type:"DICO",title:"DiCo sintetica",clientId:"TEST-C1",siteId:"TEST-S1"},graph);const files=new Map(),adapter={put:async(k,v)=>files.set(k,v),get:async k=>files.get(k)};state=await docs.importPdf(state,state.revision,"TEST-DOC",new TextEncoder().encode("%PDF-1.4\nTEST"),adapter,crypto,graph);state=docs.archive(state,state.revision,"TEST-DOC",graph);return {graph,state,files,adapter};}
+test("unverified metadata-only audit cannot authorize delivery",async()=>{const x=await setup();const report=audit.inspect(x.state,x.graph);assert.equal(report.summary.ready,1);assert.throws(()=>audit.handover(report,"TEST-S1"),/VERIFICA_PDF_OBBLIGATORIA/);});
+test("verified PDF enables site-specific TEST manifest",async()=>{const x=await setup();const report=await audit.verify(x.state,x.graph,x.adapter,crypto);assert.equal(report.pdfIntegrityChecked,true);const handover=audit.handover(report,"TEST-S1");assert.equal(handover.ready,true);assert.equal(handover.pdfIntegrityChecked,true);assert.equal(handover.documents.length,1);});
+test("missing PDF blocks handover readiness",async()=>{const x=await setup();x.files.clear();const report=await audit.verify(x.state,x.graph,x.adapter,crypto);assert.equal(report.summary.blocked,1);assert.equal(audit.handover(report,"TEST-S1").ready,false);});
+test("corrupted PDF blocks readiness",async()=>{const x=await setup();x.files.set(x.state.documents[0].pdf.key,new TextEncoder().encode("%PDF-1.4\nALTERED"));const report=await audit.verify(x.state,x.graph,x.adapter,crypto);assert.ok(report.rows[0].errors.includes("PDF_INTEGRITA_FALLITA"));});
