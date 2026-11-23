@@ -1,0 +1,23 @@
+name: ITE 4.0.278 technical handover
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-handover-278.js'
+      - 'ite-handover-ui-278.js'
+      - 'ite-audit-277.js'
+      - 'ite-technical-register-271.js'
+      - 'ite-dossier-269.js'
+      - 'tests/ite-handover-278.test.js'
+      - '.github/workflows/ite-handover-278.yml'
+  workflow_dispatch:
+jobs:
+  handover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/ite-handover-278.test.js
+      - run: node --check ite-handover-278.js && node --check ite-handover-ui-278.js
