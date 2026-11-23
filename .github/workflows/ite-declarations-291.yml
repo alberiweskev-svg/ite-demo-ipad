@@ -1,0 +1,15 @@
+name: ITE 4.0.291 dichiarazioni TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-declarations-291.js', 'ite-declarations-ui-291.js', 'test-declarations-291.cjs', 'index.html', '.github/workflows/ite-declarations-291.yml']
+  workflow_dispatch:
+jobs:
+  declaration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test-declarations-291.cjs
