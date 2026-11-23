@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');const test=require('node:test');const w=require('../workflow296.js');
+function fixture(){let s=w.empty();for(const [t,x] of [['clienti',{id:'c1',nome:'Cliente TEST'}],['sedi',{id:'s1',clienteId:'c1'}],['impianti',{id:'i1',sedeId:'s1'}],['apparecchiature',{id:'a1',impiantoId:'i1'}],['interventi',{id:'l1',apparecchiaturaId:'a1'}],['appuntamenti',{id:'ap1',interventoId:'l1',operatore:'Tecnico TEST',inizio:'2026-11-24T09:00:00+01:00',fine:'2026-11-24T10:30:00+01:00'}],['preventivi',{id:'p1',interventoId:'l1',voci:[{tipo:'fornitura',quantita:2,prezzo:10.15},{tipo:'posa',quantita:1,prezzo:58},{tipo:'extra',quantita:1,prezzo:5}]}],['fatture',{id:'f1',tipo:'proforma',preventivoId:'p1'}]])s=w.insert(s,t,x);return s;}
+test('grafo completo cliente-sede-impianto-apparecchiatura-intervento',()=>assert.equal(w.dossier(fixture(),'l1').cliente.id,'c1'));
+test('blocca riferimenti orfani e non modifica originale',()=>{const s=fixture();assert.throws(()=>w.insert(s,'sedi',{id:'s2',clienteId:'inesistente'}));assert.equal(s.sedi.length,1);});
+test('blocca ID duplicati',()=>assert.throws(()=>w.insert(fixture(),'clienti',{id:'c1'})));
+test('operatore obbligatorio e tempi validi',()=>assert.throws(()=>w.insert(fixture(),'appuntamenti',{id:'ap2',interventoId:'l1',inizio:'2026-11-24',fine:'2026-11-25'})));
+test('durata in minuti',()=>assert.equal(w.timeline(fixture())[0].minuti,90));
+test('conflitti operatore',()=>{let s=fixture();s=w.insert(s,'appuntamenti',{id:'ap2',interventoId:'l1',operatore:'Tecnico TEST',inizio:'2026-11-24T10:00:00+01:00',fine:'2026-11-24T11:00:00+01:00'});assert.equal(w.conflicts(s).length,1);});
+test('fornitura e posa separate',()=>{const t=w.totals(fixture(),'p1');assert.equal(t.fornitura,20.3);assert.equal(t.posa,58);assert.equal(t.totale,83.3);});
+test('fatture tipi ammessi e TD04',()=>{let s=fixture();s=w.insert(s,'fatture',{id:'f2',tipo:'TD04',preventivoId:'p1'});assert.equal(s.fatture.length,2);assert.throws(()=>w.insert(s,'fatture',{id:'f3',tipo:'altro'}));});
+test('modifica senza alterare id',()=>{const s=fixture();assert.throws(()=>w.update(s,'clienti','c1',{id:'c2'}));assert.equal(w.update(s,'clienti','c1',{nome:'Nuovo TEST'}).clienti[0].nome,'Nuovo TEST');});
+test('export/import solo dati TEST',()=>{const s=fixture();assert.deepEqual(w.importTest(w.exportTest(s)),s);assert.throws(()=>w.importTest(JSON.stringify({schema:'ite-workflow-4.0.296',testOnly:false,data:s})));});
