@@ -1,0 +1,19 @@
+name: ITE 4.0.288 technical audit tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-doc-286.js'
+      - 'ite-technical-audit-288.js'
+      - 'test-technical-audit-288.cjs'
+      - '.github/workflows/ite-technical-audit-288.yml'
+  workflow_dispatch:
+jobs:
+  technical-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test-technical-audit-288.cjs
