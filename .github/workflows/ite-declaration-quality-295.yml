@@ -1,0 +1,20 @@
+name: ITE 4.0.295 declaration quality tests
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-declaration-quality-295.js'
+      - 'ite-declaration-review-ui-294.js'
+      - 'tests/test-declaration-quality-295.cjs'
+      - '.github/workflows/ite-declaration-quality-295.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Declaration dossier quality regression
+        run: node --test tests/test-declaration-quality-295.cjs
