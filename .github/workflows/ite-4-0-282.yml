@@ -1,0 +1,23 @@
+name: ITE 4.0.282 cashflow regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-cashflow-282.js'
+      - 'ite-cashflow-ui-282.js'
+      - 'ite-sales-281.js'
+      - 'ite-payables-280.js'
+      - 'tests/ite-cashflow-282.test.js'
+      - 'index.html'
+      - '.github/workflows/ite-4-0-282.yml'
+  workflow_dispatch:
+jobs:
+  cashflow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-cashflow-282.js && node --check ite-cashflow-ui-282.js
+      - run: node --test tests/ite-cashflow-282.test.js
