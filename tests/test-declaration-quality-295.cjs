@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');const test=require('node:test');const quality=require('../ite-declaration-quality-295.js');
+const H='a'.repeat(64);const snap=()=>({schema:'ITE_DECLARATION_REVIEW_294',packet:{primaryDocument:{id:'p'},declaration:{id:'d'},issues:[]},documentEvidence:[{id:'p',type:'Di.Co.',status:'archiviato',hash:H}]});
+const docs=()=>({documents:[{id:'p',type:'Di.Co.',status:'archiviato',pdf:{sha256:H}}]});
+test('complete snapshot can proceed to hash validation',()=>assert.equal(quality.evaluate(snap(),docs()).readyForIntegrityCheck,true));
+test('missing primary fails closed',()=>{const s=snap();s.packet.primaryDocument=null;assert.ok(quality.evaluate(s,docs()).issues.includes('DOCUMENTO_PRINCIPALE_ASSENTE'));});
+test('missing document fails closed',()=>assert.ok(quality.evaluate(snap(),{documents:[]}).issues.includes('DOCUMENTO_NON_TROVATO')));
+test('duplicate document ids fail closed',()=>{const d=docs();d.documents.push({...d.documents[0]});assert.ok(quality.evaluate(snap(),d).issues.includes('ID_DOCUMENTO_AMBIGUO'));});
+test('changed hash fails closed',()=>{const d=docs();d.documents[0].pdf.sha256='b'.repeat(64);assert.ok(quality.evaluate(snap(),d).issues.includes('HASH_MODIFICATO'));});
+test('unarchived related document fails closed',()=>{const s=snap(),d=docs();s.documentEvidence.push({id:'x',type:'POS',status:'bozza',hash:H});d.documents.push({id:'x',type:'POS',status:'bozza',pdf:{sha256:H}});assert.ok(quality.evaluate(s,d).issues.includes('DOCUMENTO_NON_ARCHIVIATO'));});
+test('invalid snapshot rejected',()=>assert.throws(()=>quality.evaluate({},docs()),/SNAPSHOT_NON_VALIDO/));
+test('quality blocks integrity check if incomplete',async()=>{let called=false;const out=await quality.check(snap(),{documents:[]},null,null,{verify:async()=>{called=true;}});assert.equal(called,false);assert.equal(out.readyForHumanReview,false);});
+test('quality delegates verified hash check',async()=>{const out=await quality.check(snap(),docs(),()=>{},()=>{},{verify:async()=>({verified:true,readyForHumanReview:true,checks:[{id:'p',ok:true}]})});assert.equal(out.readyForHumanReview,true);assert.equal(out.canIssue,false);});
