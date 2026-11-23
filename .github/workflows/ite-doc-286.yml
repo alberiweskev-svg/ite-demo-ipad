@@ -1,0 +1,19 @@
+name: ITE 4.0.286 document workflow
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-doc-286.js','ite-doc-ui-286.js','tests/ite-doc-286.test.js','.github/workflows/ite-doc-286.yml']
+  workflow_dispatch:
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-doc-286.js
+      - run: node --check ite-doc-ui-286.js
+      - run: node --test tests/ite-doc-286.test.js
