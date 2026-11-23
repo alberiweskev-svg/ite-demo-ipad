@@ -1,0 +1,15 @@
+name: ITE 4.0.277 synthetic cross-register audit
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['ite-audit-277.js', 'ite-audit-ui-277.js', 'index.html', 'tests/ite-audit-277.test.js', '.github/workflows/ite-audit-277.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/ite-audit-277.test.js tests/ite-operations-276.test.js
