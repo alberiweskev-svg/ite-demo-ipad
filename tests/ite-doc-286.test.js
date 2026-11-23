@@ -1,0 +1,8 @@
+const {test}=require("node:test"),assert=require("node:assert/strict"),crypto=require("node:crypto").webcrypto,m=require("../ite-doc-286.js");const g={clients:[{id:"c"}],sites:[{id:"s",clientId:"c"}],systems:[{id:"i",siteId:"s"}],devices:[{id:"e",systemId:"i"}],interventions:[{id:"w",siteId:"s"}]},d={id:"d",type:"DICO",title:"TEST",clientId:"c",siteId:"s",systemId:"i",equipmentId:"e",interventionId:"w"},pdf=new TextEncoder().encode("%PDF-1.4\n%%EOF");const start=()=>m.add(m.empty(),0,d,g);
+test("linked document",()=>assert.equal(start().documents.length,1));
+test("reject orphan",()=>assert.throws(()=>m.add(m.empty(),0,{...d,siteId:"bad"},g),/INCOERENTI/));
+test("revision guard",()=>assert.throws(()=>m.add(start(),0,{...d,id:"d2"},g),/CONFLITTO/));
+test("archive requires PDF",()=>assert.throws(()=>m.archive(start(),1,"d",g),/PDF_OBBLIGATORIO/));
+test("reject non PDF",()=>assert.throws(()=>m.verifyPdf(new Uint8Array(12)),/PDF_NON_VALIDO/));
+test("import verify archive",async()=>{const map=new Map(),a={put:async(k,v)=>map.set(k,v),get:async k=>map.get(k)};let s=await m.importPdf(start(),1,"d",pdf,a,crypto,g);assert.equal(await m.verifyStored(s,"d",a,crypto),true);s=m.archive(s,2,"d",g);assert.equal(s.documents[0].status,"archiviato");assert.deepEqual(m.restore(m.manifest(s),g),s);});
+test("immutability",async()=>{const h=await m.sha(pdf,crypto),s=m.archive(m.attach(start(),1,"d",{key:"k",sha256:h,size:pdf.length},g),2,"d",g);assert.throws(()=>m.attach(s,3,"d",{key:"x",sha256:h,size:pdf.length},g),/IMMUTABILE/);});
