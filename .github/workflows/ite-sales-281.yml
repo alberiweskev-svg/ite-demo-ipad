@@ -1,0 +1,21 @@
+name: ITE 4.0.281 Sales regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-sales-281.js'
+      - 'ite-sales-ui-281.js'
+      - 'test-sales-281.test.js'
+      - '.github/workflows/ite-sales-281.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check ite-sales-281.js
+      - run: node --check ite-sales-ui-281.js
+      - run: node --test test-sales-281.test.js
