@@ -1,0 +1,23 @@
+name: ITE 4.0.275 atomic closeout synthetic regression
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'ite-atomic-closeout-275.js'
+      - 'ite-report-bridge-ui-274.js'
+      - 'ite-report-bridge-274.js'
+      - 'ite-dossier-269.js'
+      - 'ite-dossier-270.js'
+      - 'ite-field-report-273.js'
+      - 'tests/ite-atomic-closeout-275.test.js'
+      - '.github/workflows/ite-atomic-closeout-275.yml'
+  workflow_dispatch:
+jobs:
+  synthetic-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/ite-atomic-closeout-275.test.js
