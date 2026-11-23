@@ -1,0 +1,22 @@
+name: ITE 4.0.297 operations TEST
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths:
+      - 'gestionale4/operations297.js'
+      - 'gestionale4/operations297-ui.js'
+      - 'gestionale4/tests/operations297.test.cjs'
+      - '.github/workflows/ite-operations297.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check gestionale4/operations297.js
+      - run: node --check gestionale4/operations297-ui.js
+      - run: node --test gestionale4/tests/operations297.test.cjs
+      - run: node --test gestionale4/tests/workflow296.test.cjs
