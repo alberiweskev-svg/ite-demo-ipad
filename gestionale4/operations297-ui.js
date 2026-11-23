@@ -2,7 +2,7 @@
 let db=api.init(w.empty());const el=(tag,txt)=>{const x=document.createElement(tag);x.textContent=txt||'';return x;};const out=el('pre','Archivio TEST vuoto. Caricare il JSON del workflow 4.0.296 per iniziare.');out.style.whiteSpace='pre-wrap';const input=el('textarea');input.rows=4;input.placeholder='JSON TEST del workflow 4.0.296 oppure archivio operazioni 4.0.297';root.append(input);const controls=el('div');controls.className='actions';root.append(controls);const fields=el('div');fields.className='grid';root.append(fields);const specs=[['interventoId','ID intervento'],['rapportoId','ID rapporto'],['operatore','Operatore'],['arrivo','Ora arrivo ISO (con fuso)'],['uscita','Ora uscita ISO (con fuso)'],['descrizione','Descrizione lavori'],['preventivoId','ID preventivo'],['extraId','ID Extra'],['tipo','Tipo voce (fornitura/posa/smontaggio/smaltimento)'],['quantita','Quantità'],['prezzo','Prezzo unitario EUR'],['fatturaId','ID documento'],['fatturaTipo','Tipo (acquisto/vendita/proforma/TD04)'],['centesimi','Importo centesimi'],['riferimento','ID fattura vendita per TD04']];
 const f={};for(const [key,label] of specs){const box=el('label',label),i=el('input');i.autocomplete='off';box.append(i);fields.append(box);f[key]=i;}root.append(out);
 const val=k=>f[k].value.trim(),num=k=>Number(val(k)),render=()=>{out.textContent=JSON.stringify({revision:db.revision,rapporti:db.rapporti,extra:db.extra,documenti:db.movimenti,audit:db.audit.slice(-8)},null,2);};
-function btn(label,fn){const b=el('button',label);b.type='button';b.addEventListener('click',()=>{try{fn();render();}catch(e){out.textContent='Operazione non eseguita: '+e.message;}});controls.append(b);}
+function btn(label,fn){const b=el('button',label);b.type='button';b.addEventListener('click',()=>{try{const result=fn();if(result!==false)render();}catch(e){out.textContent='Operazione non eseguita: '+e.message;}});controls.append(b);}
 btn('Carica JSON TEST',()=>{const raw=input.value;try{db=api.importTest(raw);}catch(e){db=api.init(w.importTest(raw));}});
 btn('Sono arrivato',()=>{db=api.arrive(db,db.revision,val('rapportoId'),val('interventoId'),val('operatore'),val('arrivo'));});
 btn('Chiudi intervento',()=>{db=api.close(db,db.revision,val('rapportoId'),val('uscita'),val('descrizione'));});
@@ -10,7 +10,7 @@ btn('Proponi Extra',()=>{db=api.addExtra(db,db.revision,{id:val('extraId'),preve
 btn('Approva Extra',()=>{db=api.decideExtra(db,db.revision,val('extraId'),true);});
 btn('Rifiuta Extra',()=>{db=api.decideExtra(db,db.revision,val('extraId'),false);});
 btn('Registra documento',()=>{db=api.recordDocument(db,db.revision,{id:val('fatturaId'),tipo:val('fatturaTipo'),preventivoId:val('preventivoId'),documentoRiferimento:val('riferimento'),centesimi:num('centesimi')});});
-btn('Riepilogo intervento',()=>{out.textContent=JSON.stringify(api.summary(db,val('interventoId')),null,2);});
+btn('Riepilogo intervento',()=>{out.textContent=JSON.stringify(api.summary(db,val('interventoId')),null,2);return false;});
 btn('Esporta backup TEST',()=>{const blob=new Blob([api.exportTest(db)],{type:'application/json'}),url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download='ite-operations297-TEST.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);});
 render();
 })();
