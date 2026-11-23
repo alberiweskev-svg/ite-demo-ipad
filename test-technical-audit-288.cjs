@@ -1,0 +1,10 @@
+const {test}=require("node:test"),assert=require("node:assert/strict"),{webcrypto}=require("node:crypto");const docs=require("./ite-doc-286.js");globalThis.ITEDoc286=docs;const audit=require("./ite-technical-audit-288.js");
+const graph={clients:[{id:"C"}],sites:[{id:"S",clientId:"C"}],systems:[{id:"I",siteId:"S"}],devices:[{id:"D",systemId:"I"}],interventions:[{id:"W",siteId:"S"}]};
+const bytes=new Uint8Array(Buffer.from("%PDF-1.7\n%%EOF")),files=new Map(),adapter={get:async k=>files.get(k),put:async(k,v)=>files.set(k,v)};
+async function fixture(){files.clear();let s=docs.add(docs.empty(),0,{id:"T",type:"DICO",title:"Documento TEST",clientId:"C",siteId:"S",systemId:"I",equipmentId:"D",interventionId:"W"});const hash=await docs.sha(bytes,webcrypto);s=docs.attach(s,1,"T",{key:"TEST",sha256:hash,size:bytes.length});s=docs.archive(s,2,"T");files.set("TEST",bytes);return s;}
+test("ready only for archived linked documents",async()=>{const s=await fixture(),r=await audit.verify(s,graph,adapter,webcrypto);assert.equal(r.summary.ready,1);assert.equal(audit.handover(r,"S").ready,true);});
+test("missing graph relationships block handover",async()=>{const s=await fixture(),r=audit.inspect(s,{...graph,sites:[]});assert.equal(r.summary.blocked,1);assert.equal(audit.handover(r,"S").ready,false);});
+test("corrupt PDF blocks handover",async()=>{const s=await fixture();files.set("TEST",new Uint8Array(Buffer.from("%PDF-1.6\n%%EOF")));const r=await audit.verify(s,graph,adapter,webcrypto);assert.ok(r.issues.some(x=>x.code==="PDF_INTEGRITA_FALLITA"));assert.equal(r.summary.ready,0);});
+test("missing PDF and draft are flagged",()=>{const s=docs.add(docs.empty(),0,{id:"T",type:"DIRI",title:"TEST",clientId:"C",siteId:"S"});const r=audit.inspect(s,graph);assert.equal(r.issues.length,2);});
+test("handover rejects unknown site",async()=>{const r=audit.inspect(await fixture(),graph);assert.throws(()=>audit.handover(r,"other"),/SEDE_SENZA_DOCUMENTI/);});
+test("reports are detached from source state",async()=>{const s=await fixture(),r=audit.inspect(s,graph);r.rows[0].errors.push("TEST");assert.equal(s.documents[0].status,"archiviato");});
