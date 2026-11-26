@@ -1,0 +1,36 @@
+name: ITE 4.0.298 integrated workspace
+on:
+  push:
+    branches: [sviluppo-4.0.0-base]
+    paths: ['gestionale4/**', '.github/workflows/ite-workspace298.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tz: [UTC, Europe/Rome]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check gestionale4/workspace298.js
+      - run: node --check gestionale4/workspace298-ui.js
+      - run: node --test gestionale4/tests/*.test.cjs
+      - name: Previous integrated demo regressions
+        run: for file in gestionale4/test-*.js; do node "$file" || exit 1; done
+      - run: npm install --no-save --package-lock=false playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node gestionale4/tests/workspace298.browser.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ITE-4.0.298-TEST-${{ matrix.tz == 'UTC' && 'UTC' || 'Rome' }}
+          path: |
+            gestionale4/
+            ite-integrated-core-225.js
+          retention-days: 14
